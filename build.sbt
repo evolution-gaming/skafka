@@ -42,4 +42,5 @@ lazy val skafkaImpl = (project
   in file("skafka-impl")
   settings (name := "skafka-impl")
   settings commonSettings
-  dependsOn skafkaApi % "test->test;compile->compile")
+  dependsOn skafkaApi % "test->test;compile->compile"
+  settings (libraryDependencies ++= Seq(KafkaClients, /*KafkaClients_010, */ExecutorTools % Test)))

@@ -39,7 +39,7 @@ class ProducerFactorySpec extends WordSpec with Matchers {
     }
 
     "proxy send" in new Scope {
-      val record = Producer.Record(0, "0", topic)
+      val record = Producer.Record(topic = topic, value = "0")
       val result = producer.send(record)
       result.value shouldEqual Some(Success(metadata))
     }

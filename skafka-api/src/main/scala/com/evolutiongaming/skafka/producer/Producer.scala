@@ -18,10 +18,10 @@ trait Producer[K, V] extends Closeable {
 
 object Producer {
 
-  case class Record[K, V](
-    key: K,
-    value: V,
+  case class Record[+K, +V](
     topic: Topic,
+    value: V,
+    key: Option[K] = None,
     partition: Option[Partition] = None,
     timestamp: Option[Timestamp] = None,
     headers: List[Header] = Nil

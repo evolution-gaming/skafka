@@ -6,7 +6,7 @@ import org.apache.kafka.clients.producer.ProducerRecord
 
 import scala.collection.JavaConverters._
 
-private[producer] object ProducerConverters {
+object ProducerConverters {
 
   implicit class RecordOps[K, V](val self: Record[K, V]) extends AnyVal {
 

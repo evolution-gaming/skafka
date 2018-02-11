@@ -7,7 +7,7 @@ import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
 import org.apache.kafka.common.{TopicPartition => JTopicPartition}
 
-private[skafka] object Converters {
+object Converters {
 
   implicit class HeaderOps(val self: Header) extends AnyVal {
 

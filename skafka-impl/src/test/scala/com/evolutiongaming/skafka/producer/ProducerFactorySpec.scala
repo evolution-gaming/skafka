@@ -3,6 +3,8 @@ package com.evolutiongaming.skafka.producer
 import java.util.concurrent.{CompletableFuture, TimeUnit}
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
+import com.evolutiongaming.skafka.Bytes
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.Producer.RecordMetadata
 import org.apache.kafka.clients.consumer.OffsetAndMetadata
@@ -39,8 +41,9 @@ class ProducerFactorySpec extends WordSpec with Matchers {
     }
 
     "proxy send" in new Scope {
-      val record = Producer.Record(topic = topic, value = "0")
-      val result = producer.send(record)
+      val record = Producer.Record[String, String](topic = topic, value = "0")
+      //      val record = Producer.Record](topic = topic, value = "0") // TODO resolve issue with type class for nothing
+      val result = producer(record)
       result.value shouldEqual Some(Success(metadata))
     }
   }
@@ -53,7 +56,7 @@ class ProducerFactorySpec extends WordSpec with Matchers {
     val metadata = RecordMetadata(topic = topic, partition = 0)
     val completableFuture = CompletableFuture.completedFuture(metadata.asJava)
 
-    val jProducer = new JProducer[Int, String] {
+    val jProducer = new JProducer[Bytes, Bytes] {
       def sendOffsetsToTransaction(offsets: java.util.Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {}
       def initTransactions() = {}
       def beginTransaction() = {}
@@ -63,11 +66,11 @@ class ProducerFactorySpec extends WordSpec with Matchers {
       def metrics() = Map.empty[MetricName, Metric].asJava
       def close() = closeCalled = true
       def close(timeout: Long, unit: TimeUnit) = closeTimeout = Some(FiniteDuration(timeout, unit))
-      def send(record: ProducerRecord[Int, String]) = completableFuture
-      def send(record: ProducerRecord[Int, String], callback: Callback) = completableFuture
+      def send(record: ProducerRecord[Bytes, Bytes]) = completableFuture
+      def send(record: ProducerRecord[Bytes, Bytes], callback: Callback) = completableFuture
       def abortTransaction() = {}
     }
-
-    val producer = ProducerFactory(jProducer, CurrentThreadExecutionContext)
+    val ec = CurrentThreadExecutionContext
+    val producer = ProducerFactory(jProducer, SequentiallyHandler.now, ec)(ec)
   }
 }

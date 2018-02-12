@@ -5,4 +5,6 @@ object Dependencies {
   lazy val KafkaClients = "org.apache.kafka" % "kafka-clients" % "1.0.0"
 //  lazy val KafkaClients_010 = "org.apache.kafka" % "kafka-clients" % "0.10.2.1"
   lazy val ExecutorTools = "com.evolutiongaming" %% "executor-tools" % "1.0.0"
+
+  lazy val Sequentially = "com.evolutiongaming" %% "sequentially" % "1.0.3"
 }

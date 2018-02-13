@@ -16,7 +16,7 @@ import scala.collection.JavaConverters._
 import scala.concurrent.duration._
 import scala.util.Success
 
-class ProducerFactorySpec extends WordSpec with Matchers {
+class CreateProducerSpec extends WordSpec with Matchers {
 
   "ProducerFactory" should {
 
@@ -71,6 +71,6 @@ class ProducerFactorySpec extends WordSpec with Matchers {
       def abortTransaction() = {}
     }
     val ec = CurrentThreadExecutionContext
-    val producer = ProducerFactory(jProducer, SequentiallyHandler.now, ec)(ec)
+    val producer = CreateProducer(jProducer, SequentiallyHandler.now, ec)(ec)
   }
 }

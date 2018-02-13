@@ -10,7 +10,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
-object ProducerFactory {
+object CreateProducer {
   import Producer._
 
   def apply(

@@ -7,4 +7,8 @@ object Dependencies {
   lazy val ExecutorTools = "com.evolutiongaming" %% "executor-tools" % "1.0.0"
 
   lazy val Sequentially = "com.evolutiongaming" %% "sequentially" % "1.0.3"
+
+  lazy val Nel = "com.evolutiongaming" %% "nel" % "1.0"
+
+  lazy val ConfigTools = "com.evolutiongaming" %% "config-tools" % "1.0.1"
 }

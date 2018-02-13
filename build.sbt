@@ -44,6 +44,8 @@ lazy val skafkaImpl = (project
   settings commonSettings
   dependsOn skafkaApi % "test->test;compile->compile"
   settings (libraryDependencies ++= Seq(
+  Nel,
+  ConfigTools,
   KafkaClients,
   Sequentially,
   /*KafkaClients_010, */ExecutorTools % Test)))

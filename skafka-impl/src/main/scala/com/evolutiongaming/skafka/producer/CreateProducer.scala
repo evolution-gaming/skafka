@@ -1,6 +1,8 @@
 package com.evolutiongaming.skafka.producer
 
 
+import akka.actor.ActorSystem
+import akka.stream.OverflowStrategy
 import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
 import com.evolutiongaming.skafka.Bytes
 import com.evolutiongaming.skafka.producer.ProducerConverters._
@@ -20,7 +22,7 @@ object CreateProducer {
     random: Random = new Random)
     (implicit ec: ExecutionContext): Producer = new Producer {
 
-    def apply[K, V](record: Record[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+    def doApply[K, V](record: Record[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
       val keySequentially: Any = record.key getOrElse random.nextInt()
       val result = sequentially.handler(keySequentially) {
         Future {
@@ -52,5 +54,12 @@ object CreateProducer {
     }
 
     private def asyncBlocking[T](f: => T): Future[T] = Future(f)(ecBlocking)
+  }
+
+  def apply(configs: Configs, ecBlocking: ExecutionContext)(implicit system: ActorSystem): Producer = {
+    implicit val materializer = CreateMaterializer(configs)
+    val sequentially = SequentiallyHandler[Any](overflowStrategy = OverflowStrategy.dropNew)
+    val jProducer = CreateJProducer(configs)
+    apply(jProducer, sequentially, ecBlocking)(system.dispatcher)
   }
 }

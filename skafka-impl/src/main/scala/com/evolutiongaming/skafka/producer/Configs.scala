@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.producer
 import com.evolutiongaming.config.ConfigHelper._
 import com.evolutiongaming.nel.Nel
 import com.typesafe.config.{Config, ConfigException}
+import org.apache.kafka.clients.producer.ProducerConfig
 
 import scala.concurrent.duration._
 
@@ -16,7 +17,7 @@ import scala.concurrent.duration._
   */
 case class Configs(
   bootstrapServers: Nel[String] = Nel("localhost:9092"),
-  clientId: String = "",
+  clientId: Option[String] = None,
   acks: String = "1",
   bufferMemory: Long = 33554432L,
   compressionType: String = "none",
@@ -33,7 +34,35 @@ case class Configs(
   metadataMaxAge: FiniteDuration = 5.minutes,
   reconnectBackoffMax: FiniteDuration = 1.second,
   reconnectBackoff: FiniteDuration = 50.millis,
-  retryBackoff: FiniteDuration = 100.millis)
+  retryBackoff: FiniteDuration = 100.millis) {
+
+  def bindings: Map[String, String] = Map[String, String](
+    (ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers mkString ","),
+    (ProducerConfig.CLIENT_ID_CONFIG, clientId getOrElse ""),
+    (ProducerConfig.ACKS_CONFIG, acks),
+    (ProducerConfig.BUFFER_MEMORY_CONFIG, bufferMemory.toString),
+    (ProducerConfig.COMPRESSION_TYPE_CONFIG, compressionType),
+    (ProducerConfig.BATCH_SIZE_CONFIG, batchSize.toString),
+    (ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG, connectionsMaxIdle.toMillis.toString),
+    (ProducerConfig.LINGER_MS_CONFIG, linger.toMillis.toString),
+    (ProducerConfig.MAX_BLOCK_MS_CONFIG, maxBlock.toMillis.toString),
+    (ProducerConfig.MAX_REQUEST_SIZE_CONFIG, maxRequestSize.toString),
+    (ProducerConfig.RECEIVE_BUFFER_CONFIG, receiveBufferBytes.toString),
+    (ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, requestTimeout.toMillis.toString),
+    (ProducerConfig.SEND_BUFFER_CONFIG, sendBufferBytes.toString),
+    (ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, enableIdempotence.toString),
+    (ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
+    (ProducerConfig.METADATA_MAX_AGE_CONFIG, metadataMaxAge.toMillis.toString),
+    (ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis.toString),
+    (ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis.toString),
+    (ProducerConfig.RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis.toString))
+
+  def properties: java.util.Properties = {
+    val properties = new java.util.Properties
+    bindings foreach { case (k, v) => properties.put(k, v) }
+    properties
+  }
+}
 
 object Configs {
 
@@ -56,7 +85,7 @@ object Configs {
         "bootstrap.servers") getOrElse Default.bootstrapServers,
       clientId = get[String](
         "client-id",
-        "client.id") getOrElse Default.clientId,
+        "client.id") orElse Default.clientId,
       acks = get[String]("acks") getOrElse Default.acks,
       bufferMemory = get[Long](
         "buffer-memory",

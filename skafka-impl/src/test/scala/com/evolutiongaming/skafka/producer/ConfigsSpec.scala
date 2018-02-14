@@ -18,7 +18,7 @@ class ConfigsSpec extends FunSuite with Matchers {
     val config = ConfigFactory.parseURL(getClass.getResource("desired.conf"))
     Configs(config) shouldEqual Configs(
       bootstrapServers = Nel("host:port"),
-      clientId = "clientId",
+      clientId = Some("clientId"),
       acks = "all",
       bufferMemory = 1,
       compressionType = "lz4",
@@ -42,7 +42,7 @@ class ConfigsSpec extends FunSuite with Matchers {
     val config = ConfigFactory.parseURL(getClass.getResource("undesired.conf"))
     Configs(config) shouldEqual Configs(
       bootstrapServers = Nel("host:port"),
-      clientId = "clientId",
+      clientId = Some("clientId"),
       acks = "all",
       bufferMemory = 1,
       compressionType = "lz4",
@@ -60,5 +60,32 @@ class ConfigsSpec extends FunSuite with Matchers {
       reconnectBackoffMax = 13.millis,
       reconnectBackoff = 14.millis,
       retryBackoff = 15.millis)
+  }
+
+  test("bindings") {
+    val configs = Configs(
+      bootstrapServers = Nel("localhost:9092", "127.0.0.1:9092"),
+      clientId = Some("clientId"))
+
+    configs.bindings shouldEqual Map(
+      "reconnect.backoff.max.ms" -> "1000",
+      "compression.type" -> "none",
+      "buffer.memory" -> "33554432",
+      "connections.max.idle.ms" -> "540000",
+      "max.request.size" -> "1048576",
+      "bootstrap.servers" -> "localhost:9092,127.0.0.1:9092",
+      "request.timeout.ms" -> "30000",
+      "max.block.ms" -> "60000",
+      "client.id" -> "clientId",
+      "acks" -> "1",
+      "metadata.max.age.ms" -> "300000",
+      "enable.idempotence" -> "false",
+      "max.in.flight.requests.per.connection" -> "5",
+      "retry.backoff.ms" -> "100",
+      "receive.buffer.bytes" -> "32768",
+      "reconnect.backoff.ms" -> "50",
+      "linger.ms" -> "0",
+      "batch.size" -> "16384",
+      "send.buffer.bytes" -> "131072")
   }
 }

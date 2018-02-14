@@ -15,8 +15,36 @@ trait Producer extends Producer.Send with Closeable {
 
 object Producer {
 
+  lazy val Empty: Producer = new Producer {
+
+    def doApply[K, V](record: Record[K, V])
+      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
+
+      val metadata = RecordMetadata(record.topic, record.partition getOrElse 0, record.timestamp)
+      Future.successful(metadata)
+    }
+
+    def flush(): Future[Unit] = Future.successful(())
+
+    def closeAsync(timeout: FiniteDuration): Future[Unit] = Future.successful(())
+
+    def close(): Unit = Future.successful(())
+  }
+
   sealed trait Send {
     def apply[K, V](record: Record[K, V])
+      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
+
+      doApply(record)(valueToBytes, keyToBytes)
+    }
+
+    def apply[V](record: Record[Nothing, V])
+      (implicit valueToBytes: ToBytes[V]): Future[RecordMetadata] = {
+
+      doApply(record)(valueToBytes, ToBytes.empty)
+    }
+
+    private[producer] def doApply[K, V](record: Record[K, V])
       (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
   }
 

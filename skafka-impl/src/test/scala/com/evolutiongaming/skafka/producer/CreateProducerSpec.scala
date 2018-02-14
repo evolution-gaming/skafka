@@ -41,8 +41,7 @@ class CreateProducerSpec extends WordSpec with Matchers {
     }
 
     "proxy send" in new Scope {
-      val record = Producer.Record[String, String](topic = topic, value = "0")
-      //      val record = Producer.Record](topic = topic, value = "0") // TODO resolve issue with type class for nothing
+      val record = Producer.Record(topic = topic, value = "0")
       val result = producer(record)
       result.value shouldEqual Some(Success(metadata))
     }

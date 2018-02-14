@@ -10,10 +10,10 @@ import scala.concurrent.duration._
 /**
   * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
   *
-  * @param bootstrapServers - should be in the form of "host1:port1","host2:port2,..."
-  * @param clientId         - An id string to pass to the server when making requests
-  * @param acks             - possible values [all, -1, 0, 1]
-  * @param compressionType  = possible values [none, gzip, snappy, lz4]
+  * @param bootstrapServers should be in the form of "host1:port1","host2:port2,..."
+  * @param clientId         An id string to pass to the server when making requests
+  * @param acks             possible values [all, -1, 0, 1]
+  * @param compressionType  possible values [none, gzip, snappy, lz4]
   */
 case class Configs(
   bootstrapServers: Nel[String] = Nel("localhost:9092"),

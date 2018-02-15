@@ -31,7 +31,7 @@ object Producer {
     def close(): Unit = Future.successful(())
   }
 
-  sealed trait Send {
+  trait Send {
     def apply[K, V](record: Record[K, V])
       (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 

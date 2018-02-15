@@ -44,7 +44,7 @@ object Producer {
       doApply(record)(valueToBytes, ToBytes.empty)
     }
 
-    protected def doApply[K, V](record: Record[K, V])
+    def doApply[K, V](record: Record[K, V])
       (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
   }
 

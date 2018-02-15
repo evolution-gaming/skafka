@@ -8,7 +8,7 @@ Scala wrapper for kafka client
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-api" % "0.1"
+libraryDependencies += "com.evolutiongaming" %% "skafka-api" % "0.2.2"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-impl" % "0.1"
+libraryDependencies += "com.evolutiongaming" %% "skafka-impl" % "0.2.2"
 ``` 

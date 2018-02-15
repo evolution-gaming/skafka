@@ -34,7 +34,8 @@ case class Configs(
   metadataMaxAge: FiniteDuration = 5.minutes,
   reconnectBackoffMax: FiniteDuration = 1.second,
   reconnectBackoff: FiniteDuration = 50.millis,
-  retryBackoff: FiniteDuration = 100.millis) {
+  retryBackoff: FiniteDuration = 100.millis,
+  retries: Int = 0) {
 
   def bindings: Map[String, String] = Map[String, String](
     (ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers mkString ","),
@@ -55,7 +56,8 @@ case class Configs(
     (ProducerConfig.METADATA_MAX_AGE_CONFIG, metadataMaxAge.toMillis.toString),
     (ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis.toString),
     (ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis.toString),
-    (ProducerConfig.RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis.toString))
+    (ProducerConfig.RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis.toString),
+    (ProducerConfig.RETRIES_CONFIG, retries.toString))
 
   def properties: java.util.Properties = {
     val properties = new java.util.Properties
@@ -80,13 +82,14 @@ object Configs {
     }
 
     Configs(
+      acks = get[String]("acks") getOrElse Default.acks,
+      retries = get[Int]("retries") getOrElse Default.retries,
       bootstrapServers = get[Nel[String]](
         "bootstrap-servers",
         "bootstrap.servers") getOrElse Default.bootstrapServers,
       clientId = get[String](
         "client-id",
         "client.id") orElse Default.clientId,
-      acks = get[String]("acks") getOrElse Default.acks,
       bufferMemory = get[Long](
         "buffer-memory",
         "buffer.memory") getOrElse Default.bufferMemory,

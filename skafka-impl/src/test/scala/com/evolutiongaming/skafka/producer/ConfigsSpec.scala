@@ -86,6 +86,7 @@ class ConfigsSpec extends FunSuite with Matchers {
       "reconnect.backoff.ms" -> "50",
       "linger.ms" -> "0",
       "batch.size" -> "16384",
-      "send.buffer.bytes" -> "131072")
+      "send.buffer.bytes" -> "131072",
+      "retries" -> "0")
   }
 }

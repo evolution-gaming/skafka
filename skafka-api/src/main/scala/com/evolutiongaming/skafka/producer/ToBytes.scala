@@ -14,14 +14,14 @@ object ToBytes {
     def apply(value: Any) = Bytes.Empty
   }
 
-  implicit val StringSerializer: ToBytes[String] = {
+  implicit val StringToBytes: ToBytes[String] = {
     val utf8 = Charset.forName("UTF-8")
     new ToBytes[String] {
       def apply(value: String): Bytes = value.getBytes(utf8)
     }
   }
 
-  implicit val BytesSerializer: ToBytes[Bytes] = new ToBytes[Bytes] {
+  implicit val BytesToBytes: ToBytes[Bytes] = new ToBytes[Bytes] {
     def apply(value: Bytes): Bytes = value
   }
 

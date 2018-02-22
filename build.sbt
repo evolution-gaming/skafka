@@ -30,7 +30,7 @@ lazy val skafka = (project
   in file(".")
   settings (name := "skafka")
   settings commonSettings
-  aggregate(skafkaApi, skafkaImpl))
+  aggregate(skafkaApi, skafkaImpl, logging, codahale))
 
 lazy val skafkaApi = (project
   in file("skafka-api")
@@ -48,4 +48,18 @@ lazy val skafkaImpl = (project
   ConfigTools,
   KafkaClients,
   Sequentially,
-  /*KafkaClients_010, */ExecutorTools % Test)))
+  ExecutorTools % Test)))
+
+lazy val logging = (project
+  in file("modules/logging")
+  settings (name := "skafka-logging")
+  settings commonSettings
+  dependsOn skafkaApi
+  settings (libraryDependencies ++= Seq(SafeActor)))
+
+lazy val codahale = (project
+  in file("modules/codahale")
+  settings (name := "skafka-codahale")
+  settings commonSettings
+  dependsOn skafkaApi
+  settings (libraryDependencies ++= Seq(MetricTools)))

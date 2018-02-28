@@ -30,7 +30,7 @@ lazy val skafka = (project
   in file(".")
   settings (name := "skafka")
   settings commonSettings
-  aggregate(skafkaApi, skafkaImpl, logging, codahale))
+  aggregate(skafkaApi, skafkaImpl, logging, codahale, prometheus))
 
 lazy val skafkaApi = (project
   in file("skafka-api")
@@ -63,3 +63,10 @@ lazy val codahale = (project
   settings commonSettings
   dependsOn skafkaApi
   settings (libraryDependencies ++= Seq(MetricTools)))
+
+lazy val prometheus = (project
+  in file("modules/prometheus")
+  settings (name := "skafka-prometheus")
+  settings commonSettings
+  dependsOn skafkaApi
+  settings (libraryDependencies ++= Seq(Prometheus, ExecutorTools)))

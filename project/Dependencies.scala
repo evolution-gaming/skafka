@@ -9,4 +9,5 @@ object Dependencies {
   lazy val ConfigTools = "com.evolutiongaming" %% "config-tools" % "1.0.1"
   lazy val MetricTools = "com.evolutiongaming" %% "metric-tools" % "1.1"
   lazy val SafeActor = "com.evolutiongaming" %% "safe-actor" % "1.4"
+  lazy val Prometheus = "io.prometheus" % "simpleclient" % "0.0.26"
 }

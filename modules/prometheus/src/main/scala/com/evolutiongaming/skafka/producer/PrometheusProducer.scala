@@ -10,15 +10,13 @@ import scala.util.{Failure, Success}
 
 object PrometheusProducer {
 
-  def apply(producer: Producer, registry: CollectorRegistry): Producer = {
+  def apply(producer: Producer, registry: CollectorRegistry, prefix: String = "skafka_producer"): Producer = {
 
     implicit val ec = CurrentThreadExecutionContext
 
-    val prefix = "skafka_producer"
-
     val latencySummary = Summary.build()
       .name(s"${ prefix }_latency")
-      .help("Latency in millis")
+      .help("Latency in seconds")
       .labelNames("topic")
       .quantile(0.9, 0.01)
       .quantile(0.99, 0.001)
@@ -44,14 +42,23 @@ object PrometheusProducer {
         val start = Platform.currentTime
         val result = producer.doApply(record)(valueToBytes, keyToBytes)
         result.onComplete { result =>
-          val topic = record.topic
-          val duration = Platform.currentTime - start
-          latencySummary.labels(topic).observe(duration.toDouble)
-          val name = result match {
-            case Success(metadata) => bytesSummary.observe(metadata.serializedValueSize.toDouble); "success"
+          val topicLabel = record.topic.replace(".", "_")
+          val duration = (Platform.currentTime - start).toDouble / 1000
+          latencySummary
+            .labels(topicLabel)
+            .observe(duration)
+
+          val resultLabel = result match {
+            case Success(metadata) =>
+              bytesSummary
+                .labels(topicLabel)
+                .observe(metadata.serializedValueSize.toDouble)
+              "success"
             case Failure(_)        => "failure"
           }
-          counter.labels(topic, name).inc()
+          counter
+            .labels(topicLabel, resultLabel)
+            .inc()
         }
         result
       }

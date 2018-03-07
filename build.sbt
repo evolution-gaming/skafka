@@ -29,7 +29,6 @@ lazy val commonSettings = Seq(
 lazy val skafka = (project
   in file(".")
   settings (name := "skafka")
-  settings(skip in publish := true)
   settings commonSettings
   aggregate(skafkaApi, skafkaImpl, logging, codahale, prometheus))
 

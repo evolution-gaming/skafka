@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets.UTF_8
 
 import com.evolutiongaming.skafka.Bytes
 
@@ -15,9 +15,8 @@ object ToBytes {
   }
 
   implicit val StringToBytes: ToBytes[String] = {
-    val utf8 = Charset.forName("UTF-8")
     new ToBytes[String] {
-      def apply(value: String): Bytes = value.getBytes(utf8)
+      def apply(value: String): Bytes = value.getBytes(UTF_8)
     }
   }
 

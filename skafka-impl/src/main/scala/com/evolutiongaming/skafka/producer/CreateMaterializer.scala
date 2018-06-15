@@ -5,8 +5,8 @@ import akka.stream.{ActorMaterializer, Materializer}
 
 object CreateMaterializer {
 
-  def apply(configs: Configs)(implicit system: ActorSystem): Materializer = {
-    val namePrefix = configs.clientId match {
+  def apply(configs: ProducerConfig)(implicit system: ActorSystem): Materializer = {
+    val namePrefix = configs.common.clientId match {
       case None           => "skafka"
       case Some(clientId) => s"skafka-$clientId"
     }

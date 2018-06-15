@@ -56,7 +56,7 @@ object CreateProducer {
     private def asyncBlocking[T](f: => T): Future[T] = Future(f)(ecBlocking)
   }
 
-  def apply(configs: Configs, ecBlocking: ExecutionContext)(implicit system: ActorSystem): Producer = {
+  def apply(configs: ProducerConfig, ecBlocking: ExecutionContext)(implicit system: ActorSystem): Producer = {
     implicit val materializer = CreateMaterializer(configs)
     val sequentially = SequentiallyHandler[Any](overflowStrategy = OverflowStrategy.dropNew)
     val jProducer = CreateJProducer(configs)

@@ -7,7 +7,7 @@ import org.apache.kafka.common.serialization.ByteArraySerializer
 
 object CreateJProducer {
 
-  def apply(configs: Configs): JProducer[Bytes, Bytes] = {
+  def apply(configs: ProducerConfig): JProducer[Bytes, Bytes] = {
     val properties = configs.properties
     val serializer = new ByteArraySerializer()
     new KafkaProducer[Bytes, Bytes](properties, serializer, serializer)

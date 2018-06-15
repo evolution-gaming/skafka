@@ -36,6 +36,7 @@ object Converters {
 
   implicit class RecordMetadataOps(val self: RecordMetadata) extends AnyVal {
     def asJava: JRecordMetadata = {
+      // TODO
       val jTopicPartition = new JTopicPartition(self.topic, self.partition)
       new JRecordMetadata(
         jTopicPartition,

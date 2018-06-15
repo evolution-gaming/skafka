@@ -16,8 +16,8 @@ object MeteredProducer {
 
     new Producer {
 
-      def doApply[K, V](record: Producer.Record[K, V])
-        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[Producer.RecordMetadata] = {
+      def doApply[K, V](record: ProducerRecord[K, V])
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 
         val topic = record.topic
         val result = registry.histogram(s"$topic.latency").timeFuture {

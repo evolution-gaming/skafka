@@ -10,6 +10,8 @@ package object skafka {
   
   type Topic = String
 
+  type Metadata = String
+
 
   type Bytes = Array[Byte]
 

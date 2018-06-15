@@ -13,7 +13,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
 object CreateProducer {
-  import Producer._
 
   def apply(
     producer: JProducer[Bytes, Bytes],
@@ -22,7 +21,7 @@ object CreateProducer {
     random: Random = new Random)
     (implicit ec: ExecutionContext): Producer = new Producer {
 
-    def doApply[K, V](record: Record[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+    def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
       val keySequentially: Any = record.key getOrElse random.nextInt()
       val result = sequentially.handler(keySequentially) {
         Future {

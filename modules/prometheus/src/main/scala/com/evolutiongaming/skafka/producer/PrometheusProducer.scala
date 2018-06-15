@@ -36,7 +36,7 @@ object PrometheusProducer {
 
     new Producer {
 
-      def doApply[K, V](record: Producer.Record[K, V])
+      def doApply[K, V](record: ProducerRecord[K, V])
         (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
 
         val start = Platform.currentTime

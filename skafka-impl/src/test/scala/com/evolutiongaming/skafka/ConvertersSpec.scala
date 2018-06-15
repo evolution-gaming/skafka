@@ -1,10 +1,9 @@
 package com.evolutiongaming.skafka
 
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.producer.Producer.RecordMetadata
+import org.apache.kafka.common.Node
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.compat.Platform
 
 class ConvertersSpec extends WordSpec with Matchers {
 
@@ -16,12 +15,16 @@ class ConvertersSpec extends WordSpec with Matchers {
       header shouldEqual header.asJava.asScala
     }
 
-    "convert RecordMetadata" in {
-      val metadata1 = RecordMetadata("topic", 1)
-      metadata1 shouldEqual metadata1.asJava.asScala
+    "convert TopicPartition" in {
+      val value = TopicPartition("topic", 1)
+      value shouldEqual value.asJava.asScala
+    }
 
-      val metadata2 = RecordMetadata("topic", 1, Some(Platform.currentTime), Some(1), 10, 100)
-      metadata2 shouldEqual metadata2.asJava.asScala
+    "convert PartitionInfo" in {
+      val topicPartition = TopicPartition("topic", 1)
+      val node = new Node(1, "host", 2)
+      val value = PartitionInfo(topicPartition, node, List(node), List(node), List(node))
+      value shouldEqual value.asJava.asScala
     }
   }
 }

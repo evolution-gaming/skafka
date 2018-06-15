@@ -13,7 +13,7 @@ object LoggingProducer {
     implicit val ec = CurrentThreadExecutionContext
 
     new Producer {
-      def doApply[K, V](record: Producer.Record[K, V])
+      def doApply[K, V](record: ProducerRecord[K, V])
         (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
 
         val result = producer.doApply(record)(valueToBytes, keyToBytes)

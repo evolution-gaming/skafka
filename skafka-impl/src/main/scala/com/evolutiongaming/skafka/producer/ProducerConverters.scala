@@ -1,9 +1,10 @@
 package com.evolutiongaming.skafka.producer
 
-import com.evolutiongaming.skafka.Bytes
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.producer.Producer._
-import org.apache.kafka.clients.producer.{Callback, Producer => JProducer, ProducerRecord => JRecord, RecordMetadata => JRecordMetadata}
+import com.evolutiongaming.skafka.{Bytes, TopicPartition}
+import org.apache.kafka.clients.producer.{Callback, Producer => JProducer, ProducerRecord => JProducerRecord, RecordMetadata => JRecordMetadata}
+import org.apache.kafka.common.record.RecordBatch
+import org.apache.kafka.common.requests.ProduceResponse
 import org.apache.kafka.common.serialization.Serializer
 
 import scala.collection.JavaConverters._
@@ -12,10 +13,10 @@ import scala.util.control.NonFatal
 
 object ProducerConverters {
 
-  implicit class RecordOps[K, V](val self: Record[K, V]) extends AnyVal {
+  implicit class ProducerRecordOps[K, V](val self: ProducerRecord[K, V]) extends AnyVal {
 
-    def asJava: JRecord[K, V] = {
-      new JRecord[K, V](
+    def asJava: JProducerRecord[K, V] = {
+      new JProducerRecord[K, V](
         self.topic,
         self.partition.fold[java.lang.Integer](null) { java.lang.Integer.valueOf },
         self.timestamp.fold[java.lang.Long](null) { java.lang.Long.valueOf },
@@ -26,10 +27,10 @@ object ProducerConverters {
   }
 
 
-  implicit class JRecordOps[K, V](val self: JRecord[K, V]) extends AnyVal {
+  implicit class JProducerRecordOps[K, V](val self: JProducerRecord[K, V]) extends AnyVal {
 
-    def asScala: Record[K, V] = {
-      Record(
+    def asScala: ProducerRecord[K, V] = {
+      ProducerRecord(
         topic = self.topic,
         value = self.value,
         key = Option(self.key),
@@ -42,6 +43,7 @@ object ProducerConverters {
 
 
   implicit class SerializerOps[T](val self: Serializer[T]) extends AnyVal {
+
     def asScala(topic: String = ""): ToBytes[T] = new ToBytes[T] {
       def apply(value: T): Bytes = self.serialize(topic, value)
     }
@@ -50,7 +52,7 @@ object ProducerConverters {
 
   implicit class JProducerOps[K, V](val self: JProducer[K, V]) extends AnyVal {
 
-    def sendAsScala(record: Record[K, V]): Future[RecordMetadata] = {
+    def sendAsScala(record: ProducerRecord[K, V]): Future[RecordMetadata] = {
       val jRecord = record.asJava
       val promise = Promise[RecordMetadata]
       val callback = new Callback {
@@ -72,6 +74,34 @@ object ProducerConverters {
         case NonFatal(failure: ExecutionException) => Future.failed(failure.getCause)
         case NonFatal(failure)                     => Future.failed(failure)
       }
+    }
+  }
+
+
+  implicit class JRecordMetadataOps(val self: JRecordMetadata) extends AnyVal {
+
+    def asScala: RecordMetadata = RecordMetadata(
+      topicPartition = TopicPartition(self.topic, self.partition()),
+      timestamp = self.timestamp noneIf RecordBatch.NO_TIMESTAMP,
+      offset = self.offset noneIf ProduceResponse.INVALID_OFFSET,
+      serializedKeySize = self.serializedKeySize zeroIf -1,
+      serializedValueSize = self.serializedValueSize zeroIf -1
+    )
+  }
+
+
+  implicit class RecordMetadataOps(val self: RecordMetadata) extends AnyVal {
+
+    def asJava: JRecordMetadata = {
+      new JRecordMetadata(
+        self.topicPartition.asJava,
+        0,
+        self.offset getOrElse ProduceResponse.INVALID_OFFSET,
+        self.timestamp getOrElse RecordBatch.NO_TIMESTAMP,
+        null,
+        self.serializedKeySize,
+        self.serializedValueSize
+      )
     }
   }
 }

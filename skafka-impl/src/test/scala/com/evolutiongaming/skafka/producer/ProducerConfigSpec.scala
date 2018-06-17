@@ -11,12 +11,13 @@ class ProducerConfigSpec extends FunSuite with Matchers {
 
   val custom = ProducerConfig(
     batchSize = 1,
-    acks = "2",
+    acks = Acks.All,
     linger = 3.millis,
     maxRequestSize = 4,
     maxBlock = 5.seconds,
     bufferMemory = 6,
-    compressionType = "lz4",
+    compressionType = CompressionType.Lz4,
+    retries = 8,
     maxInFlightRequestsPerConnection = 7,
     partitionerClass = "partitionerClass",
     interceptorClasses = List("interceptorClasses"),

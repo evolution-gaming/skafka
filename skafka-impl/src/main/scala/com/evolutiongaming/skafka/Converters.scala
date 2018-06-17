@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka
 import java.util.{Map => MapJ}
 
 import org.apache.kafka.common.header.{Header => JHeader}
+import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import scala.collection.JavaConverters._
@@ -92,6 +93,42 @@ object Converters {
         map.put(kk, vv)
         map
       }
+    }
+  }
+
+
+  implicit class SerializerOps[T](val self: Serializer[T]) extends AnyVal {
+
+    def asScala: ToBytes[T] = new ToBytes[T] {
+      def apply(value: T, topic: Topic): Bytes = self.serialize(topic, value)
+    }
+  }
+
+
+  implicit class DeserializerOps[T](val self: Deserializer[T]) extends AnyVal {
+
+    def asScala: FromBytes[T] = new FromBytes[T] {
+      def apply(value: Bytes, topic: Topic): T = self.deserialize(topic, value)
+    }
+  }
+
+
+  implicit class ToBytesOps[T](val self: ToBytes[T]) extends AnyVal {
+
+    def asJava: Serializer[T] = new Serializer[T] {
+      def configure(configs: MapJ[Metadata, _], isKey: Boolean): Unit = {}
+      def serialize(topic: Metadata, data: T): Array[Byte] = self(data, topic)
+      def close(): Unit = {}
+    }
+  }
+
+
+  implicit class FromBytesOps[T](val self: FromBytes[T]) extends AnyVal {
+
+    def asJava: Deserializer[T] = new Deserializer[T] {
+      def configure(configs: MapJ[String, _], isKey: Boolean) = {}
+      def deserialize(topic: Topic, data: Array[Byte]): T = self(data, topic)
+      def close() = {}
     }
   }
 }

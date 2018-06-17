@@ -55,7 +55,6 @@ class ConsumerConfigSpec extends FunSuite with Matchers {
       "reconnect.backoff.max.ms" -> "1000",
       "auto.offset.reset" -> "latest",
       "partition.assignment.strategy" -> "org.apache.kafka.clients.consumer.RangeAssignor",
-      "retries" -> "0",
       "heartbeat.interval.ms" -> "3000",
       "check.crcs" -> "true",
       "auto.commit.interval.ms" -> "5000",

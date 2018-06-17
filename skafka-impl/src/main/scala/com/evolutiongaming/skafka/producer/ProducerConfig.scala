@@ -10,19 +10,17 @@ import scala.concurrent.duration._
 
 /**
   * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
-  *
-  * @param acks            possible values [all, -1, 0, 1]
-  * @param compressionType possible values [none, gzip, snappy, lz4]
   */
 case class ProducerConfig(
   common: CommonConfig = CommonConfig.Default,
   batchSize: Int = 16384,
-  acks: String = "1",
+  acks: Acks = Acks.One,
   linger: FiniteDuration = 0.millis,
   maxRequestSize: Int = 1048576,
   maxBlock: FiniteDuration = 1.minute,
   bufferMemory: Long = 33554432L,
-  compressionType: String = "none",
+  compressionType: CompressionType = CompressionType.None,
+  retries: Int = 0,
   maxInFlightRequestsPerConnection: Int = 5,
   partitionerClass: String = "org.apache.kafka.clients.producer.internals.DefaultPartitioner",
   interceptorClasses: List[String] = Nil,
@@ -33,12 +31,13 @@ case class ProducerConfig(
   def bindings: Map[String, String] = {
     val bindings = Map[String, String](
       (C.BATCH_SIZE_CONFIG, batchSize.toString),
-      (C.ACKS_CONFIG, acks),
+      (C.ACKS_CONFIG, acks.names.head.toString),
       (C.LINGER_MS_CONFIG, linger.toMillis.toString),
       (C.MAX_REQUEST_SIZE_CONFIG, maxRequestSize.toString),
       (C.MAX_BLOCK_MS_CONFIG, maxBlock.toMillis.toString),
       (C.BUFFER_MEMORY_CONFIG, bufferMemory.toString),
-      (C.COMPRESSION_TYPE_CONFIG, compressionType),
+      (C.COMPRESSION_TYPE_CONFIG, compressionType.toString.toLowerCase),
+      (C.RETRIES_CONFIG, retries.toString),
       (C.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
       (C.PARTITIONER_CLASS_CONFIG, partitionerClass),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
@@ -60,6 +59,28 @@ object ProducerConfig {
 
   lazy val Default: ProducerConfig = ProducerConfig()
 
+  private implicit val CompressionTypeFromConf = FromConf[CompressionType] { (conf, path) =>
+    val str = conf.getString(path)
+    val value = CompressionType.Values.find { _.toString equalsIgnoreCase str }
+    value getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse CompressionType")
+    }
+  }
+
+  private implicit val AcksFromConf = FromConf[Acks] { (conf, path) =>
+    val str = conf.getString(path)
+
+    val values = for {
+      value <- Acks.Values
+      name <- value.names.toList
+      if name equalsIgnoreCase str
+    } yield value
+
+    values.headOption getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse CompressionType")
+    }
+  }
+
   def apply(config: Config): ProducerConfig = {
 
     def get[T: FromConf](path: String, paths: String*) = {
@@ -73,13 +94,14 @@ object ProducerConfig {
 
     ProducerConfig(
       common = CommonConfig(config),
-      acks = get[String]("acks") getOrElse Default.acks,
+      acks = get[Acks]("acks") getOrElse Default.acks,
       bufferMemory = get[Long](
         "buffer-memory",
         "buffer.memory") getOrElse Default.bufferMemory,
-      compressionType = get[String](
+      compressionType = get[CompressionType](
         "compression-type",
         "compression.type") getOrElse Default.compressionType,
+      retries = get[Int]("retries") getOrElse Default.retries,
       batchSize = get[Int](
         "batch-size",
         "batch.size") getOrElse Default.batchSize,

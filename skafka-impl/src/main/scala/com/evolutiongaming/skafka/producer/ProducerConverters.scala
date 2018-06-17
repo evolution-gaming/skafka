@@ -1,11 +1,10 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.{Bytes, ToBytes, TopicPartition}
+import com.evolutiongaming.skafka.TopicPartition
 import org.apache.kafka.clients.producer.{Callback, Producer => JProducer, ProducerRecord => JProducerRecord, RecordMetadata => JRecordMetadata}
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
-import org.apache.kafka.common.serialization.Serializer
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionException, Future, Promise}
@@ -38,14 +37,6 @@ object ProducerConverters {
         timestamp = Option(self.timestamp) map { _.longValue() },
         headers = self.headers.asScala.map { _.asScala }.toList
       )
-    }
-  }
-
-
-  implicit class SerializerOps[T](val self: Serializer[T]) extends AnyVal {
-
-    def asScala(topic: String = ""): ToBytes[T] = new ToBytes[T] {
-      def apply(value: T): Bytes = self.serialize(topic, value)
     }
   }
 

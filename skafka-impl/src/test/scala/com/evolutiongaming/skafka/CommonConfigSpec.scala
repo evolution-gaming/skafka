@@ -19,8 +19,7 @@ class CommonConfigSpec extends FunSuite with Matchers {
     reconnectBackoffMax = 5.hours,
     reconnectBackoff = 6.millis,
     retryBackoff = 7.seconds,
-    retries = 8,
-    securityProtocol = "SSL",
+    securityProtocol = SecurityProtocol.Ssl,
     metrics = MetricsConfig(
       sampleWindow = 9.hours,
       numSamples = 10,
@@ -58,7 +57,6 @@ class CommonConfigSpec extends FunSuite with Matchers {
       "metadata.max.age.ms" -> "300000",
       "reconnect.backoff.max.ms" -> "1000",
       "retry.backoff.ms" -> "100",
-      "retries" -> "0",
       "security.protocol" -> "PLAINTEXT",
       "reconnect.backoff.ms" -> "50",
       "metrics.sample.window.ms" -> "30000",

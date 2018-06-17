@@ -25,8 +25,9 @@ object CreateProducer {
       val keySequentially: Any = record.key getOrElse random.nextInt()
       val result = sequentially.handler(keySequentially) {
         Future {
-          val keyBytes = record.key.map(keyToBytes.apply)
-          val valueBytes = valueToBytes(record.value)
+          val topic = record.topic
+          val keyBytes = record.key.map { key => keyToBytes(key, topic) }
+          val valueBytes = valueToBytes(record.value, topic)
           val recordBytes = record.copy(value = valueBytes, key = keyBytes)
           () =>
             asyncBlocking {

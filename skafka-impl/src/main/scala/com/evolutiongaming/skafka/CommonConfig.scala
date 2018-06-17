@@ -11,7 +11,6 @@ import scala.concurrent.duration.{FiniteDuration, _}
 /**
   * @param bootstrapServers should be in the form of "host1:port1","host2:port2,..."
   * @param clientId         An id string to pass to the server when making requests
-  * @param securityProtocol Protocol used to communicate with brokers. Valid values are: PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL.
   */
 case class CommonConfig(
   bootstrapServers: Nel[String] = Nel("localhost:9092"),
@@ -24,8 +23,7 @@ case class CommonConfig(
   reconnectBackoffMax: FiniteDuration = 1.second,
   reconnectBackoff: FiniteDuration = 50.millis,
   retryBackoff: FiniteDuration = 100.millis,
-  retries: Int = 0,
-  securityProtocol: String = "PLAINTEXT",
+  securityProtocol: SecurityProtocol = SecurityProtocol.Plaintext,
   metrics: MetricsConfig = MetricsConfig.Default) {
 
   def bindings: Map[String, String] = {
@@ -40,8 +38,7 @@ case class CommonConfig(
       (C.RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis.toString),
       (C.RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis.toString),
       (C.RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis.toString),
-      (C.RETRIES_CONFIG, retries.toString),
-      (C.SECURITY_PROTOCOL_CONFIG, securityProtocol))
+      (C.SECURITY_PROTOCOL_CONFIG, securityProtocol.name))
 
     bindings ++ metrics.bindings
   }
@@ -50,6 +47,15 @@ case class CommonConfig(
 object CommonConfig {
 
   val Default: CommonConfig = CommonConfig()
+
+  private implicit val SecurityProtocolFromConf = FromConf[SecurityProtocol] { (conf, path) =>
+    val str = conf.getString(path)
+    val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
+    value getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol")
+    }
+  }
+
 
   def apply(config: Config): CommonConfig = {
 
@@ -93,8 +99,7 @@ object CommonConfig {
       retryBackoff = getDuration(
         "retry-backoff",
         "retry.backoff.ms") getOrElse Default.retryBackoff,
-      retries = get[Int]("retries") getOrElse Default.retries,
-      securityProtocol = get[String](
+      securityProtocol = get[SecurityProtocol](
         "security-protocol",
         "security.protocol") getOrElse Default.securityProtocol,
       metrics = MetricsConfig(config))

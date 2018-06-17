@@ -9,9 +9,6 @@ import scala.concurrent.duration.{FiniteDuration, _}
 
 /**
   * Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
-  *
-  * @param autoOffsetReset [latest, earliest, none]
-  * @param isolationLevel  [read_committed, read_uncommitted]
   */
 case class ConsumerConfig(
   common: CommonConfig = CommonConfig.Default,
@@ -23,7 +20,7 @@ case class ConsumerConfig(
   enableAutoCommit: Boolean = true,
   autoCommitInterval: FiniteDuration = 5.seconds,
   partitionAssignmentStrategy: String = "org.apache.kafka.clients.consumer.RangeAssignor",
-  autoOffsetReset: String = "latest",
+  autoOffsetReset: AutoOffsetReset = AutoOffsetReset.Latest,
   fetchMinBytes: Int = 1,
   fetchMaxBytes: Int = 52428800,
   fetchMaxWait: FiniteDuration = 500.millis,
@@ -31,7 +28,7 @@ case class ConsumerConfig(
   checkCrcs: Boolean = true,
   interceptorClasses: List[String] = Nil,
   excludeInternalTopics: Boolean = true,
-  isolationLevel: String = "read_uncommitted") {
+  isolationLevel: IsolationLevel = IsolationLevel.ReadUncommitted) {
 
   def bindings: Map[String, String] = {
     val bindings = Map[String, String](
@@ -43,7 +40,7 @@ case class ConsumerConfig(
       (C.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit.toString),
       (C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString),
       (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.toString),
-      (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset),
+      (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
       (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
       (C.FETCH_MAX_BYTES_CONFIG, fetchMaxBytes.toString),
       (C.FETCH_MAX_WAIT_MS_CONFIG, fetchMaxWait.toMillis.toString),
@@ -51,7 +48,7 @@ case class ConsumerConfig(
       (C.CHECK_CRCS_CONFIG, checkCrcs.toString),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics.toString),
-      (C.ISOLATION_LEVEL_CONFIG, isolationLevel))
+      (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name))
 
     bindings ++ common.bindings
   }
@@ -66,6 +63,22 @@ case class ConsumerConfig(
 object ConsumerConfig {
 
   val Default: ConsumerConfig = ConsumerConfig()
+
+  private implicit val AutoOffsetResetFromConf = FromConf[AutoOffsetReset] { (conf, path) =>
+    val str = conf.getString(path)
+    val value = AutoOffsetReset.Values.find { _.toString equalsIgnoreCase str }
+    value getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse AutoOffsetReset")
+    }
+  }
+
+  private implicit val IsolationLevelFromConf = FromConf[IsolationLevel] { (conf, path) =>
+    val str = conf.getString(path)
+    val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
+    value getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel")
+    }
+  }
 
   def apply(config: Config): ConsumerConfig = {
 
@@ -102,7 +115,7 @@ object ConsumerConfig {
       partitionAssignmentStrategy = get[String](
         "partition-assignment-strategy",
         "partition.assignment.strategy") getOrElse Default.partitionAssignmentStrategy,
-      autoOffsetReset = get[String](
+      autoOffsetReset = get[AutoOffsetReset](
         "auto-offset-reset",
         "auto.offset.reset") getOrElse Default.autoOffsetReset,
       fetchMinBytes = get[Int](
@@ -126,7 +139,7 @@ object ConsumerConfig {
       excludeInternalTopics = get[Boolean](
         "exclude-internal-topics",
         "exclude.internal.topics") getOrElse Default.excludeInternalTopics,
-      isolationLevel = get[String](
+      isolationLevel = get[IsolationLevel](
         "isolation-level",
         "isolation.level") getOrElse Default.isolationLevel)
   }

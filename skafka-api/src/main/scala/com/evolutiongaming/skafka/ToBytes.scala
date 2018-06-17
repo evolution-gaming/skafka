@@ -1,8 +1,6 @@
-package com.evolutiongaming.skafka.producer
+package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
-
-import com.evolutiongaming.skafka.Bytes
 
 trait ToBytes[-T] {
   def apply(value: T): Bytes

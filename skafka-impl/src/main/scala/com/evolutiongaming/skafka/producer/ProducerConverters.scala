@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.{Bytes, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, ToBytes, TopicPartition}
 import org.apache.kafka.clients.producer.{Callback, Producer => JProducer, ProducerRecord => JProducerRecord, RecordMetadata => JRecordMetadata}
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse

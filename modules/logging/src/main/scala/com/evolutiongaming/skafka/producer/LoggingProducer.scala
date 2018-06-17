@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.safeakka.actor.ActorLog
+import com.evolutiongaming.skafka.ToBytes
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration

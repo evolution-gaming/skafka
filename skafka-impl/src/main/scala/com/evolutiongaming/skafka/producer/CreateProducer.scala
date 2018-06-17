@@ -4,7 +4,7 @@ package com.evolutiongaming.skafka.producer
 import akka.actor.ActorSystem
 import akka.stream.OverflowStrategy
 import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
-import com.evolutiongaming.skafka.Bytes
+import com.evolutiongaming.skafka.{Bytes, ToBytes}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{Producer => JProducer}
 

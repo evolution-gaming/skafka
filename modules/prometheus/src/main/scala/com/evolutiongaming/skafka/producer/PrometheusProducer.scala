@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 import scala.compat.Platform

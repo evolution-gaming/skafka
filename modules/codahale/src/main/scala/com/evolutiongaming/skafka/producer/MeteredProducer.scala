@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import com.codahale.metrics.MetricRegistry
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.skafka.ToBytes
 import com.evolutiongaming.util.MetricHelper._
 
 import scala.concurrent.Future

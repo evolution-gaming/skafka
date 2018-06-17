@@ -18,7 +18,7 @@ class ConsumerConfigSpec extends FunSuite with Matchers {
     enableAutoCommit = false,
     autoCommitInterval = 5.hours,
     partitionAssignmentStrategy = "partitionAssignmentStrategy",
-    autoOffsetReset = "earliest",
+    autoOffsetReset = AutoOffsetReset.Earliest,
     fetchMinBytes = 6,
     fetchMaxBytes = 7,
     fetchMaxWait = 8.millis,
@@ -26,7 +26,7 @@ class ConsumerConfigSpec extends FunSuite with Matchers {
     checkCrcs = false,
     interceptorClasses = List("interceptorClasses"),
     excludeInternalTopics = false,
-    isolationLevel = "read_committed")
+    isolationLevel = IsolationLevel.ReadCommitted)
 
   test("apply from empty config") {
     val config = ConfigFactory.empty()

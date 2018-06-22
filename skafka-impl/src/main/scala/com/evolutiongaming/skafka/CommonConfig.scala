@@ -52,7 +52,7 @@ object CommonConfig {
     val str = conf.getString(path)
     val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol")
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
     }
   }
 

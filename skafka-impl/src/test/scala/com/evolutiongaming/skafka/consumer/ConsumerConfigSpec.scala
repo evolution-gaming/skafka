@@ -35,7 +35,6 @@ class ConsumerConfigSpec extends FunSuite with Matchers {
 
   test("apply from config") {
     val config = ConfigFactory.parseURL(getClass.getResource("valid.conf"))
-    println(custom.bindings)
     ConsumerConfig(config) shouldEqual custom
   }
 

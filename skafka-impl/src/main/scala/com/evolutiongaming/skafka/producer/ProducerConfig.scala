@@ -63,7 +63,7 @@ object ProducerConfig {
     val str = conf.getString(path)
     val value = CompressionType.Values.find { _.toString equalsIgnoreCase str }
     value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse CompressionType")
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse CompressionType from $str")
     }
   }
 
@@ -77,7 +77,7 @@ object ProducerConfig {
     } yield value
 
     values.headOption getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse CompressionType")
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse Acks from $str")
     }
   }
 

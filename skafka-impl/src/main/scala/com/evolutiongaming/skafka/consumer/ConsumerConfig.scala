@@ -68,7 +68,7 @@ object ConsumerConfig {
     val str = conf.getString(path)
     val value = AutoOffsetReset.Values.find { _.toString equalsIgnoreCase str }
     value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse AutoOffsetReset")
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse AutoOffsetReset from $str")
     }
   }
 
@@ -76,7 +76,7 @@ object ConsumerConfig {
     val str = conf.getString(path)
     val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel")
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel from $str")
     }
   }
 

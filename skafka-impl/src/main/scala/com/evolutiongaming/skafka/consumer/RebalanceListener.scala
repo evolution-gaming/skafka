@@ -6,6 +6,8 @@ import com.evolutiongaming.skafka._
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ}
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.Iterable
+
 
 trait RebalanceListener {
 
@@ -15,6 +17,11 @@ trait RebalanceListener {
 }
 
 object RebalanceListener {
+
+  val Empty: RebalanceListener = new RebalanceListener {
+    def onPartitionsAssigned(partitions: Iterable[TopicPartition]) = {}
+    def onPartitionsRevoked(partitions: Iterable[TopicPartition]) = {}
+  }
 
   def apply(listener: RebalanceListenerJ): RebalanceListener = new RebalanceListener {
 

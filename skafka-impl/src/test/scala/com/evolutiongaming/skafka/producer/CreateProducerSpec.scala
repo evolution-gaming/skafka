@@ -32,10 +32,10 @@ class CreateProducerSpec extends WordSpec with Matchers {
       closeCalled shouldEqual true
     }
 
-    "proxy closeAsync" in new Scope {
+    "proxy close with timeout" in new Scope {
       closeTimeout shouldEqual None
       val timeout = 3.seconds
-      producer.closeAsync(timeout)
+      producer.close(timeout)
       closeTimeout shouldEqual Some(timeout)
     }
 

@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.util.{Map => MapJ}
+import java.time.Instant
+import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{TimestampAndType, TimestampType, TopicPartition}
@@ -10,6 +11,7 @@ import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable.Iterable
 import scala.util.{Failure, Success}
 
 object ConsumerConverters {
@@ -25,12 +27,14 @@ object ConsumerConverters {
 
 
   implicit class OffsetAndTimestampJOps(val self: OffsetAndTimestampJ) extends AnyVal {
-    def asScala: OffsetAndTimestamp = OffsetAndTimestamp(offset = self.offset(), timestamp = self.timestamp())
+    def asScala: OffsetAndTimestamp = OffsetAndTimestamp(
+      offset = self.offset(),
+      timestamp = Instant.ofEpochMilli(self.timestamp()))
   }
 
 
   implicit class OffsetAndTimestampOps(val self: OffsetAndTimestamp) extends AnyVal {
-    def asJava: OffsetAndTimestampJ = new OffsetAndTimestampJ(self.offset, self.timestamp)
+    def asJava: OffsetAndTimestampJ = new OffsetAndTimestampJ(self.offset, self.timestamp.toEpochMilli)
   }
 
 
@@ -38,13 +42,13 @@ object ConsumerConverters {
 
     def asJava: RebalanceListenerJ = new RebalanceListenerJ {
 
-      def onPartitionsAssigned(partitions: java.util.Collection[TopicPartitionJ]) = {
-        val partitionsS = partitions.asScala.map(_.asScala)
+      def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
+        val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
         self.onPartitionsAssigned(partitionsS)
       }
 
-      def onPartitionsRevoked(partitions: java.util.Collection[TopicPartitionJ]) = {
-        val partitionsS = partitions.asScala.map(_.asScala)
+      def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
+        val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
         self.onPartitionsRevoked(partitionsS)
       }
     }
@@ -77,7 +81,7 @@ object ConsumerConverters {
 
       val timestampAndType = {
         def some(timestampType: TimestampType) = {
-          Some(TimestampAndType(self.timestamp(), timestampType))
+          Some(TimestampAndType(Instant.ofEpochMilli(self.timestamp()), timestampType))
         }
 
         self.timestampType() match {
@@ -106,8 +110,8 @@ object ConsumerConverters {
 
       val (timestampType, timestamp) = self.timestampAndType map { timestampAndType =>
         timestampAndType.timestampType match {
-          case TimestampType.Create => (TimestampTypeJ.CREATE_TIME, timestampAndType.timestamp)
-          case TimestampType.Append => (TimestampTypeJ.LOG_APPEND_TIME, timestampAndType.timestamp)
+          case TimestampType.Create => (TimestampTypeJ.CREATE_TIME, timestampAndType.timestamp.toEpochMilli)
+          case TimestampType.Append => (TimestampTypeJ.LOG_APPEND_TIME, timestampAndType.timestamp.toEpochMilli)
         }
       } getOrElse {
         (TimestampTypeJ.NO_TIMESTAMP_TYPE, -1L)

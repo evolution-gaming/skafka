@@ -1,5 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
-import com.evolutiongaming.skafka.{Offset, Timestamp}
+import java.time.Instant
 
-case class OffsetAndTimestamp(offset: Offset, timestamp: Timestamp)
+import com.evolutiongaming.skafka.Offset
+
+case class OffsetAndTimestamp(offset: Offset, timestamp: Instant)

@@ -4,8 +4,9 @@ package com.evolutiongaming.skafka.producer
 import akka.actor.ActorSystem
 import akka.stream.OverflowStrategy
 import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
-import com.evolutiongaming.skafka.{Bytes, ToBytes}
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
+import com.evolutiongaming.skafka.{Bytes, ToBytes}
 import org.apache.kafka.clients.producer.{Producer => JProducer}
 
 import scala.concurrent.duration.FiniteDuration
@@ -14,46 +15,81 @@ import scala.util.Random
 
 object CreateProducer {
 
-  def apply(
-    producer: JProducer[Bytes, Bytes],
-    sequentially: SequentiallyHandler[Any],
-    ecBlocking: ExecutionContext,
-    random: Random = new Random)
-    (implicit ec: ExecutionContext): Producer = new Producer {
+  def apply(producer: JProducer[Bytes, Bytes], ecBlocking: ExecutionContext): Producer = {
 
-    def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
-      val keySequentially: Any = record.key getOrElse random.nextInt()
-      val result = sequentially.handler(keySequentially) {
-        Future {
-          val topic = record.topic
-          val keyBytes = record.key.map { key => keyToBytes(key, topic) }
-          val valueBytes = valueToBytes(record.value, topic)
-          val recordBytes = record.copy(value = valueBytes, key = keyBytes)
-          () =>
-            asyncBlocking {
-              producer.sendAsScala(recordBytes)
-            }
+    def blocking[T](f: => T): Future[T] = Future(f)(ecBlocking)
+
+    new Producer {
+
+      def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+        val topic = record.topic
+        val keyBytes = record.key.map { key => keyToBytes(key, topic) }
+        val valueBytes = valueToBytes(record.value, topic)
+        val recordBytes = record.copy(value = valueBytes, key = keyBytes)
+        blocking {
+          producer.sendAsScala(recordBytes)
+        }
+      }.flatten
+
+      def flush() = {
+        blocking {
+          producer.flush()
         }
       }
 
-      result.flatMap(identity)
-    }
+      def close(timeout: FiniteDuration) = {
+        blocking {
+          producer.close(timeout.length, timeout.unit)
+        }
+      }
 
-    def flush(): Future[Unit] = {
-      asyncBlocking {
-        producer.flush()
+      def close() = {
+        blocking {
+          producer.close()
+        }
       }
     }
+  }
 
-    def close(): Unit = producer.close()
+  def apply(
+    producerJ: JProducer[Bytes, Bytes],
+    sequentially: SequentiallyHandler[Any],
+    ecBlocking: ExecutionContext,
+    random: Random = new Random)
+    (implicit ec: ExecutionContext): Producer = {
 
-    def closeAsync(timeout: FiniteDuration): Future[Unit] = {
-      asyncBlocking {
-        producer.close(timeout.length, timeout.unit)
+    val producer = apply(producerJ, ecBlocking)
+
+    apply(producer, sequentially, random)
+  }
+
+  def apply(
+    producer: Producer,
+    sequentially: SequentiallyHandler[Any],
+    random: Random)
+    (implicit ec: ExecutionContext): Producer = {
+
+    new Producer {
+
+      def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+        val keySequentially: Any = record.key getOrElse random.nextInt()
+        sequentially.handler(keySequentially) {
+          Future {
+            val topic = record.topic
+            val keyBytes = record.key.map { key => keyToBytes(key, topic) }
+            val valueBytes = valueToBytes(record.value, topic)
+            val recordBytes = record.copy(value = valueBytes, key = keyBytes)
+            () => producer(recordBytes)
+          }
+        }
       }
-    }
 
-    private def asyncBlocking[T](f: => T): Future[T] = Future(f)(ecBlocking)
+      def flush() = producer.flush()
+
+      def close(timeout: FiniteDuration) = producer.close(timeout)
+
+      def close() = producer.close()
+    }
   }
 
   def apply(configs: ProducerConfig, ecBlocking: ExecutionContext)(implicit system: ActorSystem): Producer = {

@@ -4,7 +4,6 @@ import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.safeakka.actor.ActorLog
 import com.evolutiongaming.skafka.ToBytes
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
@@ -31,9 +30,9 @@ object LoggingProducer {
         }
         result
       }
-      def flush(): Future[Unit] = producer.flush()
-      def close(): Unit = producer.close()
-      def closeAsync(timeout: FiniteDuration): Future[Unit] = producer.closeAsync(timeout)
+      def flush() = producer.flush()
+      def close() = producer.close()
+      def close(timeout: FiniteDuration) = producer.close(timeout)
     }
   }
 }

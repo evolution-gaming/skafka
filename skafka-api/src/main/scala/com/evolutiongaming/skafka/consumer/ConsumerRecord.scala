@@ -2,8 +2,6 @@ package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.skafka._
 
-import scala.collection.immutable.Seq
-
 
 case class ConsumerRecord[K, V](
   topicPartition: TopicPartition,
@@ -20,4 +18,4 @@ case class ConsumerRecord[K, V](
   def partition: Partition = topicPartition.partition
 }
 
-case class ConsumerRecords[K, V](values: Map[TopicPartition, Seq[ConsumerRecord[K, V]]])
+case class ConsumerRecords[K, V](values: Map[TopicPartition, Vector[ConsumerRecord[K, V]]])

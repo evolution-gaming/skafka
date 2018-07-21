@@ -4,8 +4,6 @@ package object skafka {
 
   type Partition = Int
 
-  type Timestamp = Long
-
   type Offset = Long
   
   type Topic = String

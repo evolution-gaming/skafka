@@ -1,16 +1,15 @@
 package com.evolutiongaming.skafka.producer
 
-import java.io.Closeable
-
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.skafka._
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-trait Producer extends Producer.Send with Closeable {
+trait Producer extends Producer.Send {
   def flush(): Future[Unit]
-  def close(): Unit // does blocking
-  def closeAsync(timeout: FiniteDuration): Future[Unit]
+  def close(): Future[Unit]
+  def close(timeout: FiniteDuration): Future[Unit]
 }
 
 object Producer {
@@ -23,14 +22,14 @@ object Producer {
       val partition = record.partition getOrElse 0
       val topicPartition = TopicPartition(record.topic, partition)
       val metadata = RecordMetadata(topicPartition, record.timestamp)
-      Future.successful(metadata)
+      metadata.future
     }
 
-    def flush(): Future[Unit] = Future.successful(())
+    def flush() = Future.unit
 
-    def closeAsync(timeout: FiniteDuration): Future[Unit] = Future.successful(())
+    def close() = Future.unit
 
-    def close(): Unit = Future.successful(())
+    def close(timeout: FiniteDuration) = Future.unit
   }
 
   trait Send {

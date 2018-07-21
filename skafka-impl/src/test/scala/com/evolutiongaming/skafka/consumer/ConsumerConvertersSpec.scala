@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka.consumer
 
+import java.time.Instant
+
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.scalatest.{Matchers, WordSpec}
-
-import scala.compat.Platform
 
 
 class ConsumerConvertersSpec extends WordSpec with Matchers {
@@ -17,7 +17,7 @@ class ConsumerConvertersSpec extends WordSpec with Matchers {
     }
 
     "convert OffsetAndTimestamp" in {
-      val value = OffsetAndTimestamp(1, 2)
+      val value = OffsetAndTimestamp(1, Instant.now())
       value shouldEqual value.asJava.asScala
     }
 
@@ -25,7 +25,7 @@ class ConsumerConvertersSpec extends WordSpec with Matchers {
       val value = ConsumerRecord(
         topicPartition = TopicPartition("topic", 1),
         offset = 100,
-        timestampAndType = Some(TimestampAndType(Platform.currentTime, TimestampType.Create)),
+        timestampAndType = Some(TimestampAndType(Instant.now(), TimestampType.Create)),
         serializedKeySize = 1,
         serializedValueSize = 2,
         key = Some("key"),

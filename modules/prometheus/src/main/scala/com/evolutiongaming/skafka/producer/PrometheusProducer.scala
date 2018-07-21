@@ -5,7 +5,6 @@ import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 import scala.compat.Platform
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
@@ -64,15 +63,15 @@ object PrometheusProducer {
         result
       }
 
-      def flush(): Future[Unit] = {
+      def flush() = {
         producer.flush()
       }
 
-      def closeAsync(timeout: FiniteDuration): Future[Unit] = {
-        producer.closeAsync(timeout)
+      def close(timeout: FiniteDuration) = {
+        producer.close(timeout)
       }
 
-      def close(): Unit = {
+      def close() = {
         producer.close()
       }
     }

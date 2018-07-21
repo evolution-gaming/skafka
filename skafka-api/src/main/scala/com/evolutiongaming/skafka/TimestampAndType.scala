@@ -1,6 +1,11 @@
 package com.evolutiongaming.skafka
 
-case class TimestampAndType(timestamp: Timestamp, timestampType: TimestampType)
+import java.time.Instant
+
+
+case class TimestampAndType(
+  timestamp: Instant,
+  timestampType: TimestampType)
 
 sealed trait TimestampType
 

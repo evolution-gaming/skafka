@@ -5,7 +5,6 @@ import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.skafka.ToBytes
 import com.evolutiongaming.util.MetricHelper._
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
@@ -18,7 +17,7 @@ object MeteredProducer {
     new Producer {
 
       def doApply[K, V](record: ProducerRecord[K, V])
-        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
 
         val topic = record.topic
         val result = registry.histogram(s"$topic.latency").timeFuture {
@@ -37,11 +36,11 @@ object MeteredProducer {
         result
       }
 
-      def flush(): Future[Unit] = producer.flush()
+      def flush() = producer.flush()
 
-      def closeAsync(timeout: FiniteDuration): Future[Unit] = producer.closeAsync(timeout)
+      def close(timeout: FiniteDuration) = producer.close(timeout)
 
-      def close(): Unit = producer.close()
+      def close() = producer.close()
     }
   }
 }

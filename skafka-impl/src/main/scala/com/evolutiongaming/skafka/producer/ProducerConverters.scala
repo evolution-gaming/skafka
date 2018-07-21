@@ -1,5 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
+import java.time.Instant
+
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.TopicPartition
 import org.apache.kafka.clients.producer.{Callback, Producer => JProducer, ProducerRecord => JProducerRecord, RecordMetadata => JRecordMetadata}
@@ -18,7 +20,7 @@ object ProducerConverters {
       new JProducerRecord[K, V](
         self.topic,
         self.partition.fold[java.lang.Integer](null) { java.lang.Integer.valueOf },
-        self.timestamp.fold[java.lang.Long](null) { java.lang.Long.valueOf },
+        self.timestamp.fold[java.lang.Long](null) { timestamp => timestamp.toEpochMilli },
         self.key.getOrElse(null.asInstanceOf[K]),
         self.value,
         self.headers.map { _.asJava }.asJava)
@@ -34,7 +36,7 @@ object ProducerConverters {
         value = self.value,
         key = Option(self.key),
         partition = Option(self.partition) map { _.intValue() },
-        timestamp = Option(self.timestamp) map { _.longValue() },
+        timestamp = Option(self.timestamp) map { Instant.ofEpochMilli(_) },
         headers = self.headers.asScala.map { _.asScala }.toList
       )
     }
@@ -73,7 +75,7 @@ object ProducerConverters {
 
     def asScala: RecordMetadata = RecordMetadata(
       topicPartition = TopicPartition(self.topic, self.partition()),
-      timestamp = self.timestamp noneIf RecordBatch.NO_TIMESTAMP,
+      timestamp = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
       offset = self.offset noneIf ProduceResponse.INVALID_OFFSET,
       serializedKeySize = self.serializedKeySize zeroIf -1,
       serializedValueSize = self.serializedValueSize zeroIf -1
@@ -88,7 +90,7 @@ object ProducerConverters {
         self.topicPartition.asJava,
         0,
         self.offset getOrElse ProduceResponse.INVALID_OFFSET,
-        self.timestamp getOrElse RecordBatch.NO_TIMESTAMP,
+        self.timestamp.fold(RecordBatch.NO_TIMESTAMP)(_.toEpochMilli),
         null,
         self.serializedKeySize,
         self.serializedValueSize

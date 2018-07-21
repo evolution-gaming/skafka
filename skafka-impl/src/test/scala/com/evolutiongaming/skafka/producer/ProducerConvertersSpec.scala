@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka.producer
 
+import java.time.Instant
+
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Header, TopicPartition}
 import org.scalatest.{Matchers, WordSpec}
-
-import scala.compat.Platform
 
 class ProducerConvertersSpec extends WordSpec with Matchers {
 
@@ -19,7 +19,7 @@ class ProducerConvertersSpec extends WordSpec with Matchers {
         value = "value",
         key = Some(1),
         partition = Some(2),
-        timestamp = Some(Platform.currentTime),
+        timestamp = Some(Instant.now()),
         headers = List(Header("key", Array[Byte](1, 2, 3))))
       record2.asJava.asScala shouldEqual record2
     }
@@ -29,7 +29,7 @@ class ProducerConvertersSpec extends WordSpec with Matchers {
       val metadata1 = RecordMetadata(topicPartition)
       metadata1 shouldEqual metadata1.asJava.asScala
 
-      val metadata2 = RecordMetadata(topicPartition, Some(Platform.currentTime), Some(1), 10, 100)
+      val metadata2 = RecordMetadata(topicPartition, Some(Instant.now()), Some(1), 10, 100)
       metadata2 shouldEqual metadata2.asJava.asScala
     }
   }

@@ -36,7 +36,7 @@ lazy val skafkaApi = (project
   in file("skafka-api")
   settings (name := "skafka-api")
   settings commonSettings
-  settings (libraryDependencies ++= Seq(ScalaTest)))
+  settings (libraryDependencies ++= Seq(`future-helper`, ScalaTest)))
 
 lazy val skafkaImpl = (project
   in file("skafka-impl")
@@ -45,28 +45,28 @@ lazy val skafkaImpl = (project
   dependsOn skafkaApi % "test->test;compile->compile"
   settings (libraryDependencies ++= Seq(
   Nel,
-  ConfigTools,
-  KafkaClients,
+  `config-tools`,
+  `kafka-clients`,
   Sequentially,
-  ExecutorTools % Test)))
+  `executor-tools` % Test)))
 
 lazy val logging = (project
   in file("modules/logging")
   settings (name := "skafka-logging")
   settings commonSettings
   dependsOn skafkaApi
-  settings (libraryDependencies ++= Seq(SafeActor)))
+  settings (libraryDependencies ++= Seq(`safe-actor`)))
 
 lazy val codahale = (project
   in file("modules/codahale")
   settings (name := "skafka-codahale")
   settings commonSettings
   dependsOn skafkaApi
-  settings (libraryDependencies ++= Seq(MetricTools)))
+  settings (libraryDependencies ++= Seq(`metric-tools`)))
 
 lazy val prometheus = (project
   in file("modules/prometheus")
   settings (name := "skafka-prometheus")
   settings commonSettings
   dependsOn skafkaApi
-  settings (libraryDependencies ++= Seq(Prometheus, ExecutorTools)))
+  settings (libraryDependencies ++= Seq(Prometheus, `executor-tools`)))

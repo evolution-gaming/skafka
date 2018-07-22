@@ -98,4 +98,9 @@ object CreateProducer {
     val jProducer = CreateJProducer(configs)
     apply(jProducer, sequentially, ecBlocking)(system.dispatcher)
   }
+
+  def apply(configs: ProducerConfig, ecBlocking: ExecutionContext): Producer = {
+    val producer = CreateJProducer(configs)
+    apply(producer, ecBlocking)
+  }
 }

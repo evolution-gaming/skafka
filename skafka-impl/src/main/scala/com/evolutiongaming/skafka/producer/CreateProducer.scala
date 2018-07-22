@@ -92,8 +92,8 @@ object CreateProducer {
     }
   }
 
-  def apply(configs: ProducerConfig, ecBlocking: ExecutionContext)(implicit system: ActorSystem): Producer = {
-    implicit val materializer = CreateMaterializer(configs)
+  def apply(configs: ProducerConfig, ecBlocking: ExecutionContext, system: ActorSystem): Producer = {
+    implicit val materializer = CreateMaterializer(configs)(system)
     val sequentially = SequentiallyHandler[Any](overflowStrategy = OverflowStrategy.dropNew)
     val jProducer = CreateJProducer(configs)
     apply(jProducer, sequentially, ecBlocking)(system.dispatcher)

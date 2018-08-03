@@ -11,6 +11,8 @@ trait JsonProducer {
 
 object JsonProducer {
 
+  val Empty: JsonProducer = apply(Producer.Empty)
+
   implicit val JsValueToBytes: ToBytes[JsValue] = new ToBytes[JsValue] {
     def apply(value: JsValue, topic: Topic) = Json.toBytes(value)
   }

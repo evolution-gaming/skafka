@@ -10,7 +10,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
 /**
   * Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
   */
-case class ConsumerConfig(
+final case class ConsumerConfig(
   common: CommonConfig = CommonConfig.Default,
   groupId: Option[String] = None,
   maxPollRecords: Int = 500,

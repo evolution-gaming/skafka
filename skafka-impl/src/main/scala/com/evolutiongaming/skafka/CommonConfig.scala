@@ -12,7 +12,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * @param bootstrapServers should be in the form of "host1:port1","host2:port2,..."
   * @param clientId         An id string to pass to the server when making requests
   */
-case class CommonConfig(
+final case class CommonConfig(
   bootstrapServers: Nel[String] = Nel("localhost:9092"),
   clientId: Option[String] = None,
   connectionsMaxIdle: FiniteDuration = 9.minutes,

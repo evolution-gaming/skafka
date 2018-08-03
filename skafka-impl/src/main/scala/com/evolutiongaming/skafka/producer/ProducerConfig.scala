@@ -11,7 +11,7 @@ import scala.concurrent.duration._
 /**
   * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
   */
-case class ProducerConfig(
+final case class ProducerConfig(
   common: CommonConfig = CommonConfig.Default,
   batchSize: Int = 16384,
   acks: Acks = Acks.One,

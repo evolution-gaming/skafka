@@ -4,7 +4,7 @@ import java.time.Instant
 
 import com.evolutiongaming.skafka.{Header, Partition, Topic}
 
-case class ProducerRecord[+K, +V](
+final case class ProducerRecord[+K, +V](
   topic: Topic,
   value: V,
   key: Option[K] = None,

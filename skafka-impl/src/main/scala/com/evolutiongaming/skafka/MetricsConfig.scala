@@ -6,7 +6,7 @@ import org.apache.kafka.clients.{CommonClientConfigs => C}
 
 import scala.concurrent.duration._
 
-case class MetricsConfig(
+final case class MetricsConfig(
   sampleWindow: FiniteDuration = 30.seconds,
   numSamples: Int = 2,
   recordingLevel: String = "INFO",

@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import com.evolutiongaming.skafka._
 
 
-case class ConsumerRecord[K, V](
+final case class ConsumerRecord[K, V](
   topicPartition: TopicPartition,
   offset: Offset,
   timestampAndType: Option[TimestampAndType],
@@ -18,4 +18,4 @@ case class ConsumerRecord[K, V](
   def partition: Partition = topicPartition.partition
 }
 
-case class ConsumerRecords[K, V](values: Map[TopicPartition, Vector[ConsumerRecord[K, V]]])
+final case class ConsumerRecords[K, V](values: Map[TopicPartition, Vector[ConsumerRecord[K, V]]])

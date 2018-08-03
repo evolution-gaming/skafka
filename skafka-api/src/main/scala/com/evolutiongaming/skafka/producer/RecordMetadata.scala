@@ -4,7 +4,7 @@ import java.time.Instant
 
 import com.evolutiongaming.skafka._
 
-case class RecordMetadata(
+final case class RecordMetadata(
   topicPartition: TopicPartition,
   timestamp: Option[Instant] = None,
   offset: Option[Offset] = None,

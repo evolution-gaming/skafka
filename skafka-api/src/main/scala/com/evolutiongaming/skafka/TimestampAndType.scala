@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka
 import java.time.Instant
 
 
-case class TimestampAndType(
+final case class TimestampAndType(
   timestamp: Instant,
   timestampType: TimestampType)
 

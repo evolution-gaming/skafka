@@ -30,19 +30,20 @@ lazy val skafka = (project
   in file(".")
   settings (name := "skafka")
   settings commonSettings
-  aggregate(skafkaApi, skafkaImpl, logging, codahale, prometheus))
+  settings (skip in publish := true)
+  aggregate(api, impl, logging, codahale, prometheus, `play-json`))
 
-lazy val skafkaApi = (project
+lazy val api = (project
   in file("skafka-api")
   settings (name := "skafka-api")
   settings commonSettings
-  settings (libraryDependencies ++= Seq(`future-helper`, ScalaTest)))
+  settings (libraryDependencies ++= Seq(`future-helper`, scalatest)))
 
-lazy val skafkaImpl = (project
+lazy val impl = (project
   in file("skafka-impl")
   settings (name := "skafka-impl")
   settings commonSettings
-  dependsOn skafkaApi % "test->test;compile->compile"
+  dependsOn api % "test->test;compile->compile"
   settings (libraryDependencies ++= Seq(
   Nel,
   `config-tools`,
@@ -54,19 +55,26 @@ lazy val logging = (project
   in file("modules/logging")
   settings (name := "skafka-logging")
   settings commonSettings
-  dependsOn skafkaApi
+  dependsOn api
   settings (libraryDependencies ++= Seq(`safe-actor`)))
 
 lazy val codahale = (project
   in file("modules/codahale")
   settings (name := "skafka-codahale")
   settings commonSettings
-  dependsOn skafkaApi
+  dependsOn api
   settings (libraryDependencies ++= Seq(`metric-tools`)))
 
 lazy val prometheus = (project
   in file("modules/prometheus")
   settings (name := "skafka-prometheus")
   settings commonSettings
-  dependsOn skafkaApi
+  dependsOn api
   settings (libraryDependencies ++= Seq(Prometheus, `executor-tools`)))
+
+lazy val `play-json` = (project
+  in file("modules/play-json")
+  settings (name := "skafka-play-json")
+  settings commonSettings
+  dependsOn api
+  settings (libraryDependencies ++= Seq(Dependencies.`play-json`, scalatest)))

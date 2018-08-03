@@ -1,7 +1,7 @@
 import sbt._
 
 object Dependencies {
-  lazy val ScalaTest = "org.scalatest" %% "scalatest" % "3.0.5" % Test
+  lazy val scalatest = "org.scalatest" %% "scalatest" % "3.0.5" % Test
   lazy val `kafka-clients` = "org.apache.kafka" % "kafka-clients" % "1.1.1"
   lazy val `executor-tools` = "com.evolutiongaming" %% "executor-tools" % "1.0.0"
   lazy val Sequentially = "com.evolutiongaming" %% "sequentially" % "1.0.9"
@@ -10,5 +10,6 @@ object Dependencies {
   lazy val `metric-tools` = "com.evolutiongaming" %% "metric-tools" % "1.1"
   lazy val `safe-actor` = "com.evolutiongaming" %% "safe-actor" % "1.6"
   lazy val Prometheus = "io.prometheus" % "simpleclient" % "0.4.0"
-  lazy val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.1"
+  lazy val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.2"
+  lazy val `play-json` = "com.typesafe.play" %% "play-json" % "2.6.9"
 }

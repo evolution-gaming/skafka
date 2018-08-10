@@ -25,7 +25,7 @@ object CreateProducer {
         val topic = record.topic
         val keyBytes = record.key.map { key => keyToBytes(key, topic) }
         val valueBytes = valueToBytes(record.value, topic)
-        val recordBytes = record.copy(value = valueBytes, key = keyBytes)
+        val recordBytes: ProducerRecord[Bytes, Bytes] = record.copy(value = valueBytes, key = keyBytes)
         blocking {
           producer.sendAsScala(recordBytes)
         }
@@ -78,7 +78,7 @@ object CreateProducer {
             val topic = record.topic
             val keyBytes = record.key.map { key => keyToBytes(key, topic) }
             val valueBytes = valueToBytes(record.value, topic)
-            val recordBytes = record.copy(value = valueBytes, key = keyBytes)
+            val recordBytes: ProducerRecord[Bytes, Bytes] = record.copy(value = valueBytes, key = keyBytes)
             () => producer(recordBytes)
           }
         }

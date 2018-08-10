@@ -19,11 +19,7 @@ object LoggingProducer {
         val result = producer.doApply(record)(valueToBytes, keyToBytes)
         result onComplete {
           case Success(metadata) =>
-            def msg = record.key match {
-              case Some(key) => s"sent record key: $key, metadata: $metadata"
-              case None      => s"sent record metadata: $metadata"
-            }
-            log.debug(msg)
+            log.debug(s"sent $record, metadata: $metadata")
 
           case Failure(failure) =>
             log.error(s"failed to send record $record: $failure", failure)

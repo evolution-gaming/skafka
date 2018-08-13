@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.producer
 
 import akka.actor.ActorSystem
 import akka.stream.OverflowStrategy
-import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
+import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
 import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, ToBytes}
@@ -25,7 +25,7 @@ object CreateProducer {
         val topic = record.topic
         val keyBytes = record.key.map { key => keyToBytes(key, topic) }
         val valueBytes = valueToBytes(record.value, topic)
-        val recordBytes: ProducerRecord[Bytes, Bytes] = record.copy(value = valueBytes, key = keyBytes)
+        val recordBytes = record.copy(value = valueBytes, key = keyBytes)
         blocking {
           producer.sendAsScala(recordBytes)
         }
@@ -53,7 +53,7 @@ object CreateProducer {
 
   def apply(
     producerJ: JProducer[Bytes, Bytes],
-    sequentially: SequentiallyHandler[Any],
+    sequentially: SequentiallyAsync[Int],
     ecBlocking: ExecutionContext,
     random: Random = new Random)
     (implicit ec: ExecutionContext): Producer = {
@@ -65,22 +65,22 @@ object CreateProducer {
 
   def apply(
     producer: Producer,
-    sequentially: SequentiallyHandler[Any],
+    sequentially: SequentiallyAsync[Int],
     random: Random)
     (implicit ec: ExecutionContext): Producer = {
 
     new Producer {
 
       def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
-        val keySequentially: Any = record.key getOrElse random.nextInt()
-        sequentially.handler(keySequentially) {
+        val key = record.key.fold(random.nextInt())(_.hashCode())
+        sequentially.async(key) {
           Future {
             val topic = record.topic
             val keyBytes = record.key.map { key => keyToBytes(key, topic) }
             val valueBytes = valueToBytes(record.value, topic)
-            val recordBytes: ProducerRecord[Bytes, Bytes] = record.copy(value = valueBytes, key = keyBytes)
-            () => producer(recordBytes)
-          }
+            val recordBytes = record.copy(value = valueBytes, key = keyBytes)
+            producer(recordBytes)
+          }.flatten
         }
       }
 
@@ -94,7 +94,7 @@ object CreateProducer {
 
   def apply(configs: ProducerConfig, ecBlocking: ExecutionContext, system: ActorSystem): Producer = {
     implicit val materializer = CreateMaterializer(configs)(system)
-    val sequentially = SequentiallyHandler[Any](overflowStrategy = OverflowStrategy.dropNew)
+    val sequentially = SequentiallyAsync[Int](overflowStrategy = OverflowStrategy.dropNew)
     val jProducer = CreateJProducer(configs)
     apply(jProducer, sequentially, ecBlocking)(system.dispatcher)
   }

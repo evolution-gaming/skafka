@@ -49,20 +49,20 @@ object ProducerConverters {
       val jRecord = record.asJava
       val promise = Promise[RecordMetadata]
       val callback = new Callback {
-        def onCompletion(metadata: JRecordMetadata, exception: Exception) = {
-          if (metadata == null) promise.failure(exception)
-          else promise.success(metadata.asScala)
+        def onCompletion(metadata: JRecordMetadata, failure: Exception) = {
+          if (failure != null) {
+            promise.failure(failure)
+          } else if (metadata != null) {
+            promise.success(metadata.asScala)
+          } else {
+            val failure = new RuntimeException("both metadata & exception are nulls")
+            promise.failure(failure)
+          }
         }
       }
       try {
-        val result = self.send(jRecord, callback)
-        if (result.isDone) {
-          val jMetadata = result.get()
-          val metadata = jMetadata.asScala
-          Future.successful(metadata)
-        } else {
-          promise.future
-        }
+        self.send(jRecord, callback)
+        promise.future
       } catch {
         case NonFatal(failure: ExecutionException) => Future.failed(failure.getCause)
         case NonFatal(failure)                     => Future.failed(failure)

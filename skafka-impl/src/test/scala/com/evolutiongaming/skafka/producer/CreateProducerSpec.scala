@@ -17,7 +17,7 @@ import scala.util.Success
 
 class CreateProducerSpec extends WordSpec with Matchers {
 
-  "ProducerFactory" should {
+  "CreateProducer" should {
 
     "proxy flush" in new Scope {
       flushCalled shouldEqual false
@@ -66,7 +66,10 @@ class CreateProducerSpec extends WordSpec with Matchers {
       def close() = closeCalled = true
       def close(timeout: Long, unit: TimeUnit) = closeTimeout = Some(FiniteDuration(timeout, unit))
       def send(record: ProducerRecordJ[Bytes, Bytes]) = completableFuture
-      def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback) = completableFuture
+      def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback) = {
+        callback.onCompletion(metadata.asJava, null)
+        completableFuture
+      }
       def abortTransaction() = {}
     }
     val ec = CurrentThreadExecutionContext

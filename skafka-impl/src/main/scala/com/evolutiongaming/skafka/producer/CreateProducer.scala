@@ -17,15 +17,12 @@ object CreateProducer {
 
   def apply(producer: JProducer[Bytes, Bytes], ecBlocking: ExecutionContext): Producer = {
 
-    def blocking[T](f: => T): Future[T] = Future(f)(ecBlocking)
+    def blocking[T](f: => T) = Future(f)(ecBlocking)
 
     new Producer {
 
       def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
-        val topic = record.topic
-        val keyBytes = record.key.map { key => keyToBytes(key, topic) }
-        val valueBytes = valueToBytes(record.value, topic)
-        val recordBytes = record.copy(value = valueBytes, key = keyBytes)
+        val recordBytes = record.toBytes
         blocking {
           producer.sendAsScala(recordBytes)
         }
@@ -52,43 +49,43 @@ object CreateProducer {
   }
 
   def apply(
-    producerJ: JProducer[Bytes, Bytes],
+    producer: JProducer[Bytes, Bytes],
     sequentially: SequentiallyAsync[Int],
     ecBlocking: ExecutionContext,
-    random: Random = new Random)
-    (implicit ec: ExecutionContext): Producer = {
+    random: Random = new Random): Producer = {
 
-    val producer = apply(producerJ, ecBlocking)
-
-    apply(producer, sequentially, random)
-  }
-
-  def apply(
-    producer: Producer,
-    sequentially: SequentiallyAsync[Int],
-    random: Random)
-    (implicit ec: ExecutionContext): Producer = {
+    def blocking[T](f: => T) = Future(f)(ecBlocking)
 
     new Producer {
 
       def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
         val key = record.key.fold(random.nextInt())(_.hashCode())
-        sequentially.async(key) {
-          Future {
-            val topic = record.topic
-            val keyBytes = record.key.map { key => keyToBytes(key, topic) }
-            val valueBytes = valueToBytes(record.value, topic)
-            val recordBytes = record.copy(value = valueBytes, key = keyBytes)
-            producer(recordBytes)
-          }.flatten
+        val recordBytes = record.toBytes
+        val future = sequentially.async(key) {
+          blocking {
+            producer.sendAsScala(recordBytes)
+          }
+        }
+        future.flatten
+      }
+
+      def flush() = {
+        blocking {
+          producer.flush()
         }
       }
 
-      def flush() = producer.flush()
+      def close(timeout: FiniteDuration) = {
+        blocking {
+          producer.close(timeout.length, timeout.unit)
+        }
+      }
 
-      def close(timeout: FiniteDuration) = producer.close(timeout)
-
-      def close() = producer.close()
+      def close() = {
+        blocking {
+          producer.close()
+        }
+      }
     }
   }
 
@@ -96,7 +93,7 @@ object CreateProducer {
     implicit val materializer = CreateMaterializer(configs)(system)
     val sequentially = SequentiallyAsync[Int](overflowStrategy = OverflowStrategy.dropNew)
     val jProducer = CreateJProducer(configs)
-    apply(jProducer, sequentially, ecBlocking)(system.dispatcher)
+    apply(jProducer, sequentially, ecBlocking)
   }
 
   def apply(configs: ProducerConfig, ecBlocking: ExecutionContext): Producer = {

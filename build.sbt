@@ -48,8 +48,7 @@ lazy val impl = (project
   Nel,
   `config-tools`,
   `kafka-clients`,
-  Sequentially,
-  `executor-tools` % Test)))
+  Sequentially)))
 
 lazy val logging = (project
   in file("modules/logging")

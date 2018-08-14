@@ -14,6 +14,6 @@ package object skafka {
   type Bytes = Array[Byte]
 
   object Bytes {
-    lazy val Empty: Bytes = Array.empty
+    val Empty: Bytes = Array.empty
   }
 }

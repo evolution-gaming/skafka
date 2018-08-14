@@ -73,6 +73,6 @@ class CreateProducerSpec extends WordSpec with Matchers {
       def abortTransaction() = {}
     }
     val ec = CurrentThreadExecutionContext
-    val producer = CreateProducer(jProducer, SequentiallyHandler.now, ec)(ec)
+    val producer = CreateProducer(jProducer, SequentiallyHandler.now, ec)
   }
 }

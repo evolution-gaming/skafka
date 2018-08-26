@@ -13,11 +13,11 @@ object LoggingProducer {
     implicit val ec = CurrentThreadExecutionContext
 
     new Producer {
-      def doApply[K, V](record: ProducerRecord[K, V])
+      def send[K, V](record: ProducerRecord[K, V])
         (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
 
-        val result = producer.doApply(record)(valueToBytes, keyToBytes)
-        result onComplete {
+        val result = producer.send(record)(valueToBytes, keyToBytes)
+        result.onComplete {
           case Success(metadata) =>
             log.debug(s"sent $record, metadata: $metadata")
 

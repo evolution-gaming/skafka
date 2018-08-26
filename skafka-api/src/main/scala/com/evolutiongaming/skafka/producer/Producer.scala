@@ -6,9 +6,21 @@ import com.evolutiongaming.skafka._
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-trait Producer extends Producer.Send {
+trait Producer {
+
   def flush(): Future[Unit]
+
   def close(): Future[Unit]
+
+  def send[K, V](record: ProducerRecord[K, V])
+    (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
+
+  def send[V](record: ProducerRecord[Nothing, V])
+    (implicit valueToBytes: ToBytes[V]): Future[RecordMetadata] = {
+
+    send[Nothing, V](record)(valueToBytes, ToBytes.empty)
+  }
+
   def close(timeout: FiniteDuration): Future[Unit]
 }
 
@@ -16,7 +28,7 @@ object Producer {
 
   lazy val Empty: Producer = new Producer {
 
-    def doApply[K, V](record: ProducerRecord[K, V])
+    def send[K, V](record: ProducerRecord[K, V])
       (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 
       val partition = record.partition getOrElse 0
@@ -32,20 +44,30 @@ object Producer {
     def close(timeout: FiniteDuration) = Future.unit
   }
 
+
+  object Send {
+    val Empty: Send = apply(Producer.Empty)
+
+    def apply(producer: Producer): Send = new Send {
+      def apply[K, V](record: ProducerRecord[K, V])
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+
+        producer.send(record)(valueToBytes, keyToBytes)
+      }
+
+      def apply[V](record: ProducerRecord[Nothing, V])
+        (implicit valueToBytes: ToBytes[V]) = {
+
+        producer.send(record)(valueToBytes)
+      }
+    }
+  }
+
   trait Send {
     def apply[K, V](record: ProducerRecord[K, V])
-      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
-
-      doApply(record)(valueToBytes, keyToBytes)
-    }
+      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
 
     def apply[V](record: ProducerRecord[Nothing, V])
-      (implicit valueToBytes: ToBytes[V]): Future[RecordMetadata] = {
-
-      doApply(record)(valueToBytes, ToBytes.empty)
-    }
-
-    def doApply[K, V](record: ProducerRecord[K, V])
-      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
+      (implicit valueToBytes: ToBytes[V]): Future[RecordMetadata]
   }
 }

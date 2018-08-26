@@ -61,8 +61,14 @@ object ProducerConverters {
         }
       }
       try {
-        self.send(jRecord, callback)
-        promise.future
+        val result = self.send(jRecord, callback)
+        if (result.isDone) {
+          val jMetadata = result.get()
+          val metadata = jMetadata.asScala
+          Future.successful(metadata)
+        } else {
+          promise.future
+        }
       } catch {
         case NonFatal(failure: ExecutionException) => Future.failed(failure.getCause)
         case NonFatal(failure)                     => Future.failed(failure)

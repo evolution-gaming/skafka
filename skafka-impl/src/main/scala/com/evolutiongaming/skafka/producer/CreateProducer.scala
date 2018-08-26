@@ -21,7 +21,7 @@ object CreateProducer {
 
     new Producer {
 
-      def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
         val recordBytes = record.toBytes
         blocking {
           producer.sendAsScala(recordBytes)
@@ -58,7 +58,7 @@ object CreateProducer {
 
     new Producer {
 
-      def doApply[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
         val key = record.key.fold(random.nextInt())(_.hashCode())
         val recordBytes = record.toBytes
         val future = sequentially.async(key) {

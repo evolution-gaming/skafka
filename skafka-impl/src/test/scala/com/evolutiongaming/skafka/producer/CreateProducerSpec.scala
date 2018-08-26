@@ -41,7 +41,7 @@ class CreateProducerSpec extends WordSpec with Matchers {
 
     "proxy send" in new Scope {
       val record = ProducerRecord(topic = topic, value = "0")
-      val result = producer(record)
+      val result = producer.send(record)
       result.value shouldEqual Some(Success(metadata))
     }
   }

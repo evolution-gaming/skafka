@@ -16,12 +16,12 @@ object MeteredProducer {
 
     new Producer {
 
-      def doApply[K, V](record: ProducerRecord[K, V])
+      def send[K, V](record: ProducerRecord[K, V])
         (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
 
         val topic = record.topic
         val result = registry.histogram(s"$topic.latency").timeFuture {
-          producer.doApply(record)
+          producer.send(record)
         }
 
         result.onComplete {

@@ -40,11 +40,11 @@ object PrometheusProducer {
 
     new Producer {
 
-      def doApply[K, V](record: ProducerRecord[K, V])
+      def send[K, V](record: ProducerRecord[K, V])
         (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
 
         val start = Platform.currentTime
-        val result = producer.doApply(record)(valueToBytes, keyToBytes)
+        val result = producer.send(record)(valueToBytes, keyToBytes)
         result.onComplete { result =>
           val topicLabel = record.topic.replace(".", "_")
           val duration = (Platform.currentTime - start).toDouble / 1000

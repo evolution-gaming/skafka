@@ -26,10 +26,8 @@ class ConsumerConvertersSpec extends WordSpec with Matchers {
         topicPartition = TopicPartition("topic", 1),
         offset = 100,
         timestampAndType = Some(TimestampAndType(Instant.now(), TimestampType.Create)),
-        serializedKeySize = 1,
-        serializedValueSize = 2,
-        key = Some("key"),
-        value = "value",
+        key = Some(WithSize("key", 1)),
+        value = Some(WithSize("value", 2)),
         headers = Nil)
       value shouldEqual value.asJava.asScala
     }

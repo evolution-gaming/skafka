@@ -15,13 +15,16 @@ trait Producer {
   def send[K, V](record: ProducerRecord[K, V])
     (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
 
-  def send[V](record: ProducerRecord[Nothing, V])
-    (implicit valueToBytes: ToBytes[V]): Future[RecordMetadata] = {
+  def close(timeout: FiniteDuration): Future[Unit]
 
-    send[Nothing, V](record)(valueToBytes, ToBytes.empty)
+
+  def send[V](record: ProducerRecord[Nothing, V])(implicit toBytes: ToBytes[V]): Future[RecordMetadata] = {
+    send[Nothing, V](record)(toBytes, ToBytes.empty)
   }
 
-  def close(timeout: FiniteDuration): Future[Unit]
+  def send(record: ProducerRecord[Nothing, Nothing]): Future[RecordMetadata] = {
+    send[Nothing, Nothing](record)(ToBytes.empty, ToBytes.empty)
+  }
 }
 
 object Producer {

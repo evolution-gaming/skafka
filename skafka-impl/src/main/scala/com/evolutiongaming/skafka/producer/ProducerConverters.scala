@@ -22,7 +22,7 @@ object ProducerConverters {
         self.partition.fold[java.lang.Integer](null) { java.lang.Integer.valueOf },
         self.timestamp.fold[java.lang.Long](null) { timestamp => timestamp.toEpochMilli },
         self.key.getOrElse(null.asInstanceOf[K]),
-        self.value,
+        self.value.getOrElse(null.asInstanceOf[V]),
         self.headers.map { _.asJava }.asJava)
     }
   }
@@ -33,7 +33,7 @@ object ProducerConverters {
     def asScala: ProducerRecord[K, V] = {
       ProducerRecord(
         topic = self.topic,
-        value = self.value,
+        value = Option(self.value),
         key = Option(self.key),
         partition = Option(self.partition) map { _.intValue() },
         timestamp = Option(self.timestamp) map { Instant.ofEpochMilli(_) },
@@ -83,8 +83,8 @@ object ProducerConverters {
       topicPartition = TopicPartition(self.topic, self.partition()),
       timestamp = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
       offset = self.offset noneIf ProduceResponse.INVALID_OFFSET,
-      serializedKeySize = self.serializedKeySize zeroIf -1,
-      serializedValueSize = self.serializedValueSize zeroIf -1
+      keySerializedSize = self.serializedKeySize noneIf -1,
+      valueSerializedSize = self.serializedValueSize noneIf -1
     )
   }
 
@@ -98,9 +98,8 @@ object ProducerConverters {
         self.offset getOrElse ProduceResponse.INVALID_OFFSET,
         self.timestamp.fold(RecordBatch.NO_TIMESTAMP)(_.toEpochMilli),
         null,
-        self.serializedKeySize,
-        self.serializedValueSize
-      )
+        self.keySerializedSize getOrElse -1,
+        self.valueSerializedSize getOrElse -1)
     }
   }
 }

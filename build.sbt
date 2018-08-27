@@ -31,7 +31,7 @@ lazy val skafka = (project
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
-  aggregate(api, impl, logging, codahale, prometheus, `play-json`))
+  aggregate(api, impl, logging, codahale, prometheus, `play-json`, tests))
 
 lazy val api = (project
   in file("skafka-api")
@@ -77,3 +77,21 @@ lazy val `play-json` = (project
   settings commonSettings
   dependsOn api
   settings (libraryDependencies ++= Seq(Dependencies.`play-json`, scalatest)))
+
+lazy val tests = (project in file("tests")
+  settings (name := "skafka-tests")
+  settings commonSettings
+  settings Seq(
+    skip in publish := true,
+    Test / fork := true,
+    Test / parallelExecution := false)
+    dependsOn impl
+    settings (libraryDependencies ++= Seq(
+    `kafka-launcher`,
+    Akka.testkit,
+    Akka.slf4j,
+    Slf4j.api % Test,
+    Slf4j.`log4j-over-slf4j` % Test,
+    Logback.core % Test,
+    Logback.classic % Test,
+    scalatest)))

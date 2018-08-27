@@ -90,14 +90,19 @@ object ConsumerConverters {
           case TimestampTypeJ.LOG_APPEND_TIME   => some(TimestampType.Append)
         }
       }
+
+      def withSize[T](value: T, size: Int) = {
+        for {
+          value <- Option(value)
+        } yield WithSize(value, size)
+      }
+
       ConsumerRecord(
         topicPartition = TopicPartition(self.topic(), self.partition()),
         offset = self.offset(),
         timestampAndType = timestampAndType,
-        serializedKeySize = self.serializedKeySize(),
-        serializedValueSize = self.serializedValueSize(),
-        key = Option(self.key()),
-        value = self.value(),
+        key = withSize(self.key(), self.serializedKeySize),
+        value = withSize(self.value(), self.serializedValueSize()),
         headers = headers)
     }
   }
@@ -125,10 +130,10 @@ object ConsumerConverters {
         timestamp,
         timestampType,
         null,
-        self.serializedKeySize,
-        self.serializedValueSize,
-        self.key getOrElse null.asInstanceOf[K],
-        self.value,
+        self.key.map(_.serializedSize) getOrElse -1,
+        self.value.map(_.serializedSize) getOrElse -1,
+        self.key.map(_.value) getOrElse null.asInstanceOf[K],
+        self.value.map(_.value) getOrElse null.asInstanceOf[V],
         new RecordHeaders(headers))
     }
   }

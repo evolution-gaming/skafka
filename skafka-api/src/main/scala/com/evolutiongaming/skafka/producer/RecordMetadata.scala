@@ -8,8 +8,8 @@ final case class RecordMetadata(
   topicPartition: TopicPartition,
   timestamp: Option[Instant] = None,
   offset: Option[Offset] = None,
-  serializedKeySize: Int = 0,
-  serializedValueSize: Int = 0) {
+  keySerializedSize: Option[Int] = None,
+  valueSerializedSize: Option[Int] = None) {
 
   def topic: Topic = topicPartition.topic
 

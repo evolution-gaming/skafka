@@ -24,13 +24,8 @@ object Converters {
   }
 
 
-  implicit class IntOps(val self: Int) extends AnyVal {
-    def zeroIf(x: Int): Int = if (self == x) 0 else self
-  }
-
-
-  implicit class LongOps(val self: Long) extends AnyVal {
-    def noneIf(x: Long): Option[Long] = if (self == x) None else Some(self)
+  implicit class AnyOps[T](val self: T) extends AnyVal {
+    def noneIf(x: T): Option[T] = if (self == x) None else Some(self)
   }
 
 

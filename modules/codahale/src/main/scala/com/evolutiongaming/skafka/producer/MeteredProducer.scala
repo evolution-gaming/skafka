@@ -26,7 +26,7 @@ object MeteredProducer {
 
         result.onComplete {
           case Success(metadata) =>
-            registry.meter(s"$topic.bytes").mark(metadata.serializedValueSize.toLong)
+            registry.meter(s"$topic.bytes").mark(metadata.valueSerializedSize.getOrElse(0).toLong)
             registry.counter(s"$topic.success").inc()
 
           case Failure(_) =>

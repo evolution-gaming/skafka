@@ -56,7 +56,7 @@ object PrometheusProducer {
             case Success(metadata) =>
               bytesSummary
                 .labels(label, topicLabel)
-                .observe(metadata.serializedValueSize.toDouble)
+                .observe(metadata.valueSerializedSize.getOrElse(0).toDouble)
               "success"
             case Failure(_)        =>
               "failure"

@@ -9,7 +9,6 @@ import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerRecord, WithSize}
-import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.producer._
 import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -112,14 +111,13 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       keyAndValues shouldEqual List((Some(key), record.value))
 
       val timestamp = Instant.now()
-      val delete = ProducerRecord[Bytes, Bytes](
+      val delete = ProducerRecord[String, String](
         topic = topic,
-        key = Some(key.getBytes("UTF-8")),
+        key = Some(key),
         timestamp = Some(timestamp),
         headers = headers)
 
-      val javaProducer = CreateJProducer(ProducerConfig.Default.copy(acks = acks))
-      val deleteMetadata = javaProducer.send(delete.asJava).get().asScala
+      val deleteMetadata = produce(delete)
 
       val records = consume().map(Record(_))
 
@@ -137,13 +135,12 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
     test(s"$name produce and consume empty record") {
       val timestamp = Instant.now()
-      val empty = ProducerRecord[Bytes, Bytes](
+      val empty = ProducerRecord[String, String](
         topic = topic,
         timestamp = Some(timestamp),
         headers = headers)
 
-      val javaProducer = CreateJProducer(ProducerConfig.Default.copy(acks = acks))
-      val metadata = javaProducer.send(empty.asJava).get().asScala
+      val metadata = produce(empty)
 
       val records = consume().map(Record(_))
 

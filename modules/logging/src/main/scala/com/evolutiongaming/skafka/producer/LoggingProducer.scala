@@ -4,6 +4,7 @@ import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.safeakka.actor.ActorLog
 import com.evolutiongaming.skafka.ToBytes
 
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
@@ -14,7 +15,7 @@ object LoggingProducer {
 
     new Producer {
       def send[K, V](record: ProducerRecord[K, V])
-        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 
         val result = producer.send(record)(valueToBytes, keyToBytes)
         result.onComplete {
@@ -26,9 +27,9 @@ object LoggingProducer {
         }
         result
       }
-      def flush() = producer.flush()
-      def close() = producer.close()
-      def close(timeout: FiniteDuration) = producer.close(timeout)
+      def flush(): Future[Unit] = producer.flush()
+      def close(): Future[Unit] = producer.close()
+      def close(timeout: FiniteDuration): Future[Unit] = producer.close(timeout)
     }
   }
 }

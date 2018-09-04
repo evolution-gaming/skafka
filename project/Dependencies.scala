@@ -9,7 +9,7 @@ object Dependencies {
   lazy val `config-tools` = "com.evolutiongaming" %% "config-tools" % "1.0.2"
   lazy val `metric-tools` = "com.evolutiongaming" %% "metric-tools" % "1.1"
   lazy val `safe-actor` = "com.evolutiongaming" %% "safe-actor" % "1.7"
-  lazy val Prometheus = "io.prometheus" % "simpleclient" % "0.4.0"
+  lazy val Prometheus = "io.prometheus" % "simpleclient" % "0.5.0"
   lazy val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.3"
   lazy val `play-json` = "com.typesafe.play" %% "play-json" % "2.6.10"
   lazy val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.1" % Test

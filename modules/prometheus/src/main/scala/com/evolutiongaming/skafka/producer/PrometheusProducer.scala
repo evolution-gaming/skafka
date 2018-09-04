@@ -5,43 +5,55 @@ import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 import scala.compat.Platform
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 object PrometheusProducer {
 
+  private var latencySummary: Summary = _
+  private var bytesSummary: Summary = _
+  private var counter: Counter = _
+  private var isInitDone = false
+
+  private def initMetrics(registry: CollectorRegistry): Unit = {
+    if (!isInitDone) {
+      isInitDone = true
+
+      latencySummary = Summary.build()
+        .name("skafka_producer_latency")
+        .help("Latency in seconds")
+        .labelNames("topic")
+        .quantile(0.9, 0.01)
+        .quantile(0.99, 0.001)
+        .register(registry)
+
+      bytesSummary = Summary.build()
+        .name("skafka_producer_bytes")
+        .help("Message size in bytes")
+        .labelNames("topic")
+        .register(registry)
+
+      counter = Counter.build()
+        .name("skafka_producer_result")
+        .help("Result: success or failure")
+        .labelNames("topic", "result")
+        .register(registry)
+    }
+  }
+
   def apply(
     producer: Producer,
-    registry: CollectorRegistry,
-    prefix: String = "skafka_producer",
-    label: String = "skafka"): Producer = {
+    registry: CollectorRegistry): Producer = {
+
+    initMetrics(registry)
 
     implicit val ec = CurrentThreadExecutionContext
-
-    val latencySummary = Summary.build()
-      .name(s"${ prefix }_latency")
-      .help("Latency in seconds")
-      .labelNames("producer", "topic")
-      .quantile(0.9, 0.01)
-      .quantile(0.99, 0.001)
-      .register(registry)
-
-    val bytesSummary = Summary.build()
-      .name(s"${ prefix }_bytes")
-      .help("Message size in bytes")
-      .labelNames("producer", "topic")
-      .register(registry)
-
-    val counter = Counter.build()
-      .name(s"${ prefix }_result")
-      .help("Result: success or failure")
-      .labelNames("producer", "topic", "result")
-      .register(registry)
 
     new Producer {
 
       def send[K, V](record: ProducerRecord[K, V])
-        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 
         val start = Platform.currentTime
         val result = producer.send(record)(valueToBytes, keyToBytes)
@@ -49,34 +61,34 @@ object PrometheusProducer {
           val topicLabel = record.topic.replace(".", "_")
           val duration = (Platform.currentTime - start).toDouble / 1000
           latencySummary
-            .labels(label, topicLabel)
+            .labels(topicLabel)
             .observe(duration)
 
           val resultLabel = result match {
             case Success(metadata) =>
               bytesSummary
-                .labels(label, topicLabel)
+                .labels(topicLabel)
                 .observe(metadata.valueSerializedSize.getOrElse(0).toDouble)
               "success"
             case Failure(_)        =>
               "failure"
           }
           counter
-            .labels(label, topicLabel, resultLabel)
+            .labels(topicLabel, resultLabel)
             .inc()
         }
         result
       }
 
-      def flush() = {
+      def flush(): Future[Unit] = {
         producer.flush()
       }
 
-      def close(timeout: FiniteDuration) = {
+      def close(timeout: FiniteDuration): Future[Unit] = {
         producer.close(timeout)
       }
 
-      def close() = {
+      def close(): Future[Unit] = {
         producer.close()
       }
     }

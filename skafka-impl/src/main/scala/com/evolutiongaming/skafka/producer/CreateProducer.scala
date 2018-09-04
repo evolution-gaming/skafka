@@ -2,9 +2,8 @@ package com.evolutiongaming.skafka.producer
 
 
 import akka.actor.ActorSystem
-import akka.stream.OverflowStrategy
+import akka.stream.{Materializer, OverflowStrategy}
 import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
-import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, ToBytes}
 import org.apache.kafka.clients.producer.{Producer => JProducer}
@@ -17,30 +16,30 @@ object CreateProducer {
 
   def apply(producer: JProducer[Bytes, Bytes], ecBlocking: ExecutionContext): Producer = {
 
-    def blocking[T](f: => T) = Future(f)(ecBlocking)
+    def blocking[T](f: => T): Future[T] = Future(f)(ecBlocking)
 
     new Producer {
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
         val recordBytes = record.toBytes
         blocking {
           producer.sendAsScala(recordBytes)
         }
       }.flatten
 
-      def flush() = {
+      def flush(): Future[Unit] = {
         blocking {
           producer.flush()
         }
       }
 
-      def close(timeout: FiniteDuration) = {
+      def close(timeout: FiniteDuration): Future[Unit] = {
         blocking {
           producer.close(timeout.length, timeout.unit)
         }
       }
 
-      def close() = {
+      def close(): Future[Unit] = {
         blocking {
           producer.close()
         }
@@ -58,7 +57,7 @@ object CreateProducer {
 
     new Producer {
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
         val key = record.key.fold(random.nextInt())(_.hashCode())
         val recordBytes = record.toBytes
         val future = sequentially.async(key) {
@@ -69,19 +68,19 @@ object CreateProducer {
         future.flatten
       }
 
-      def flush() = {
+      def flush(): Future[Unit] = {
         blocking {
           producer.flush()
         }
       }
 
-      def close(timeout: FiniteDuration) = {
+      def close(timeout: FiniteDuration): Future[Unit] = {
         blocking {
           producer.close(timeout.length, timeout.unit)
         }
       }
 
-      def close() = {
+      def close(): Future[Unit] = {
         blocking {
           producer.close()
         }
@@ -90,7 +89,7 @@ object CreateProducer {
   }
 
   def apply(config: ProducerConfig, ecBlocking: ExecutionContext, system: ActorSystem): Producer = {
-    implicit val materializer = CreateMaterializer(config)(system)
+    implicit val materializer: Materializer = CreateMaterializer(config)(system)
     val sequentially = SequentiallyAsync[Int](overflowStrategy = OverflowStrategy.dropNew)
     val jProducer = CreateJProducer(config)
     apply(jProducer, sequentially, ecBlocking)

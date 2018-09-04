@@ -5,50 +5,26 @@ import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 import scala.compat.Platform
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 object PrometheusProducer {
 
-  private var latencySummary: Summary = _
-  private var bytesSummary: Summary = _
-  private var counter: Counter = _
-  private var isInitDone = false
+  private var collectors: Collectors = _
 
-  private def initMetrics(registry: CollectorRegistry): Unit = {
-    if (!isInitDone) {
-      isInitDone = true
-
-      latencySummary = Summary.build()
-        .name("skafka_producer_latency")
-        .help("Latency in seconds")
-        .labelNames("topic")
-        .quantile(0.9, 0.01)
-        .quantile(0.99, 0.001)
-        .register(registry)
-
-      bytesSummary = Summary.build()
-        .name("skafka_producer_bytes")
-        .help("Message size in bytes")
-        .labelNames("topic")
-        .register(registry)
-
-      counter = Counter.build()
-        .name("skafka_producer_result")
-        .help("Result: success or failure")
-        .labelNames("topic", "result")
-        .register(registry)
-    }
+  private def registerCollectors(registry: CollectorRegistry): Unit = synchronized {
+    if (collectors == null)
+      collectors = Builders().register(registry)
   }
 
   def apply(
     producer: Producer,
     registry: CollectorRegistry): Producer = {
 
-    initMetrics(registry)
+    registerCollectors(registry)
 
-    implicit val ec = CurrentThreadExecutionContext
+    implicit val ec: ExecutionContext = CurrentThreadExecutionContext
 
     new Producer {
 
@@ -60,20 +36,20 @@ object PrometheusProducer {
         result.onComplete { result =>
           val topicLabel = record.topic.replace(".", "_")
           val duration = (Platform.currentTime - start).toDouble / 1000
-          latencySummary
+          collectors.latencySummary
             .labels(topicLabel)
             .observe(duration)
 
           val resultLabel = result match {
             case Success(metadata) =>
-              bytesSummary
+              collectors.bytesSummary
                 .labels(topicLabel)
                 .observe(metadata.valueSerializedSize.getOrElse(0).toDouble)
               "success"
             case Failure(_)        =>
               "failure"
           }
-          counter
+          collectors.counter
             .labels(topicLabel, resultLabel)
             .inc()
         }
@@ -93,4 +69,35 @@ object PrometheusProducer {
       }
     }
   }
+
+  private case class Builders(
+    latencySummary: Summary.Builder = Summary.build()
+      .name("skafka_producer_latency")
+      .help("Latency in seconds")
+      .labelNames("topic")
+      .quantile(0.9, 0.01)
+      .quantile(0.99, 0.001),
+
+    bytesSummary: Summary.Builder = Summary.build()
+      .name("skafka_producer_bytes")
+      .help("Message size in bytes")
+      .labelNames("topic"),
+
+    counter: Counter.Builder = Counter.build()
+      .name("skafka_producer_result")
+      .help("Result: success or failure")
+      .labelNames("topic", "result")) {
+
+    def register(registry: CollectorRegistry): Collectors = {
+      Collectors(
+        latencySummary = latencySummary.register(registry),
+        bytesSummary = bytesSummary.register(registry),
+        counter = counter.register(registry))
+    }
+  }
+
+  private case class Collectors(
+    latencySummary: Summary,
+    bytesSummary: Summary,
+    counter: Counter)
 }

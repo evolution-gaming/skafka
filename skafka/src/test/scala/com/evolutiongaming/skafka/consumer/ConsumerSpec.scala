@@ -59,13 +59,13 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     "subscribe topics" in new Scope {
-      consumer.subscribe(Nel(topic), None)
+      consumer.subscribe(Nel(topic), Some(RebalanceListener.Empty))
       subscribeTopics shouldEqual List(topic)
     }
 
     "subscribe pattern" in new Scope {
       val pattern = Pattern.compile(".")
-      consumer.subscribe(pattern, None)
+      consumer.subscribe(pattern, Some(RebalanceListener.Empty))
       subscribePattern shouldEqual Some(pattern)
     }
 

@@ -80,7 +80,7 @@ lazy val tests = (project in file("tests")
     skip in publish := true,
     Test / fork := true,
     Test / parallelExecution := false)
-    dependsOn skafka
+    dependsOn (skafka, logging)
     settings (libraryDependencies ++= Seq(
       `kafka-launcher`,
       Akka.testkit,

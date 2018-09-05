@@ -8,6 +8,7 @@ import akka.testkit.{TestKit, TestKitExtension}
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.nel.Nel
+import com.evolutiongaming.safeakka.actor.ActorLog
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -42,7 +43,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     val ecBlocking = system.dispatcher
     val config = ProducerConfig.Default.copy(acks = acks)
     List(
-      Producer(config, ecBlocking),
+      LoggingProducer(Producer(config, ecBlocking), ActorLog.empty),
       Producer(config, ecBlocking, system))
   }
 

@@ -6,6 +6,7 @@ import java.time.Instant
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestKitExtension}
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.safeakka.actor.ActorLog
@@ -14,15 +15,18 @@ import com.evolutiongaming.skafka.producer._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.annotation.tailrec
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
 
 class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
   implicit lazy val system: ActorSystem = ActorSystem(getClass.getSimpleName)
+  implicit lazy val ec = system.dispatcher
 
   lazy val shutdown = StartKafka()
+
+  val timeout = TestKitExtension(system).DefaultTimeout.duration
 
   override def beforeAll() = {
     super.beforeAll()
@@ -31,11 +35,21 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
   override def afterAll() = {
     shutdown()
+
+    val futures = for {
+      (_, producers) <- combinations
+      producer <- producers
+    } yield for {
+      _ <- producer.flush()
+      _ <- producer.close()
+    } yield {}
+
+    Await.result(Future.foldUnit(futures), timeout)
+
     TestKit.shutdownActorSystem(system)
     super.afterAll()
   }
 
-  val timeout = TestKitExtension(system).DefaultTimeout.duration
 
   val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
@@ -47,9 +61,13 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       Producer(config, ecBlocking, system))
   }
 
-  for {
+  lazy val combinations = for {
     acks <- List(Acks.One, Acks.None)
-    (producer, idx) <- producers(acks).zipWithIndex
+  } yield (acks, producers(acks))
+
+  for {
+    (acks, producers) <- combinations
+    (producer, idx) <- producers.zipWithIndex
   } yield {
 
     val topic = s"$idx-$acks"

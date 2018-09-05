@@ -62,6 +62,12 @@ class ProducerSpec extends WordSpec with Matchers {
       val result = producer.sendNoKey(record)
       result.value shouldEqual Some(Success(metadata))
     }
+
+    "proxy sendEmpty" in new Scope {
+      val record = ProducerRecord(topic = topic)
+      val result = producer.sendEmpty(record)
+      result.value shouldEqual Some(Success(metadata))
+    }
   }
 
 

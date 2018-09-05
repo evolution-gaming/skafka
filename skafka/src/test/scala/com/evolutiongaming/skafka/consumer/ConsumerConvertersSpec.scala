@@ -9,6 +9,8 @@ import org.scalatest.{Matchers, WordSpec}
 
 class ConsumerConvertersSpec extends WordSpec with Matchers {
 
+  val timestamp = Instant.now()
+
   "ConsumerConverters" should {
 
     "convert OffsetAndMetadata" in {
@@ -21,15 +23,24 @@ class ConsumerConvertersSpec extends WordSpec with Matchers {
       value shouldEqual value.asJava.asScala
     }
 
-    "convert ConsumerRecord" in {
-      val value = ConsumerRecord(
-        topicPartition = TopicPartition("topic", 1),
-        offset = 100,
-        timestampAndType = Some(TimestampAndType(Instant.now(), TimestampType.Create)),
-        key = Some(WithSize("key", 1)),
-        value = Some(WithSize("value", 2)),
-        headers = Nil)
-      value shouldEqual value.asJava.asScala
+    for {
+      timestampAndType <- List(
+        None,
+        Some(TimestampAndType(timestamp, TimestampType.Create)),
+        Some(TimestampAndType(timestamp, TimestampType.Append)))
+      key <- List(Some(WithSize("key", 1)), None)
+      value <- List(Some(WithSize("value", 1)), None)
+    } {
+      s"convert ConsumerRecord, key: $key, value: $value, timestampAndType: $timestampAndType" in {
+        val consumerRecord = ConsumerRecord(
+          topicPartition = TopicPartition("topic", 1),
+          offset = 100,
+          timestampAndType = timestampAndType,
+          key = key,
+          value = value,
+          headers = List(Header("key", Bytes.Empty)))
+        consumerRecord shouldEqual consumerRecord.asJava.asScala
+      }
     }
   }
 }

@@ -15,7 +15,7 @@ class ConsumerConfigSpec extends FunSuite with Matchers {
     maxPollInterval = 2.millis,
     sessionTimeout = 3.seconds,
     heartbeatInterval = 4.minutes,
-    enableAutoCommit = false,
+    autoCommit = false,
     autoCommitInterval = 5.hours,
     partitionAssignmentStrategy = "partitionAssignmentStrategy",
     autoOffsetReset = AutoOffsetReset.Earliest,

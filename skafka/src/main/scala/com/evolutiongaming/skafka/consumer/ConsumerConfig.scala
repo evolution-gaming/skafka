@@ -17,7 +17,7 @@ final case class ConsumerConfig(
   maxPollInterval: FiniteDuration = 5.minutes,
   sessionTimeout: FiniteDuration = 10.seconds,
   heartbeatInterval: FiniteDuration = 3.seconds,
-  enableAutoCommit: Boolean = true,
+  autoCommit: Boolean = true,
   autoCommitInterval: FiniteDuration = 5.seconds,
   partitionAssignmentStrategy: String = "org.apache.kafka.clients.consumer.RangeAssignor",
   autoOffsetReset: AutoOffsetReset = AutoOffsetReset.Latest,
@@ -37,7 +37,7 @@ final case class ConsumerConfig(
       (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
       (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
       (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
-      (C.ENABLE_AUTO_COMMIT_CONFIG, enableAutoCommit.toString),
+      (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
       (C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString),
       (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.toString),
       (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
@@ -106,9 +106,10 @@ object ConsumerConfig {
       heartbeatInterval = getDuration(
         "heartbeat-interval",
         "heartbeat.interval.ms") getOrElse Default.heartbeatInterval,
-      enableAutoCommit = get[Boolean](
+      autoCommit = get[Boolean](
+        "auto-commit",
         "enable-auto-commit",
-        "enable.auto.commit") getOrElse Default.enableAutoCommit,
+        "enable.auto.commit") getOrElse Default.autoCommit,
       autoCommitInterval = getDuration(
         "auto-commit-interval",
         "auto.commit.interval.ms") getOrElse Default.autoCommitInterval,

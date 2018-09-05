@@ -55,6 +55,23 @@ object ConsumerConverters {
   }
 
 
+  implicit class RebalanceListenerJOps(val self: RebalanceListenerJ) extends AnyVal {
+
+    def asScala: RebalanceListener = new RebalanceListener {
+
+      def onPartitionsAssigned(partitions: Iterable[TopicPartition]): Unit = {
+        val partitionsJ = partitions.map(_.asJava).asJavaCollection
+        self.onPartitionsAssigned(partitionsJ)
+      }
+
+      def onPartitionsRevoked(partitions: Iterable[TopicPartition]): Unit = {
+        val partitionsJ = partitions.map(_.asJava).asJavaCollection
+        self.onPartitionsRevoked(partitionsJ)
+      }
+    }
+  }
+
+
   implicit class CommitCallbackOps(val self: CommitCallback) extends AnyVal {
 
     def asJava: CommitCallbackJ = new CommitCallbackJ {

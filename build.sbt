@@ -26,56 +26,51 @@ lazy val commonSettings = Seq(
   releaseCrossBuild := true)
 
 
-lazy val skafka = (project
+lazy val root = (project
   in file(".")
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
-  aggregate(api, impl, logging, codahale, prometheus, `play-json`, tests))
+  aggregate(skafka, logging, codahale, prometheus, `play-json`, tests))
 
-lazy val api = (project
-  in file("skafka-api")
-  settings (name := "skafka-api")
+lazy val skafka = (project
+  in file("skafka")
+  settings (name := "skafka")
   settings commonSettings
-  settings (libraryDependencies ++= Seq(`future-helper`, scalatest)))
-
-lazy val impl = (project
-  in file("skafka-impl")
-  settings (name := "skafka-impl")
-  settings commonSettings
-  dependsOn api % "test->test;compile->compile"
   settings (libraryDependencies ++= Seq(
   nel,
   `config-tools`,
   `kafka-clients`,
+  `future-helper`,
+  scalatest,
   sequentially)))
 
 lazy val logging = (project
   in file("modules/logging")
   settings (name := "skafka-logging")
   settings commonSettings
-  dependsOn api
+  dependsOn skafka
   settings (libraryDependencies ++= Seq(`safe-actor`)))
 
 lazy val codahale = (project
   in file("modules/codahale")
   settings (name := "skafka-codahale")
   settings commonSettings
-  dependsOn api
+  dependsOn skafka
   settings (libraryDependencies ++= Seq(`metric-tools`)))
 
 lazy val prometheus = (project
   in file("modules/prometheus")
   settings (name := "skafka-prometheus")
   settings commonSettings
-  dependsOn api
+  dependsOn skafka
   settings (libraryDependencies ++= Seq(Prometheus, `executor-tools`, scalatest)))
 
 lazy val `play-json` = (project
   in file("modules/play-json")
   settings (name := "skafka-play-json")
   settings commonSettings
-  dependsOn api
+  dependsOn skafka
   settings (libraryDependencies ++= Seq(Dependencies.`play-json`, scalatest)))
 
 lazy val tests = (project in file("tests")
@@ -85,7 +80,7 @@ lazy val tests = (project in file("tests")
     skip in publish := true,
     Test / fork := true,
     Test / parallelExecution := false)
-    dependsOn impl
+    dependsOn skafka
     settings (libraryDependencies ++= Seq(
     `kafka-launcher`,
     Akka.testkit,

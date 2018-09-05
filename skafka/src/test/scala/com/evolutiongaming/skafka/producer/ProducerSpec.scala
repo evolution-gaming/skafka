@@ -17,7 +17,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 
-class CreateProducerSpec extends WordSpec with Matchers {
+class ProducerSpec extends WordSpec with Matchers {
 
   val topic = "topic"
   val topicPartition = TopicPartition(topic = topic, partition = 0)
@@ -106,6 +106,6 @@ class CreateProducerSpec extends WordSpec with Matchers {
       def abortTransaction() = {}
     }
     val ec = CurrentThreadExecutionContext
-    val producer = CreateProducer(jProducer, SequentiallyHandler.now, ec)
+    val producer = Producer(jProducer, SequentiallyHandler.now, ec)
   }
 }

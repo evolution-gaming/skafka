@@ -24,7 +24,7 @@ final case class ProducerConfig(
   maxInFlightRequestsPerConnection: Int = 5,
   partitionerClass: String = "org.apache.kafka.clients.producer.internals.DefaultPartitioner",
   interceptorClasses: List[String] = Nil,
-  enableIdempotence: Boolean = false,
+  idempotence: Boolean = false,
   transactionTimeout: FiniteDuration = 1.minute,
   transactionalId: Option[String] = None) {
 
@@ -41,7 +41,7 @@ final case class ProducerConfig(
       (C.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
       (C.PARTITIONER_CLASS_CONFIG, partitionerClass),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
-      (C.ENABLE_IDEMPOTENCE_CONFIG, enableIdempotence.toString),
+      (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
       (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString)) ++
       transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
 
@@ -123,9 +123,10 @@ object ProducerConfig {
       interceptorClasses = get[List[String]](
         "interceptor-classes",
         "interceptor.classes") getOrElse Default.interceptorClasses,
-      enableIdempotence = get[Boolean](
+      idempotence = get[Boolean](
+        "idempotence",
         "enable-idempotence",
-        "enable.idempotence") getOrElse Default.enableIdempotence,
+        "enable.idempotence") getOrElse Default.idempotence,
       transactionTimeout = getDuration(
         "transaction-timeout",
         "transaction.timeout.ms") getOrElse Default.transactionTimeout,

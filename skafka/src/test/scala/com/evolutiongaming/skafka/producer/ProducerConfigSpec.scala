@@ -21,7 +21,7 @@ class ProducerConfigSpec extends FunSuite with Matchers {
     maxInFlightRequestsPerConnection = 7,
     partitionerClass = "partitionerClass",
     interceptorClasses = List("interceptorClasses"),
-    enableIdempotence = true,
+    idempotence = true,
     transactionTimeout = 8.minute,
     transactionalId = Some("transactionalId"))
 

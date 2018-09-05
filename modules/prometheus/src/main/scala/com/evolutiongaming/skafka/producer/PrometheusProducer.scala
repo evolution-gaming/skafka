@@ -5,26 +5,44 @@ import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 import scala.compat.Platform
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 object PrometheusProducer {
 
-  private var collectors: Collectors = _
+  type Prefix = String
 
-  private def registerCollectors(registry: CollectorRegistry): Unit = synchronized {
-    if (collectors == null)
-      collectors = Builders().register(registry)
+  private var metricsByPrefix: Map[Prefix, Metrics] = Map.empty
+
+  def apply(
+    producer: Producer,
+    registry: CollectorRegistry,
+    prefix: Prefix = "skafka_producer",
+    label: String = ""): Producer = {
+
+    def metricsOrElse(create: => Metrics) = metricsByPrefix.getOrElse(prefix, create)
+
+    val metrics = metricsOrElse {
+      val register = build(prefix)
+      synchronized {
+        metricsOrElse {
+          val metrics = register(registry)
+          metricsByPrefix = metricsByPrefix.updated(prefix, metrics)
+          metrics
+        }
+      }
+    }
+
+    apply(producer, metrics, label)
   }
 
   def apply(
     producer: Producer,
-    registry: CollectorRegistry): Producer = {
+    metrics: Metrics,
+    label: String): Producer = {
 
-    registerCollectors(registry)
-
-    implicit val ec: ExecutionContext = CurrentThreadExecutionContext
+    implicit val ec = CurrentThreadExecutionContext
 
     new Producer {
 
@@ -36,21 +54,21 @@ object PrometheusProducer {
         result.onComplete { result =>
           val topicLabel = record.topic.replace(".", "_")
           val duration = (Platform.currentTime - start).toDouble / 1000
-          collectors.latencySummary
-            .labels(topicLabel)
+          metrics.latencySummary
+            .labels(label, topicLabel)
             .observe(duration)
 
           val resultLabel = result match {
             case Success(metadata) =>
-              collectors.bytesSummary
-                .labels(topicLabel)
+              metrics.bytesSummary
+                .labels(label, topicLabel)
                 .observe(metadata.valueSerializedSize.getOrElse(0).toDouble)
               "success"
             case Failure(_)        =>
               "failure"
           }
-          collectors.counter
-            .labels(topicLabel, resultLabel)
+          metrics.counter
+            .labels(label, topicLabel, resultLabel)
             .inc()
         }
         result
@@ -70,33 +88,33 @@ object PrometheusProducer {
     }
   }
 
-  private case class Builders(
-    latencySummary: Summary.Builder = Summary.build()
-      .name("skafka_producer_latency")
+  private def build(prefix: Prefix) = {
+    val latencySummary = Summary.build()
+      .name(s"${ prefix }_latency")
       .help("Latency in seconds")
-      .labelNames("topic")
+      .labelNames("producer", "topic")
       .quantile(0.9, 0.01)
-      .quantile(0.99, 0.001),
+      .quantile(0.99, 0.001)
 
-    bytesSummary: Summary.Builder = Summary.build()
-      .name("skafka_producer_bytes")
+    val bytesSummary = Summary.build()
+      .name(s"${ prefix }_bytes")
       .help("Message size in bytes")
-      .labelNames("topic"),
+      .labelNames("producer", "topic")
 
-    counter: Counter.Builder = Counter.build()
-      .name("skafka_producer_result")
+    val counter = Counter.build()
+      .name(s"${ prefix }_result")
       .help("Result: success or failure")
-      .labelNames("topic", "result")) {
+      .labelNames("producer", "topic", "result")
 
-    def register(registry: CollectorRegistry): Collectors = {
-      Collectors(
+    registry: CollectorRegistry => {
+      Metrics(
         latencySummary = latencySummary.register(registry),
         bytesSummary = bytesSummary.register(registry),
         counter = counter.register(registry))
     }
   }
 
-  private case class Collectors(
+  final case class Metrics(
     latencySummary: Summary,
     bytesSummary: Summary,
     counter: Counter)

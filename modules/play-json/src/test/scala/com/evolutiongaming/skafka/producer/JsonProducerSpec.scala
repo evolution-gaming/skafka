@@ -29,7 +29,7 @@ class JsonProducerSpec extends FunSuite with Matchers {
 
     val value = JsString("value")
     val key = "key"
-    val record = ProducerRecord("topic", Some(value), Some(key))
+    val record = ProducerRecord("topic", value, key)
     producer(record).value.get.get shouldEqual metadata
     val (Some(keyBytes), valueBytes) = actual.get
     new String(keyBytes, UTF_8) shouldEqual key

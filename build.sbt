@@ -45,10 +45,10 @@ lazy val impl = (project
   settings commonSettings
   dependsOn api % "test->test;compile->compile"
   settings (libraryDependencies ++= Seq(
-  Nel,
+  nel,
   `config-tools`,
   `kafka-clients`,
-  Sequentially)))
+  sequentially)))
 
 lazy val logging = (project
   in file("modules/logging")
@@ -69,7 +69,7 @@ lazy val prometheus = (project
   settings (name := "skafka-prometheus")
   settings commonSettings
   dependsOn api
-  settings (libraryDependencies ++= Seq(Prometheus, `executor-tools`)))
+  settings (libraryDependencies ++= Seq(Prometheus, `executor-tools`, scalatest)))
 
 lazy val `play-json` = (project
   in file("modules/play-json")

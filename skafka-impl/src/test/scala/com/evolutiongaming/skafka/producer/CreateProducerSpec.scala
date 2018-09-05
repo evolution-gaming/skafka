@@ -4,6 +4,7 @@ import java.util.concurrent.{CompletableFuture, TimeUnit}
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, TopicPartition}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
@@ -12,10 +13,15 @@ import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicParti
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.Success
 
 class CreateProducerSpec extends WordSpec with Matchers {
+
+  val topic = "topic"
+  val topicPartition = TopicPartition(topic = topic, partition = 0)
+  val metadata = RecordMetadata(topicPartition)
 
   "CreateProducer" should {
 
@@ -40,9 +46,39 @@ class CreateProducerSpec extends WordSpec with Matchers {
     }
 
     "proxy send" in new Scope {
-      val record = ProducerRecord(topic = topic, value = Some("0"))
+      val record = ProducerRecord(topic = topic, value = "val", key = "key")
       val result = producer.send(record)
       result.value shouldEqual Some(Success(metadata))
+    }
+
+    "proxy sendNoVal" in new Scope {
+      val record = ProducerRecord(topic = topic, key = Some("key"))
+      val result = producer.sendNoVal(record)
+      result.value shouldEqual Some(Success(metadata))
+    }
+
+    "proxy sendNoKey" in new Scope {
+      val record = ProducerRecord(topic = topic, value = Some("val"))
+      val result = producer.sendNoKey(record)
+      result.value shouldEqual Some(Success(metadata))
+    }
+  }
+
+
+  "CreateProducer.Empty" should {
+    
+    "send" in {
+      val record = ProducerRecord(topic = topic, value = "val", key = "key")
+      val result = Producer.Empty.send(record)
+      result.value shouldEqual Some(Success(metadata))
+    }
+
+    "close" in {
+      Producer.Empty.close() shouldEqual Future.unit
+    }
+
+    "flush" in {
+      Producer.Empty.flush() shouldEqual Future.unit
     }
   }
 
@@ -50,9 +86,6 @@ class CreateProducerSpec extends WordSpec with Matchers {
     var flushCalled = false
     var closeCalled = false
     var closeTimeout = Option.empty[FiniteDuration]
-    val topic = "topic"
-    val topicPartition = TopicPartition(topic = topic, partition = 0)
-    val metadata = RecordMetadata(topicPartition)
     val completableFuture = CompletableFuture.completedFuture(metadata.asJava)
 
     val jProducer = new JProducer[Bytes, Bytes] {

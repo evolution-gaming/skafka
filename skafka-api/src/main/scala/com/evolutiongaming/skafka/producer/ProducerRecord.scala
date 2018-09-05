@@ -18,3 +18,9 @@ final case class ProducerRecord[+K, +V](
     copy(value = valueBytes, key = keyBytes)
   }
 }
+
+object ProducerRecord {
+  def apply[K, V](topic: Topic, value: V, key: K): ProducerRecord[K, V] = {
+    ProducerRecord(topic = topic, value = Some(value), key = Some(key))
+  }
+}

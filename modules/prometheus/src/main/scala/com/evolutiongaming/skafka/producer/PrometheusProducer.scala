@@ -13,7 +13,7 @@ object PrometheusProducer {
 
   type Prefix = String
 
-  private var metricsByPrefix: Map[Prefix, Metrics] = Map.empty
+  private var metricsByPrefix: Map[(Prefix, CollectorRegistry), Metrics] = Map.empty
 
   def apply(
     producer: Producer,
@@ -21,14 +21,16 @@ object PrometheusProducer {
     prefix: Prefix = "skafka_producer",
     label: String = ""): Producer = {
 
-    def metricsOrElse(create: => Metrics) = metricsByPrefix.getOrElse(prefix, create)
+    val key = (prefix, registry)
+
+    def metricsOrElse(create: => Metrics) = metricsByPrefix.getOrElse(key, create)
 
     val metrics = metricsOrElse {
       val register = build(prefix)
       synchronized {
         metricsOrElse {
           val metrics = register(registry)
-          metricsByPrefix = metricsByPrefix.updated(prefix, metrics)
+          metricsByPrefix = metricsByPrefix.updated(key, metrics)
           metrics
         }
       }

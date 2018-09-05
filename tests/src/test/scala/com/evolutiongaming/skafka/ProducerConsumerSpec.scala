@@ -102,7 +102,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
     test(s"$name produce and delete record") {
       val key = "key2"
-      val record = ProducerRecord(topic, Some("value2"), Some(key))
+      val record = ProducerRecord(topic, value = "value2", key = key)
       val metadata = produce(record)
       val offset = if (acks == Acks.None) None else Some(1l)
       metadata.offset shouldEqual offset

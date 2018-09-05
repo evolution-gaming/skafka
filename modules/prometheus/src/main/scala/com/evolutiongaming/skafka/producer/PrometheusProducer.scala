@@ -5,80 +5,99 @@ import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 import scala.compat.Platform
+import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
 object PrometheusProducer {
 
+  private var collectors: Collectors = _
+
+  private def registerCollectors(registry: CollectorRegistry): Unit = synchronized {
+    if (collectors == null)
+      collectors = Builders().register(registry)
+  }
+
   def apply(
     producer: Producer,
-    registry: CollectorRegistry,
-    prefix: String = "skafka_producer",
-    label: String = "skafka"): Producer = {
+    registry: CollectorRegistry): Producer = {
 
-    implicit val ec = CurrentThreadExecutionContext
+    registerCollectors(registry)
 
-    val latencySummary = Summary.build()
-      .name(s"${ prefix }_latency")
-      .help("Latency in seconds")
-      .labelNames("producer", "topic")
-      .quantile(0.9, 0.01)
-      .quantile(0.99, 0.001)
-      .register(registry)
-
-    val bytesSummary = Summary.build()
-      .name(s"${ prefix }_bytes")
-      .help("Message size in bytes")
-      .labelNames("producer", "topic")
-      .register(registry)
-
-    val counter = Counter.build()
-      .name(s"${ prefix }_result")
-      .help("Result: success or failure")
-      .labelNames("producer", "topic", "result")
-      .register(registry)
+    implicit val ec: ExecutionContext = CurrentThreadExecutionContext
 
     new Producer {
 
       def send[K, V](record: ProducerRecord[K, V])
-        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 
         val start = Platform.currentTime
         val result = producer.send(record)(valueToBytes, keyToBytes)
         result.onComplete { result =>
           val topicLabel = record.topic.replace(".", "_")
           val duration = (Platform.currentTime - start).toDouble / 1000
-          latencySummary
-            .labels(label, topicLabel)
+          collectors.latencySummary
+            .labels(topicLabel)
             .observe(duration)
 
           val resultLabel = result match {
             case Success(metadata) =>
-              bytesSummary
-                .labels(label, topicLabel)
+              collectors.bytesSummary
+                .labels(topicLabel)
                 .observe(metadata.valueSerializedSize.getOrElse(0).toDouble)
               "success"
             case Failure(_)        =>
               "failure"
           }
-          counter
-            .labels(label, topicLabel, resultLabel)
+          collectors.counter
+            .labels(topicLabel, resultLabel)
             .inc()
         }
         result
       }
 
-      def flush() = {
+      def flush(): Future[Unit] = {
         producer.flush()
       }
 
-      def close(timeout: FiniteDuration) = {
+      def close(timeout: FiniteDuration): Future[Unit] = {
         producer.close(timeout)
       }
 
-      def close() = {
+      def close(): Future[Unit] = {
         producer.close()
       }
     }
   }
+
+  private case class Builders(
+    latencySummary: Summary.Builder = Summary.build()
+      .name("skafka_producer_latency")
+      .help("Latency in seconds")
+      .labelNames("topic")
+      .quantile(0.9, 0.01)
+      .quantile(0.99, 0.001),
+
+    bytesSummary: Summary.Builder = Summary.build()
+      .name("skafka_producer_bytes")
+      .help("Message size in bytes")
+      .labelNames("topic"),
+
+    counter: Counter.Builder = Counter.build()
+      .name("skafka_producer_result")
+      .help("Result: success or failure")
+      .labelNames("topic", "result")) {
+
+    def register(registry: CollectorRegistry): Collectors = {
+      Collectors(
+        latencySummary = latencySummary.register(registry),
+        bytesSummary = bytesSummary.register(registry),
+        counter = counter.register(registry))
+    }
+  }
+
+  private case class Collectors(
+    latencySummary: Summary,
+    bytesSummary: Summary,
+    counter: Counter)
 }

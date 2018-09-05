@@ -14,7 +14,7 @@ object JsonProducer {
   val Empty: JsonProducer = apply(Producer.Send.Empty)
 
   implicit val JsValueToBytes: ToBytes[JsValue] = new ToBytes[JsValue] {
-    def apply(value: JsValue, topic: Topic) = Json.toBytes(value)
+    def apply(value: JsValue, topic: Topic): Array[Byte] = Json.toBytes(value)
   }
 
   def apply(send: Producer.Send)(): JsonProducer = new JsonProducer {

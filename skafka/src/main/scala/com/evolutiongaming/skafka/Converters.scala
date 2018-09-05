@@ -1,7 +1,8 @@
 package com.evolutiongaming.skafka
 
-import java.util.{Map => MapJ}
+import java.util.{Map => MapJ, Collection => CollectionJ}
 
+import com.evolutiongaming.nel.Nel
 import org.apache.kafka.common.header.{Header => JHeader}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
@@ -125,5 +126,10 @@ object Converters {
       def deserialize(topic: Topic, data: Array[Byte]): T = self(data, topic)
       def close() = {}
     }
+  }
+
+
+  implicit class NelSkafkaOps[T](val self: Nel[T]) extends AnyVal {
+    def asJava: CollectionJ[T] = self.toList.asJavaCollection
   }
 }

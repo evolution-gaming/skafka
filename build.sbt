@@ -38,12 +38,12 @@ lazy val skafka = (project
   settings (name := "skafka")
   settings commonSettings
   settings (libraryDependencies ++= Seq(
-  nel,
-  `config-tools`,
-  `kafka-clients`,
-  `future-helper`,
-  scalatest,
-  sequentially)))
+    nel,
+    `config-tools`,
+    `kafka-clients`,
+    `future-helper`,
+    scalatest,
+    sequentially)))
 
 lazy val logging = (project
   in file("modules/logging")
@@ -82,11 +82,11 @@ lazy val tests = (project in file("tests")
     Test / parallelExecution := false)
     dependsOn skafka
     settings (libraryDependencies ++= Seq(
-    `kafka-launcher`,
-    Akka.testkit,
-    Akka.slf4j,
-    Slf4j.api % Test,
-    Slf4j.`log4j-over-slf4j` % Test,
-    Logback.core % Test,
-    Logback.classic % Test,
-    scalatest)))
+      `kafka-launcher`,
+      Akka.testkit,
+      Akka.slf4j,
+      Slf4j.api % Test,
+      Slf4j.`log4j-over-slf4j` % Test,
+      Logback.core % Test,
+      Logback.classic % Test,
+      scalatest)))

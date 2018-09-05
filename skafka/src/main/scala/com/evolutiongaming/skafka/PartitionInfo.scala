@@ -5,9 +5,9 @@ import org.apache.kafka.common.Node
 final case class PartitionInfo(
   topicPartition: TopicPartition,
   leader: Node,
-  replicas: List[Node],
-  inSyncReplicas: List[Node],
-  offlineReplicas: List[Node]) {
+  replicas: List[Node] = Nil,
+  inSyncReplicas: List[Node] = Nil,
+  offlineReplicas: List[Node] = Nil) {
 
   def topic: Topic = topicPartition.topic
 

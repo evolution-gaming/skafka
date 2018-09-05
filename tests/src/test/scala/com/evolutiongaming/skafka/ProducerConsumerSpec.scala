@@ -5,17 +5,16 @@ import java.time.Instant
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestKit, TestKitExtension}
+import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.kafka.StartKafka
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerRecord, WithSize}
+import com.evolutiongaming.nel.Nel
+import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
-import org.apache.kafka.clients.consumer.KafkaConsumer
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
@@ -43,8 +42,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     val ecBlocking = system.dispatcher
     val config = ProducerConfig.Default.copy(acks = acks)
     List(
-      CreateProducer(config, ecBlocking),
-      CreateProducer(config, ecBlocking, system))
+      Producer(config, ecBlocking),
+      Producer(config, ecBlocking, system))
   }
 
   for {
@@ -65,9 +64,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         groupId = Some(s"group-$topic"),
         autoOffsetReset = AutoOffsetReset.Earliest)
 
-      val deserializer = FromBytes.StringFromBytes.asJava
-      val consumer = new KafkaConsumer(config.properties, deserializer, deserializer)
-      consumer.subscribe(List(topic).asJavaCollection)
+      val consumer = Consumer[String, String](config, CurrentThreadExecutionContext)
+      consumer.subscribe(Nel(topic), None)
       consumer
     }
 
@@ -160,8 +158,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       def consume(retries: Int): List[ConsumerRecord[String, String]] = {
         if (retries <= 0) Nil
         else {
-          val recordsJava = consumer.poll(100)
-          val records = recordsJava.asScala.values.values.flatten
+          val future = consumer.poll(100.millis)
+          val records = Await.result(future, timeout).values.values.flatten
           if (records.isEmpty) consume(retries - 1)
           else records.toList
         }

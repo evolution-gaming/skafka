@@ -36,7 +36,7 @@ class ConsumerSpec extends WordSpec with Matchers {
     key = Some(WithSize(Bytes.Empty, 1)),
     value = Some(WithSize(Bytes.Empty, 1)),
     headers = List(Header("key", Bytes.Empty)))
-  val consumerRecords = ConsumerRecords(Map((topicPartition, Vector(consumerRecord))))
+  val consumerRecords = ConsumerRecords(Map((topicPartition, List(consumerRecord))))
 
   val node = new Node(1, "host", 2)
 

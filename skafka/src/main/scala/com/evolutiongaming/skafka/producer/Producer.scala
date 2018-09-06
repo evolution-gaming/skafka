@@ -5,7 +5,7 @@ import akka.stream.{Materializer, OverflowStrategy}
 import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Bytes, ToBytes, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, Partition, ToBytes, TopicPartition}
 import org.apache.kafka.clients.producer.{Producer => JProducer}
 
 import scala.concurrent.duration.FiniteDuration
@@ -44,7 +44,7 @@ object Producer {
     def send[K, V](record: ProducerRecord[K, V])
       (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
 
-      val partition = record.partition getOrElse 0
+      val partition = record.partition getOrElse Partition.Min
       val topicPartition = TopicPartition(record.topic, partition)
       val metadata = RecordMetadata(topicPartition, record.timestamp)
       metadata.future

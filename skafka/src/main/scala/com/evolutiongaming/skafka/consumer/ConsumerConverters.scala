@@ -165,7 +165,7 @@ object ConsumerConverters {
       } yield {
         val recordsJ = self.records(partitionJ)
         val partition = partitionJ.asScala
-        val records = recordsJ.asScala.map(_.asScala).toVector
+        val records = recordsJ.asScala.map(_.asScala).toList
         (partition, records)
       }
       ConsumerRecords(records.toMap)

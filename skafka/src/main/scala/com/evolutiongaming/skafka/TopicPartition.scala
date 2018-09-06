@@ -6,5 +6,5 @@ final case class TopicPartition(topic: Topic, partition: Partition) {
 }
 
 object TopicPartition {
-  val Empty: TopicPartition = TopicPartition("", 0)
+  val Empty: TopicPartition = TopicPartition("", Partition.Min)
 }

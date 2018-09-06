@@ -17,7 +17,7 @@ final case class ConsumerRecord[K, V](
 }
 
 
-final case class ConsumerRecords[K, V](values: Map[TopicPartition, Vector[ConsumerRecord[K, V]]])
+final case class ConsumerRecords[K, V](values: Map[TopicPartition, List[ConsumerRecord[K, V]]])
 
 object ConsumerRecords {
   private val Empty = ConsumerRecords(Map.empty)

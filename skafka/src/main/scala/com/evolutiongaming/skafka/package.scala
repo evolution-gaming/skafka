@@ -18,7 +18,12 @@ package object skafka {
 
   type Topic = String
 
+  
   type Metadata = String
+
+  object Metadata {
+    val Empty: Metadata = ""
+  }
 
 
   type Bytes = Array[Byte]

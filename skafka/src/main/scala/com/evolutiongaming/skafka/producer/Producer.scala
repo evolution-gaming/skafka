@@ -24,15 +24,15 @@ trait Producer {
   def close(timeout: FiniteDuration): Future[Unit]
 
 
-  def sendNoKey[V](record: ProducerRecord[Nothing, V])(implicit toBytes: ToBytes[V]): Future[RecordMetadata] = {
+  final def sendNoKey[V](record: ProducerRecord[Nothing, V])(implicit toBytes: ToBytes[V]): Future[RecordMetadata] = {
     send[Nothing, V](record)(toBytes, ToBytes.empty)
   }
 
-  def sendNoVal[K](record: ProducerRecord[K, Nothing])(implicit toBytes: ToBytes[K]): Future[RecordMetadata] = {
+  final def sendNoVal[K](record: ProducerRecord[K, Nothing])(implicit toBytes: ToBytes[K]): Future[RecordMetadata] = {
     send[K, Nothing](record)(ToBytes.empty, toBytes)
   }
 
-  def sendEmpty(record: ProducerRecord[Nothing, Nothing]): Future[RecordMetadata] = {
+  final def sendEmpty(record: ProducerRecord[Nothing, Nothing]): Future[RecordMetadata] = {
     send[Nothing, Nothing](record)(ToBytes.empty, ToBytes.empty)
   }
 }

@@ -35,9 +35,13 @@ trait Consumer[K, V] {
 
   def poll(timeout: FiniteDuration): Future[ConsumerRecords[K, V]]
 
-  def commit(): Future[Map[TopicPartition, OffsetAndMetadata]]
+  def commit(): Future[Unit]
 
   def commit(offsets: Map[TopicPartition, OffsetAndMetadata]): Future[Unit]
+
+  def commitLater(): Future[Map[TopicPartition, OffsetAndMetadata]]
+
+  def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]): Future[Unit]
 
   def seek(partition: TopicPartition, offset: Offset): Unit
 
@@ -140,6 +144,19 @@ object Consumer {
       }
 
       def commit() = {
+        blocking {
+          consumer.commitSync()
+        }
+      }
+
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
+        val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
+        blocking {
+          consumer.commitSync(offsetsJ)
+        }
+      }
+
+      def commitLater() = {
         try {
           val (callback, future) = callbackAndFuture()
           consumer.commitAsync(callback.asJava)
@@ -149,7 +166,7 @@ object Consumer {
         }
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
+      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
         try {
           val (callback, future) = callbackAndFuture()
           val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)

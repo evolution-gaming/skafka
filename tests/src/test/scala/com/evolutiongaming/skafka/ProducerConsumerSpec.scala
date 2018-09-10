@@ -2,10 +2,10 @@ package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
+import java.util.UUID
 
 import akka.actor.ActorSystem
-import akka.testkit.{TestKit, TestKitExtension}
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import akka.testkit.{TestDuration, TestKit, TestKitExtension}
 import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.nel.Nel
@@ -26,7 +26,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
   lazy val shutdown = StartKafka()
 
-  val timeout = TestKitExtension(system).DefaultTimeout.duration
+  val timeout = TestKitExtension(system).DefaultTimeout.duration.dilated
 
   override def beforeAll() = {
     super.beforeAll()
@@ -78,12 +78,16 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       Await.result(future, timeout)
     }
 
-    lazy val consumer = {
+    lazy val consumer = consumerOf()
+
+    def consumerOf() = {
       val config = ConsumerConfig.Default.copy(
         groupId = Some(s"group-$topic"),
-        autoOffsetReset = AutoOffsetReset.Earliest)
+        autoOffsetReset = AutoOffsetReset.Earliest,
+        autoCommit = false,
+        common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
-      val consumer = Consumer[String, String](config, CurrentThreadExecutionContext)
+      val consumer = Consumer[String, String](config, ec)
       consumer.subscribe(Nel(topic), None)
       consumer
     }
@@ -102,7 +106,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val offset = if (acks == Acks.None) None else Some(0l)
       metadata.offset shouldEqual offset
 
-      val records = consume().map(Record(_))
+      val records = consumer.consume(timeout).map(Record(_))
 
       val expected = Record(
         record = ConsumerRecord(
@@ -124,7 +128,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val offset = if (acks == Acks.None) None else Some(1l)
       metadata.offset shouldEqual offset
 
-      val keyAndValues = consume().map { record => (record.key.map(_.value), record.value.map(_.value)) }
+      val keyAndValues = consumer.consume(timeout).map { record => (record.key.map(_.value), record.value.map(_.value)) }
       keyAndValues shouldEqual List((Some(key), record.value))
 
       val timestamp = Instant.now()
@@ -136,7 +140,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
       val deleteMetadata = produce(delete)
 
-      val records = consume().map(Record(_))
+      val records = consumer.consume(timeout).map(Record(_))
 
       val expected = Record(
         record = ConsumerRecord[String, String](
@@ -159,7 +163,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
       val metadata = produce(empty)
 
-      val records = consume().map(Record(_))
+      val records = consumer.consume(timeout).map(Record(_))
 
       val expected = Record(
         record = ConsumerRecord[String, String](
@@ -172,19 +176,38 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       records shouldEqual List(expected)
     }
 
-    def consume(): List[ConsumerRecord[String, String]] = {
-      @tailrec
-      def consume(retries: Int): List[ConsumerRecord[String, String]] = {
-        if (retries <= 0) Nil
-        else {
-          val future = consumer.poll(100.millis)
-          val records = Await.result(future, timeout).values.values.flatten
-          if (records.isEmpty) consume(retries - 1)
-          else records.toList
-        }
-      }
+    test(s"$name commit and subscribe from last committed position") {
+      val key = "key3"
+      val value = "value3"
+      val timestamp = Instant.now()
 
-      consume(100)
+      Await.result(consumer.commit(), timeout)
+      Await.result(consumer.close(), timeout)
+
+      val record = ProducerRecord(
+        topic = topic,
+        value = Some(value),
+        key = Some(key),
+        timestamp = Some(timestamp),
+        headers = headers)
+
+      val metadata = produce(record)
+
+      val consumer2 = consumerOf()
+
+      val records = consumer2.consume(timeout).map(Record(_))
+
+      val expected = Record(
+        record = ConsumerRecord(
+          topicPartition = metadata.topicPartition,
+          offset = 4l,
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          key = Some(WithSize(key, 4)),
+          value = Some(WithSize(value, 6)),
+          headers = Nil),
+        headers = List(Record.Header(key = "key", value = "value")))
+
+      records shouldEqual List(expected)
     }
   }
 }
@@ -206,5 +229,24 @@ object ProducerConsumerSpec {
     }
 
     final case class Header(key: String, value: String)
+  }
+
+
+  implicit class ConsumersOps(val self: Consumer[String, String]) extends AnyVal {
+
+    def consume(timeout: FiniteDuration): List[ConsumerRecord[String, String]] = {
+      @tailrec
+      def consume(attempts: Int): List[ConsumerRecord[String, String]] = {
+        if (attempts <= 0) Nil
+        else {
+          val future = self.poll(100.millis)
+          val records = Await.result(future, timeout).values.values.flatten
+          if (records.isEmpty) consume(attempts - 1)
+          else records.toList
+        }
+      }
+
+      consume(100)
+    }
   }
 }

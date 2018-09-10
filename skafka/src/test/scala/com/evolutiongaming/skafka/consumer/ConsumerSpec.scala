@@ -83,12 +83,22 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     "commit" in new Scope {
-      consumer.commit().value shouldEqual Some(Success(offsets))
+      consumer.commit().value shouldEqual Some(Success(()))
+      commit shouldEqual true
     }
 
     "commit offsets" in new Scope {
       consumer.commit(offsets).value shouldEqual Some(Success(()))
-      commit shouldEqual offsets
+      commitOffsets shouldEqual offsets
+    }
+
+    "commitLater" in new Scope {
+      consumer.commitLater().value shouldEqual Some(Success(offsets))
+    }
+
+    "commitLater offsets" in new Scope {
+      consumer.commitLater(offsets).value shouldEqual Some(Success(()))
+      commitLater shouldEqual offsets
     }
 
     "seek" in new Scope {
@@ -174,7 +184,11 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     var unsubscribe = false
 
-    var commit = Map.empty[TopicPartition, OffsetAndMetadata]
+    var commitLater = Map.empty[TopicPartition, OffsetAndMetadata]
+
+    var commit = false
+
+    var commitOffsets = Map.empty[TopicPartition, OffsetAndMetadata]
 
     var close = false
 
@@ -223,9 +237,13 @@ class ConsumerSpec extends WordSpec with Matchers {
         new ConsumerRecordsJ[Bytes, Bytes](records)
       }
 
-      def commitSync() = {}
+      def commitSync() = {
+        Scope.this.commit = true
+      }
 
-      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]) = {}
+      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]) = {
+        commitOffsets = offsets.asScalaMap(_.asScala, _.asScala)
+      }
 
       def commitAsync() = {}
 
@@ -234,7 +252,7 @@ class ConsumerSpec extends WordSpec with Matchers {
       }
 
       def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallbackJ) = {
-        commit = offsets.asScalaMap(_.asScala, _.asScala)
+        commitLater = offsets.asScalaMap(_.asScala, _.asScala)
         callback.onComplete(offsets, null)
       }
 

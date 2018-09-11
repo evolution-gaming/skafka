@@ -172,12 +172,6 @@ object Producer {
 
         producer.send(record)(valueToBytes, keyToBytes)
       }
-
-      def apply[V](record: ProducerRecord[Nothing, V])
-        (implicit valueToBytes: ToBytes[V]) = {
-
-        producer.sendNoKey(record)(valueToBytes)
-      }
     }
   }
 }

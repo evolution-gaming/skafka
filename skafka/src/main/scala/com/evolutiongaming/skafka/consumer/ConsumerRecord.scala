@@ -26,4 +26,4 @@ object ConsumerRecords {
 }
 
 
-final case class WithSize[+T](value: T, serializedSize: Int)
+final case class WithSize[+T](value: T, serializedSize: Int = 0)

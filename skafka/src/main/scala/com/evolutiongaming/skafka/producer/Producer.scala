@@ -145,6 +145,24 @@ object Producer {
   }
 
 
+  trait Send {
+
+    def apply[K, V](record: ProducerRecord[K, V])
+      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
+
+    final def noKey[V](record: ProducerRecord[Nothing, V])(implicit toBytes: ToBytes[V]): Future[RecordMetadata] = {
+      apply[Nothing, V](record)(toBytes, ToBytes.empty)
+    }
+
+    final def noVal[K](record: ProducerRecord[K, Nothing])(implicit toBytes: ToBytes[K]): Future[RecordMetadata] = {
+      apply[K, Nothing](record)(ToBytes.empty, toBytes)
+    }
+
+    final def empty(record: ProducerRecord[Nothing, Nothing]): Future[RecordMetadata] = {
+      apply[Nothing, Nothing](record)(ToBytes.empty, ToBytes.empty)
+    }
+  }
+
   object Send {
     val Empty: Send = apply(Producer.Empty)
 
@@ -161,13 +179,5 @@ object Producer {
         producer.sendNoKey(record)(valueToBytes)
       }
     }
-  }
-
-  trait Send {
-    def apply[K, V](record: ProducerRecord[K, V])
-      (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata]
-
-    def apply[V](record: ProducerRecord[Nothing, V])
-      (implicit valueToBytes: ToBytes[V]): Future[RecordMetadata]
   }
 }

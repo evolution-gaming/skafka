@@ -20,10 +20,6 @@ class JsonProducerSpec extends FunSuite with Matchers {
         actual = Some((key, value))
         metadata.future
       }
-
-      def apply[V](record: ProducerRecord[Nothing, V])(implicit valueToBytes: ToBytes[V]) = {
-        apply[Nothing, V](record)(valueToBytes, ToBytes.empty)
-      }
     }
     val producer = JsonProducer(send)
 

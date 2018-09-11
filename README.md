@@ -8,13 +8,13 @@ Scala wrapper for kafka client
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "2.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "2.0.1"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-logging" % "2.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-logging" % "2.0.1"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-codahale" % "2.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-codahale" % "2.0.1"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-prometheus" % "2.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-prometheus" % "2.0.1"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-play-json" % "2.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-play-json" % "2.0.1"
 ``` 

@@ -3,8 +3,8 @@ package com.evolutiongaming.skafka.producer
 import java.util.concurrent.{CompletableFuture, TimeUnit}
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
-import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
 import com.evolutiongaming.concurrent.FutureHelper._
+import com.evolutiongaming.concurrent.sequentially.SequentiallyHandler
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, TopicPartition}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
@@ -112,6 +112,9 @@ class ProducerSpec extends WordSpec with Matchers {
       def abortTransaction() = {}
     }
     val ec = CurrentThreadExecutionContext
-    val producer = Producer(jProducer, SequentiallyHandler.now, ec)
+    val producer = {
+      val producer = Producer(jProducer, SequentiallyHandler.now, ec)
+      Producer(producer, Producer.Metrics.Empty)
+    }
   }
 }

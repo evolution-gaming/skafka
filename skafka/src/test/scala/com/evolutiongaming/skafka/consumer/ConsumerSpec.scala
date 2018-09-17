@@ -317,6 +317,9 @@ class ConsumerSpec extends WordSpec with Matchers {
       }
     }
 
-    val consumer = Consumer(consumerJ, CurrentThreadExecutionContext)
+    val consumer = {
+      val consumer = Consumer(consumerJ, CurrentThreadExecutionContext)
+      Consumer(consumer, Consumer.Metrics.Empty)
+    }
   }
 }

@@ -2,15 +2,17 @@ package com.evolutiongaming.skafka.producer
 
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
+import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
+import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Bytes, Partition, ToBytes, TopicPartition}
 import org.apache.kafka.clients.producer.{Producer => JProducer}
 
+import scala.compat.Platform
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Random
+import scala.util.{Failure, Random, Success}
 
 trait Producer {
 
@@ -39,7 +41,7 @@ trait Producer {
 
 object Producer {
 
-  lazy val Empty: Producer = new Producer {
+  val Empty: Producer = new Producer {
 
     def send[K, V](record: ProducerRecord[K, V])
       (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
@@ -144,6 +146,66 @@ object Producer {
     apply(producer, ecBlocking)
   }
 
+  def apply(producer: Producer, metrics: Metrics): Producer = {
+    implicit val ec = CurrentThreadExecutionContext
+
+    def latency[T](f: => Future[T]) = {
+      val time = Platform.currentTime
+      for {
+        result <- f
+        latency = Platform.currentTime - time
+      } yield {
+        (result, latency)
+      }
+    }
+
+    new Producer {
+
+      def send[K, V](record: ProducerRecord[K, V])
+        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]) = {
+
+        val start = Platform.currentTime
+        val result = producer.send(record)(valueToBytes, keyToBytes)
+        result.onComplete { result =>
+          val topic = record.topic
+          val latency = Platform.currentTime - start
+          result match {
+            case Success(metadata) =>
+              val bytes = metadata.valueSerializedSize.getOrElse(0)
+              metrics.send(topic, latency = latency, bytes = bytes)
+            case Failure(_)        =>
+              metrics.failure(topic, latency)
+          }
+        }
+        result
+      }
+
+      def flush() = {
+        for {
+          tuple <- latency { producer.flush() }
+          (result, latency) = tuple
+          _ = metrics.flush(latency)
+        } yield result
+      }
+
+      def close() = {
+        for {
+          tuple <- latency { producer.close() }
+          (result, latency) = tuple
+          _ = metrics.close(latency)
+        } yield result
+      }
+
+      def close(timeout: FiniteDuration) = {
+        for {
+          tuple <- latency { producer.close(timeout) }
+          (result, latency) = tuple
+          _ = metrics.close(latency)
+        } yield result
+      }
+    }
+  }
+
 
   trait Send {
 
@@ -172,6 +234,32 @@ object Producer {
 
         producer.send(record)(valueToBytes, keyToBytes)
       }
+    }
+  }
+
+
+  trait Metrics {
+
+    def send(topic: Topic, latency: Long, bytes: Int): Unit
+
+    def failure(topic: Topic, latency: Long): Unit
+
+    def flush(latency: Long): Unit
+
+    def close(latency: Long): Unit
+  }
+
+  object Metrics {
+
+    val Empty: Metrics = new Metrics {
+
+      def send(topic: Topic, latency: Offset, bytes: Partition) = {}
+
+      def failure(topic: Topic, latency: Offset) = {}
+
+      def flush(latency: Offset) = {}
+
+      def close(latency: Offset) = {}
     }
   }
 }

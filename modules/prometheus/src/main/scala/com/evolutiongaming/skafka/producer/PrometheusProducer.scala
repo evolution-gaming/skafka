@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.skafka.PrometheusHelper._
 import com.evolutiongaming.skafka.ToBytes
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
@@ -9,24 +10,31 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
+@deprecated("use PrometheusProducerMetrics", "2.1.0")
 object PrometheusProducer {
 
   type Prefix = String
 
+  object Prefix {
+    val Default: Prefix = "skafka_producer"
+  }
+
+
   private var metricsByPrefix: Map[(Prefix, CollectorRegistry), Metrics] = Map.empty
+
 
   def apply(
     producer: Producer,
     registry: CollectorRegistry,
-    prefix: Prefix = "skafka_producer",
-    label: String = ""): Producer = {
+    prefix: Prefix = Prefix.Default,
+    clientId: String = ""): Producer = {
 
     val key = (prefix, registry)
 
     def metricsOrElse(create: => Metrics) = metricsByPrefix.getOrElse(key, create)
 
     val metrics = metricsOrElse {
-      val register = build(prefix)
+      val register = Metrics.of(prefix)
       synchronized {
         metricsOrElse {
           val metrics = register(registry)
@@ -36,15 +44,22 @@ object PrometheusProducer {
       }
     }
 
-    apply(producer, metrics, label)
+    apply(producer, metrics, clientId)
   }
 
   def apply(
     producer: Producer,
     metrics: Metrics,
-    label: String): Producer = {
+    clientId: String): Producer = {
 
     implicit val ec = CurrentThreadExecutionContext
+
+    def latency[T](name: String)(f: => Future[T]) = {
+      metrics
+        .callLatency
+        .labels(clientId, name)
+        .time(f)
+    }
 
     new Producer {
 
@@ -54,70 +69,86 @@ object PrometheusProducer {
         val start = Platform.currentTime
         val result = producer.send(record)(valueToBytes, keyToBytes)
         result.onComplete { result =>
-          val topicLabel = record.topic.replace(".", "_")
-          val duration = (Platform.currentTime - start).toDouble / 1000
-          metrics.latencySummary
-            .labels(label, topicLabel)
+          val topic = record.topic
+          val duration = (Platform.currentTime - start).toSeconds
+          metrics.latency
+            .labels(clientId, topic)
             .observe(duration)
 
           val resultLabel = result match {
             case Success(metadata) =>
-              metrics.bytesSummary
-                .labels(label, topicLabel)
+              metrics.bytes
+                .labels(clientId, topic)
                 .observe(metadata.valueSerializedSize.getOrElse(0).toDouble)
               "success"
             case Failure(_)        =>
               "failure"
           }
-          metrics.counter
-            .labels(label, topicLabel, resultLabel)
+          metrics.results
+            .labels(clientId, topic, resultLabel)
             .inc()
         }
         result
       }
 
       def flush(): Future[Unit] = {
-        producer.flush()
+        latency("flush") { producer.flush() }
       }
 
+
       def close(timeout: FiniteDuration): Future[Unit] = {
-        producer.close(timeout)
+        latency("close") { producer.close(timeout) }
       }
 
       def close(): Future[Unit] = {
-        producer.close()
+        latency("close") { producer.close() }
       }
     }
   }
 
-  private def build(prefix: Prefix) = {
-    val latencySummary = Summary.build()
-      .name(s"${ prefix }_latency")
-      .help("Latency in seconds")
-      .labelNames("producer", "topic")
-      .quantile(0.9, 0.01)
-      .quantile(0.99, 0.001)
-
-    val bytesSummary = Summary.build()
-      .name(s"${ prefix }_bytes")
-      .help("Message size in bytes")
-      .labelNames("producer", "topic")
-
-    val counter = Counter.build()
-      .name(s"${ prefix }_result")
-      .help("Result: success or failure")
-      .labelNames("producer", "topic", "result")
-
-    registry: CollectorRegistry => {
-      Metrics(
-        latencySummary = latencySummary.register(registry),
-        bytesSummary = bytesSummary.register(registry),
-        counter = counter.register(registry))
-    }
-  }
 
   final case class Metrics(
-    latencySummary: Summary,
-    bytesSummary: Summary,
-    counter: Counter)
+    latency: Summary,
+    bytes: Summary,
+    results: Counter,
+    callLatency: Summary)
+
+  object Metrics {
+
+    def of(prefix: Prefix = Prefix.Default): CollectorRegistry => Metrics = {
+      val latency = Summary.build()
+        .name(s"${ prefix }_latency")
+        .help("Latency in seconds")
+        .labelNames("client", "topic")
+        .quantile(0.5, 0.05)
+        .quantile(0.9, 0.01)
+        .quantile(0.99, 0.001)
+
+      val bytes = Summary.build()
+        .name(s"${ prefix }_bytes")
+        .help("Message size in bytes")
+        .labelNames("client", "topic")
+
+      val results = Counter.build()
+        .name(s"${ prefix }_result")
+        .help("Result: success or failure")
+        .labelNames("client", "topic", "result")
+
+      val callLatency = Summary.build()
+        .name(s"${ prefix }_call_latency")
+        .help("Call latency in seconds")
+        .labelNames("client", "type")
+        .quantile(0.5, 0.05)
+        .quantile(0.9, 0.01)
+        .quantile(0.99, 0.001)
+
+      registry: CollectorRegistry => {
+        Metrics(
+          latency = latency.register(registry),
+          bytes = bytes.register(registry),
+          results = results.register(registry),
+          callLatency = callLatency.register(registry))
+      }
+    }
+  }
 }

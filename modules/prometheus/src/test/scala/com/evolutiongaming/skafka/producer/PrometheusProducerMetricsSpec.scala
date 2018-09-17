@@ -3,22 +3,16 @@ package com.evolutiongaming.skafka.producer
 import io.prometheus.client.CollectorRegistry
 import org.scalatest.{Matchers, WordSpec}
 
-class PrometheusProducerSpec extends WordSpec with Matchers {
+class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
 
-  "PrometheusProducer" should {
-
-    "create twice for same label" in {
-      val registry = new CollectorRegistry()
-
-      def create() = PrometheusProducer(Producer.Empty, registry)
-
-      create()
-      create()
-    }
+  "PrometheusProducerMetrics" should {
 
     "measure send call" in {
+
       val registry = new CollectorRegistry()
-      val producer = PrometheusProducer(Producer.Empty, registry)
+      val metrics = PrometheusProducerMetrics(registry)
+      val producer = Producer(Producer.Empty, metrics)
+
       val record = ProducerRecord(topic = "topic", key = "key", value = "val")
       producer.send(record)
 
@@ -44,3 +38,4 @@ class PrometheusProducerSpec extends WordSpec with Matchers {
     }
   }
 }
+

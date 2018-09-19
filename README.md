@@ -3,8 +3,8 @@
 Scala wrapper for [kafka-clients v1.1.1](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/1.1.1)
 
 It provides non-blocking and null-less apis:
-* [Producer](src/main/scala/com/evolutiongaming/skafka/producer/Producer.scala) 
-* [Consumer](src/main/scala/com/evolutiongaming/skafka/consumer/Consumer.scala)  
+* [Producer](skafka/src/main/scala/com/evolutiongaming/skafka/producer/Producer.scala) 
+* [Consumer](skafka/src/main/scala/com/evolutiongaming/skafka/consumer/Consumer.scala)  
 
 
 ## Producer usage example

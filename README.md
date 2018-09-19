@@ -10,7 +10,7 @@ It provides non-blocking and null-less apis:
 ## Producer usage example
 
 ```scala
-val ecBlocking: ExecutionContext = ExecutionContext.global // do not use `global` in production
+val ecBlocking = ExecutionContext.global // do not use `global` in production
 val config = ProducerConfig.Default
 val producer = Producer(config, ecBlocking)
 val record = ProducerRecord(topic = "topic", key = "key", value = "value")
@@ -20,7 +20,7 @@ val metadata: Future[RecordMetadata] = producer.send(record)
 ## Consumer usage example
 
 ```scala
-val ecBlocking: ExecutionContext = ExecutionContext.global // do not use `global` in production
+val ecBlocking = ExecutionContext.global // do not use `global` in production
 val config = ConsumerConfig.Default
 val consumer = Consumer[String, String](config, ecBlocking)
 consumer.subscribe(Nel("topic"), None)

@@ -57,7 +57,7 @@ final case class ProducerConfig(
 
 object ProducerConfig {
 
-  lazy val Default: ProducerConfig = ProducerConfig()
+  val Default: ProducerConfig = ProducerConfig()
 
   private implicit val CompressionTypeFromConf = FromConf[CompressionType] { (conf, path) =>
     val str = conf.getString(path)

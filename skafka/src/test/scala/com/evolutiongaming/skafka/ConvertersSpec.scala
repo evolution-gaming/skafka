@@ -30,10 +30,13 @@ class ConvertersSpec extends WordSpec with Matchers {
     "convert ToBytes" in {
       val serializer = ToBytes.BytesToBytes.asJava
       serializer.serialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
+      serializer.asScala.apply(Bytes.Empty, "topic") shouldEqual Bytes.Empty
     }
 
     "convert FromBytes" in {
-      FromBytes.BytesFromBytes.asJava.deserialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
+      val deserializer = FromBytes.BytesFromBytes.asJava
+      deserializer.deserialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
+      deserializer.asScala.apply(Bytes.Empty, "topic") shouldEqual Bytes.Empty
     }
   }
 }

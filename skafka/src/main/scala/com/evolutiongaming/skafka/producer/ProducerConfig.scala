@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.config.ConfigHelper._
-import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.producer.{ProducerConfig => C}
@@ -133,12 +132,5 @@ object ProducerConfig {
       transactionalId = get[String](
         "transactional-id",
         "transactional.id") orElse Default.transactionalId)
-  }
-
-  implicit def nelFromConf[T](implicit fromConf: FromConf[List[T]]): FromConf[Nel[T]] = {
-    FromConf { case (config, path) =>
-      val list = fromConf(config, path)
-      Nel.unsafe(list)
-    }
   }
 }

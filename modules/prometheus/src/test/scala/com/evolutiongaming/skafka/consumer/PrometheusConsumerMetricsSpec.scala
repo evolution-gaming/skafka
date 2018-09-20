@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
+import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.{Partition, TopicPartition}
 import io.prometheus.client.CollectorRegistry

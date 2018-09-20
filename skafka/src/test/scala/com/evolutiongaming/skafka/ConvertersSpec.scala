@@ -26,5 +26,14 @@ class ConvertersSpec extends WordSpec with Matchers {
       val value = PartitionInfo(topicPartition, node, List(node), List(node), List(node))
       value shouldEqual value.asJava.asScala
     }
+
+    "convert ToBytes" in {
+      val serializer = ToBytes.BytesToBytes.asJava
+      serializer.serialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
+    }
+
+    "convert FromBytes" in {
+      FromBytes.BytesFromBytes.asJava.deserialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
+    }
   }
 }

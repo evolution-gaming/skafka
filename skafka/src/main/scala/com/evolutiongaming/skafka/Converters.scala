@@ -112,8 +112,8 @@ object Converters {
   implicit class ToBytesOps[T](val self: ToBytes[T]) extends AnyVal {
 
     def asJava: Serializer[T] = new Serializer[T] {
-      def configure(configs: MapJ[Metadata, _], isKey: Boolean): Unit = {}
-      def serialize(topic: Metadata, data: T): Array[Byte] = self(data, topic)
+      def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
+      def serialize(topic: Topic, data: T): Array[Byte] = self(data, topic)
       def close(): Unit = {}
     }
   }

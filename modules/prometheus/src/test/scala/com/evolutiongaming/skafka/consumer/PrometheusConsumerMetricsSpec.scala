@@ -1,6 +1,5 @@
 package com.evolutiongaming.skafka.consumer
 
-import com.evolutiongaming.concurrent.FutureHelper._
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.{Partition, TopicPartition}
 import io.prometheus.client.CollectorRegistry
@@ -13,8 +12,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
 
   "PrometheusConsumerMetrics" should {
 
-    "measure listTopics" in {
-      val registry = new CollectorRegistry()
+    "measure listTopics" in new Scope {
       val metrics = PrometheusConsumerMetrics(registry)
       val consumer = Consumer(Consumer.empty[String, String], metrics)
       consumer.listTopics().value shouldEqual Some(Success(Map.empty))
@@ -30,8 +28,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
       result("sum").isDefined shouldEqual true
     }
 
-    "measure commit" in {
-      val registry = new CollectorRegistry()
+    "measure commit" in new Scope {
       val topicPartition = TopicPartition(topic = "topic", Partition.Min)
       val metrics = PrometheusConsumerMetrics(registry, clientId = "clientId")
       val consumer = Consumer(Consumer.empty[String, String], metrics)
@@ -58,8 +55,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
       result("failure") shouldEqual None
     }
 
-    "measure subscribe" in {
-      val registry = new CollectorRegistry()
+    "measure subscribe" in new Scope {
       val topic = "topic"
       val metrics = PrometheusConsumerMetrics(registry, "consumer")
       val consumer = Consumer(Consumer.empty[String, String], metrics)
@@ -73,5 +69,9 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
       }
       count shouldEqual Some(1.0)
     }
+  }
+
+  private trait Scope {
+    val registry = new CollectorRegistry()
   }
 }

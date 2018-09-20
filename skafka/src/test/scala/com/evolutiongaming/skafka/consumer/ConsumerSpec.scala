@@ -16,6 +16,7 @@ import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
+import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.util.Success
@@ -59,14 +60,18 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     "subscribe topics" in new Scope {
-      consumer.subscribe(Nel(topic), Some(RebalanceListener.Empty))
+      consumer.subscribe(Nel(topic), Some(rebalanceListener))
       subscribeTopics shouldEqual List(topic)
+      assigned shouldEqual true
+      revoked shouldEqual true
     }
 
     "subscribe pattern" in new Scope {
       val pattern = Pattern.compile(".")
-      consumer.subscribe(pattern, Some(RebalanceListener.Empty))
+      consumer.subscribe(pattern, Some(rebalanceListener))
       subscribePattern shouldEqual Some(pattern)
+      assigned shouldEqual true
+      revoked shouldEqual true
     }
 
     "subscription" in new Scope {
@@ -206,6 +211,15 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     var seekToEnd = List.empty[TopicPartitionJ]
 
+    var revoked = false
+
+    var assigned = false
+
+    val rebalanceListener = new RebalanceListener {
+      def onPartitionsAssigned(partitions: immutable.Iterable[TopicPartition]) = assigned = true
+      def onPartitionsRevoked(partitions: immutable.Iterable[TopicPartition]): Unit = revoked = true
+    }
+
     val consumerJ = new ConsumerJ[Bytes, Bytes] {
 
       def assignment() = Set(topicPartition.asJava).asJava
@@ -216,6 +230,8 @@ class ConsumerSpec extends WordSpec with Matchers {
 
       def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListenerJ) = {
         subscribeTopics = topics.asScala.toList
+        callback.onPartitionsAssigned(List.empty.asJava)
+        callback.onPartitionsRevoked(List.empty.asJava)
       }
 
       def assign(partitions: CollectionJ[TopicPartitionJ]) = {
@@ -224,6 +240,8 @@ class ConsumerSpec extends WordSpec with Matchers {
 
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListenerJ) = {
         subscribePattern = Some(pattern)
+        callback.onPartitionsAssigned(List.empty.asJava)
+        callback.onPartitionsRevoked(List.empty.asJava)
       }
 
       def subscribe(pattern: Pattern) = {}

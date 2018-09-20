@@ -9,6 +9,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success}
 
+@deprecated("use PrometheusProducerMetrics or Producer.Metrics instead", "2.1.0")
 object MeteredProducer {
 
   def apply(producer: Producer, registry: MetricRegistry): Producer = {

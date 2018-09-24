@@ -25,8 +25,8 @@ object Converters {
   }
 
 
-  implicit class AnyOps[T](val self: T) extends AnyVal {
-    def noneIf(x: T): Option[T] = if (self == x) None else Some(self)
+  implicit class AnyOps[A](val self: A) extends AnyVal {
+    def noneIf(x: A): Option[A] = if (self == x) None else Some(self)
   }
 
 
@@ -93,43 +93,43 @@ object Converters {
   }
 
 
-  implicit class SerializerOps[T](val self: Serializer[T]) extends AnyVal {
+  implicit class SerializerOps[A](val self: Serializer[A]) extends AnyVal {
 
-    def asScala: ToBytes[T] = new ToBytes[T] {
-      def apply(value: T, topic: Topic): Bytes = self.serialize(topic, value)
+    def asScala: ToBytes[A] = new ToBytes[A] {
+      def apply(a: A, topic: Topic): Bytes = self.serialize(topic, a)
     }
   }
 
 
-  implicit class DeserializerOps[T](val self: Deserializer[T]) extends AnyVal {
+  implicit class DeserializerOps[A](val self: Deserializer[A]) extends AnyVal {
 
-    def asScala: FromBytes[T] = new FromBytes[T] {
-      def apply(value: Bytes, topic: Topic): T = self.deserialize(topic, value)
+    def asScala: FromBytes[A] = new FromBytes[A] {
+      def apply(value: Bytes, topic: Topic): A = self.deserialize(topic, value)
     }
   }
 
 
-  implicit class ToBytesOps[T](val self: ToBytes[T]) extends AnyVal {
+  implicit class ToBytesOps[A](val self: ToBytes[A]) extends AnyVal {
 
-    def asJava: Serializer[T] = new Serializer[T] {
+    def asJava: Serializer[A] = new Serializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
-      def serialize(topic: Topic, data: T): Array[Byte] = self(data, topic)
+      def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic)
       def close(): Unit = {}
     }
   }
 
 
-  implicit class FromBytesOps[T](val self: FromBytes[T]) extends AnyVal {
+  implicit class FromBytesOps[A](val self: FromBytes[A]) extends AnyVal {
 
-    def asJava: Deserializer[T] = new Deserializer[T] {
+    def asJava: Deserializer[A] = new Deserializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean) = {}
-      def deserialize(topic: Topic, data: Array[Byte]): T = self(data, topic)
+      def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic)
       def close() = {}
     }
   }
 
 
-  implicit class NelSkafkaOps[T](val self: Nel[T]) extends AnyVal {
-    def asJava: CollectionJ[T] = self.toList.asJavaCollection
+  implicit class NelSkafkaOps[A](val self: Nel[A]) extends AnyVal {
+    def asJava: CollectionJ[A] = self.toList.asJavaCollection
   }
 }

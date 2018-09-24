@@ -54,7 +54,7 @@ object PrometheusProducer {
 
     implicit val ec = CurrentThreadExecutionContext
 
-    def latency[T](name: String)(f: => Future[T]) = {
+    def latency[A](name: String)(f: => Future[A]) = {
       metrics
         .callLatency
         .labels(clientId, name)

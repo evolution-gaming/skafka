@@ -108,7 +108,7 @@ object ConsumerConverters {
         }
       }
 
-      def withSize[T](value: T, size: Int) = {
+      def withSize[A](value: A, size: Int) = {
         for {
           value <- Option(value)
         } yield WithSize(value, size)

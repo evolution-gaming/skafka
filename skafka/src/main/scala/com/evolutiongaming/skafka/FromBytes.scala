@@ -2,8 +2,13 @@ package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
 
-trait FromBytes[T] {
-  def apply(bytes: Bytes, topic: Topic): T
+trait FromBytes[A] { self =>
+  
+  def apply(bytes: Bytes, topic: Topic): A
+
+  final def map[B](f: A => B): FromBytes[B] = new FromBytes[B] {
+    def apply(bytes: Bytes, topic: Topic) = f(self(bytes, topic))
+  }
 }
 
 object FromBytes {
@@ -13,10 +18,12 @@ object FromBytes {
   }
 
   implicit val BytesFromBytes: FromBytes[Bytes] = new FromBytes[Bytes] {
-    def apply(value: Bytes, topic: Topic): Bytes = value
+    def apply(bytes: Bytes, topic: Topic): Bytes = bytes
   }
 
-  def apply[T](value: T): FromBytes[T] = new FromBytes[T] {
-    def apply(bytes: Bytes, topic: Topic) = value
+  def apply[A](implicit fromBytes: FromBytes[A]): FromBytes[A] = fromBytes
+
+  def const[A](a: A): FromBytes[A] = new FromBytes[A] {
+    def apply(bytes: Bytes, topic: Topic) = a
   }
 }

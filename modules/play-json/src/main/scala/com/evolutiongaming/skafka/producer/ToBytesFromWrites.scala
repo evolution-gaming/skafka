@@ -5,8 +5,8 @@ import play.api.libs.json.{JsValue, Writes}
 
 object ToBytesFromWrites {
 
-  def apply[T](implicit writes: Writes[T], toBytes: ToBytes[JsValue]): ToBytes[T] = new ToBytes[T] {
-    def apply(value: T, topic: Topic): Bytes = {
+  def apply[A](implicit writes: Writes[A], toBytes: ToBytes[JsValue]): ToBytes[A] = new ToBytes[A] {
+    def apply(value: A, topic: Topic): Bytes = {
       val json = writes.writes(value)
       toBytes(json, topic)
     }

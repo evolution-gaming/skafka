@@ -8,7 +8,7 @@ lazy val commonSettings = Seq(
   organizationHomepage := Some(url("http://evolutiongaming.com")),
   bintrayOrganization := Some("evolutiongaming"),
   scalaVersion := crossScalaVersions.value.last,
-  crossScalaVersions := Seq("2.11.12", "2.12.6"),
+  crossScalaVersions := Seq("2.11.12", "2.12.7"),
   scalacOptions ++= Seq(
     "-encoding", "UTF-8",
     "-feature",
@@ -38,6 +38,8 @@ lazy val skafka = (project
   settings (name := "skafka")
   settings commonSettings
   settings (libraryDependencies ++= Seq(
+    Akka.actor,
+    Akka.stream,
     nel,
     `config-tools`,
     `kafka-clients`,

@@ -56,8 +56,11 @@ object CommonConfig {
     }
   }
 
-
   def apply(config: Config): CommonConfig = {
+    apply(config, Default)
+  }
+
+  def apply(config: Config, default: => CommonConfig): CommonConfig = {
 
     def get[T: FromConf](path: String, paths: String*) = {
       config.getOpt[T](path, paths: _*)
@@ -71,37 +74,37 @@ object CommonConfig {
     CommonConfig(
       bootstrapServers = get[Nel[String]](
         "bootstrap-servers",
-        "bootstrap.servers") getOrElse Default.bootstrapServers,
+        "bootstrap.servers") getOrElse default.bootstrapServers,
       clientId = get[String](
         "client-id",
-        "client.id") orElse Default.clientId,
+        "client.id") orElse default.clientId,
       connectionsMaxIdle = getDuration(
         "connections-max-idle",
-        "connections.max.idle.ms") getOrElse Default.connectionsMaxIdle,
+        "connections.max.idle.ms") getOrElse default.connectionsMaxIdle,
       receiveBufferBytes = get[Int](
         "receive-buffer-bytes",
-        "receive.buffer.bytes") getOrElse Default.receiveBufferBytes,
+        "receive.buffer.bytes") getOrElse default.receiveBufferBytes,
       sendBufferBytes = get[Int](
         "send-buffer-bytes",
-        "send.buffer.bytes") getOrElse Default.sendBufferBytes,
+        "send.buffer.bytes") getOrElse default.sendBufferBytes,
       requestTimeout = getDuration(
         "request-timeout",
-        "request.timeout.ms") getOrElse Default.requestTimeout,
+        "request.timeout.ms") getOrElse default.requestTimeout,
       metadataMaxAge = getDuration(
         "metadata-max-age",
-        "metadata.max.age.ms") getOrElse Default.metadataMaxAge,
+        "metadata.max.age.ms") getOrElse default.metadataMaxAge,
       reconnectBackoffMax = getDuration(
         "reconnect-backoff-max",
-        "reconnect.backoff.max.ms") getOrElse Default.reconnectBackoffMax,
+        "reconnect.backoff.max.ms") getOrElse default.reconnectBackoffMax,
       reconnectBackoff = getDuration(
         "reconnect-backoff",
-        "reconnect.backoff.ms") getOrElse Default.reconnectBackoff,
+        "reconnect.backoff.ms") getOrElse default.reconnectBackoff,
       retryBackoff = getDuration(
         "retry-backoff",
-        "retry.backoff.ms") getOrElse Default.retryBackoff,
+        "retry.backoff.ms") getOrElse default.retryBackoff,
       securityProtocol = get[SecurityProtocol](
         "security-protocol",
-        "security.protocol") getOrElse Default.securityProtocol,
+        "security.protocol") getOrElse default.securityProtocol,
       metrics = MetricsConfig(config))
   }
 

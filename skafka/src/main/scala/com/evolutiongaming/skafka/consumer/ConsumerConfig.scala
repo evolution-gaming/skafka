@@ -81,6 +81,10 @@ object ConsumerConfig {
   }
 
   def apply(config: Config): ConsumerConfig = {
+    apply(config, Default)
+  }
+
+  def apply(config: Config, default: => ConsumerConfig): ConsumerConfig = {
 
     def get[T: FromConf](path: String, paths: String*) = {
       config.getOpt[T](path, paths: _*)
@@ -93,55 +97,55 @@ object ConsumerConfig {
 
     ConsumerConfig(
       common = CommonConfig(config),
-      groupId = get[String]("group-id", "group.id") orElse Default.groupId,
+      groupId = get[String]("group-id", "group.id") orElse default.groupId,
       maxPollRecords = get[Int](
         "max-poll-records",
-        "max.poll.records") getOrElse Default.maxPollRecords,
+        "max.poll.records") getOrElse default.maxPollRecords,
       maxPollInterval = getDuration(
         "max-poll-interval",
-        "max.poll.interval.ms") getOrElse Default.maxPollInterval,
+        "max.poll.interval.ms") getOrElse default.maxPollInterval,
       sessionTimeout = getDuration(
         "session-timeout",
-        "session.timeout.ms") getOrElse Default.sessionTimeout,
+        "session.timeout.ms") getOrElse default.sessionTimeout,
       heartbeatInterval = getDuration(
         "heartbeat-interval",
-        "heartbeat.interval.ms") getOrElse Default.heartbeatInterval,
+        "heartbeat.interval.ms") getOrElse default.heartbeatInterval,
       autoCommit = get[Boolean](
         "auto-commit",
         "enable-auto-commit",
-        "enable.auto.commit") getOrElse Default.autoCommit,
+        "enable.auto.commit") getOrElse default.autoCommit,
       autoCommitInterval = getDuration(
         "auto-commit-interval",
-        "auto.commit.interval.ms") getOrElse Default.autoCommitInterval,
+        "auto.commit.interval.ms") getOrElse default.autoCommitInterval,
       partitionAssignmentStrategy = get[String](
         "partition-assignment-strategy",
-        "partition.assignment.strategy") getOrElse Default.partitionAssignmentStrategy,
+        "partition.assignment.strategy") getOrElse default.partitionAssignmentStrategy,
       autoOffsetReset = get[AutoOffsetReset](
         "auto-offset-reset",
-        "auto.offset.reset") getOrElse Default.autoOffsetReset,
+        "auto.offset.reset") getOrElse default.autoOffsetReset,
       fetchMinBytes = get[Int](
         "fetch-min-bytes",
-        "fetch.min.bytes") getOrElse Default.fetchMinBytes,
+        "fetch.min.bytes") getOrElse default.fetchMinBytes,
       fetchMaxBytes = get[Int](
         "fetch-max-bytes",
-        "fetch.max.bytes") getOrElse Default.fetchMaxBytes,
+        "fetch.max.bytes") getOrElse default.fetchMaxBytes,
       fetchMaxWait = getDuration(
         "fetch-max-wait",
-        "fetch.max.wait.ms") getOrElse Default.fetchMaxWait,
+        "fetch.max.wait.ms") getOrElse default.fetchMaxWait,
       maxPartitionFetchBytes = get[Int](
         "max-partition-fetch-bytes",
-        "max.partition.fetch.bytes") getOrElse Default.maxPartitionFetchBytes,
+        "max.partition.fetch.bytes") getOrElse default.maxPartitionFetchBytes,
       checkCrcs = get[Boolean](
         "check-crcs",
-        "check.crcs") getOrElse Default.checkCrcs,
+        "check.crcs") getOrElse default.checkCrcs,
       interceptorClasses = get[List[String]](
         "interceptor-classes",
-        "interceptor.classes") getOrElse Default.interceptorClasses,
+        "interceptor.classes") getOrElse default.interceptorClasses,
       excludeInternalTopics = get[Boolean](
         "exclude-internal-topics",
-        "exclude.internal.topics") getOrElse Default.excludeInternalTopics,
+        "exclude.internal.topics") getOrElse default.excludeInternalTopics,
       isolationLevel = get[IsolationLevel](
         "isolation-level",
-        "isolation.level") getOrElse Default.isolationLevel)
+        "isolation.level") getOrElse default.isolationLevel)
   }
 }

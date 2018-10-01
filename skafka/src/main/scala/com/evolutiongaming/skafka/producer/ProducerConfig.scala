@@ -81,6 +81,10 @@ object ProducerConfig {
   }
 
   def apply(config: Config): ProducerConfig = {
+    apply(config, Default)
+  }
+
+  def apply(config: Config, default: => ProducerConfig): ProducerConfig = {
 
     def get[T: FromConf](path: String, paths: String*) = {
       config.getOpt[T](path, paths: _*)
@@ -93,44 +97,44 @@ object ProducerConfig {
 
     ProducerConfig(
       common = CommonConfig(config),
-      acks = get[Acks]("acks") getOrElse Default.acks,
+      acks = get[Acks]("acks") getOrElse default.acks,
       bufferMemory = get[Long](
         "buffer-memory",
-        "buffer.memory") getOrElse Default.bufferMemory,
+        "buffer.memory") getOrElse default.bufferMemory,
       compressionType = get[CompressionType](
         "compression-type",
-        "compression.type") getOrElse Default.compressionType,
-      retries = get[Int]("retries") getOrElse Default.retries,
+        "compression.type") getOrElse default.compressionType,
+      retries = get[Int]("retries") getOrElse default.retries,
       batchSize = get[Int](
         "batch-size",
-        "batch.size") getOrElse Default.batchSize,
+        "batch.size") getOrElse default.batchSize,
       linger = getDuration(
         "linger",
-        "linger.ms") getOrElse Default.linger,
+        "linger.ms") getOrElse default.linger,
       maxBlock = getDuration(
         "max-block",
-        "max.block.ms") getOrElse Default.maxBlock,
+        "max.block.ms") getOrElse default.maxBlock,
       maxRequestSize = get[Int](
         "max-request-size",
-        "max.request.size") getOrElse Default.maxRequestSize,
+        "max.request.size") getOrElse default.maxRequestSize,
       maxInFlightRequestsPerConnection = get[Int](
         "max-in-flight-requests-per-connection",
-        "max.in.flight.requests.per.connection") getOrElse Default.maxInFlightRequestsPerConnection,
+        "max.in.flight.requests.per.connection") getOrElse default.maxInFlightRequestsPerConnection,
       partitionerClass = get[String](
         "partitioner-class",
-        "partitioner.class") getOrElse Default.partitionerClass,
+        "partitioner.class") getOrElse default.partitionerClass,
       interceptorClasses = get[List[String]](
         "interceptor-classes",
-        "interceptor.classes") getOrElse Default.interceptorClasses,
+        "interceptor.classes") getOrElse default.interceptorClasses,
       idempotence = get[Boolean](
         "idempotence",
         "enable-idempotence",
-        "enable.idempotence") getOrElse Default.idempotence,
+        "enable.idempotence") getOrElse default.idempotence,
       transactionTimeout = getDuration(
         "transaction-timeout",
-        "transaction.timeout.ms") getOrElse Default.transactionTimeout,
+        "transaction.timeout.ms") getOrElse default.transactionTimeout,
       transactionalId = get[String](
         "transactional-id",
-        "transactional.id") orElse Default.transactionalId)
+        "transactional.id") orElse default.transactionalId)
   }
 }

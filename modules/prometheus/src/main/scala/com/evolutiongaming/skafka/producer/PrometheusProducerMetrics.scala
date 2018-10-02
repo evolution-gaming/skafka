@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.skafka.PrometheusHelper._
-import com.evolutiongaming.skafka.Topic
+import com.evolutiongaming.skafka.{ClientId, Topic}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 object PrometheusProducerMetrics {
@@ -14,8 +14,7 @@ object PrometheusProducerMetrics {
 
   def apply(
     registry: CollectorRegistry,
-    prefix: Prefix = Prefix.Default,
-    clientId: String = ""): Producer.Metrics = {
+    prefix: Prefix = Prefix.Default): ClientId => Producer.Metrics = {
 
     val latencySummary = Summary.build()
       .name(s"${ prefix }_latency")
@@ -47,39 +46,41 @@ object PrometheusProducerMetrics {
       .quantile(0.99, 0.001)
       .register(registry)
 
+    clientId: ClientId => {
 
-    def sendMeasure(result: String, topic: Topic, latency: Long) = {
-      latencySummary
-        .labels(clientId, topic)
-        .observe(latency.toSeconds)
-      resultCounter
-        .labels(clientId, topic, result)
-        .inc()
-    }
-
-    new Producer.Metrics {
-
-      def send(topic: Topic, latency: Long, bytes: Int) = {
-        sendMeasure(result = "success", topic = topic, latency = latency)
-        bytesSummary
+      def sendMeasure(result: String, topic: Topic, latency: Long) = {
+        latencySummary
           .labels(clientId, topic)
-          .observe(bytes.toDouble)
-      }
-
-      def failure(topic: Topic, latency: Long) = {
-        sendMeasure(result = "failure", topic = topic, latency = latency)
-      }
-
-      def flush(latency: Long): Unit = {
-        callLatency
-          .labels(clientId, "flush")
           .observe(latency.toSeconds)
+        resultCounter
+          .labels(clientId, topic, result)
+          .inc()
       }
 
-      def close(latency: Long) = {
-        callLatency
-          .labels(clientId, "close")
-          .observe(latency.toSeconds)
+      new Producer.Metrics {
+
+        def send(topic: Topic, latency: Long, bytes: Int) = {
+          sendMeasure(result = "success", topic = topic, latency = latency)
+          bytesSummary
+            .labels(clientId, topic)
+            .observe(bytes.toDouble)
+        }
+
+        def failure(topic: Topic, latency: Long) = {
+          sendMeasure(result = "failure", topic = topic, latency = latency)
+        }
+
+        def flush(latency: Long): Unit = {
+          callLatency
+            .labels(clientId, "flush")
+            .observe(latency.toSeconds)
+        }
+
+        def close(latency: Long) = {
+          callLatency
+            .labels(clientId, "close")
+            .observe(latency.toSeconds)
+        }
       }
     }
   }

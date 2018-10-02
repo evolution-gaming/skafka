@@ -2,6 +2,8 @@ package com.evolutiongaming
 
 package object skafka {
 
+  type ClientId = String
+
   type Partition = Int
 
   object Partition {

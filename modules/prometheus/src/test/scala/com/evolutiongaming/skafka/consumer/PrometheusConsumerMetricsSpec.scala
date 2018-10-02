@@ -14,7 +14,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
   "PrometheusConsumerMetrics" should {
 
     "measure listTopics" in new Scope {
-      val metrics = PrometheusConsumerMetrics(registry)
+      val metrics = PrometheusConsumerMetrics(registry)("")
       val consumer = Consumer(Consumer.empty[String, String], metrics)
       consumer.listTopics().value shouldEqual Some(Success(Map.empty))
 
@@ -31,7 +31,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
 
     "measure commit" in new Scope {
       val topicPartition = TopicPartition(topic = "topic", Partition.Min)
-      val metrics = PrometheusConsumerMetrics(registry, clientId = "clientId")
+      val metrics = PrometheusConsumerMetrics(registry)("clientId")
       val consumer = Consumer(Consumer.empty[String, String], metrics)
       consumer.commit(Map((topicPartition, OffsetAndMetadata.Empty))) shouldEqual Future.unit
 
@@ -58,7 +58,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
 
     "measure subscribe" in new Scope {
       val topic = "topic"
-      val metrics = PrometheusConsumerMetrics(registry, "consumer")
+      val metrics = PrometheusConsumerMetrics(registry, "consumer")("")
       val consumer = Consumer(Consumer.empty[String, String], metrics)
       consumer.subscribe(Nel(topic), Some(RebalanceListener.Empty))
 

@@ -14,7 +14,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
   */
 final case class CommonConfig(
   bootstrapServers: Nel[String] = Nel("localhost:9092"),
-  clientId: Option[String] = None,
+  clientId: Option[ClientId] = None,
   connectionsMaxIdle: FiniteDuration = 9.minutes,
   receiveBufferBytes: Int = 32768,
   sendBufferBytes: Int = 131072,

@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.skafka.PrometheusHelper._
-import com.evolutiongaming.skafka.{Offset, Topic, TopicPartition}
+import com.evolutiongaming.skafka.{ClientId, Offset, Topic, TopicPartition}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 object PrometheusConsumerMetrics {
@@ -12,10 +12,7 @@ object PrometheusConsumerMetrics {
     val Default: Prefix = "skafka_consumer"
   }
 
-  def apply[K, V](
-    registry: CollectorRegistry,
-    prefix: Prefix = Prefix.Default,
-    clientId: String = ""): Consumer.Metrics = {
+  def apply[K, V](registry: CollectorRegistry, prefix: Prefix = Prefix.Default): ClientId => Consumer.Metrics = {
 
     val callsCounter = Counter.build()
       .name(s"${ prefix }_calls")
@@ -65,43 +62,45 @@ object PrometheusConsumerMetrics {
       .quantile(0.99, 0.001)
       .register(registry)
 
-    new Consumer.Metrics {
+    clientId: ClientId => {
+      new Consumer.Metrics {
 
-      def call(name: String, topic: Topic, latency: Offset, success: Boolean) = {
-        val result = if (success) "success" else "failure"
-        latencySummary
-          .labels(clientId, topic, name)
-          .observe(latency.toSeconds)
-        resultCounter
-          .labels(clientId, topic, name, result)
-          .inc()
-      }
+        def call(name: String, topic: Topic, latency: Offset, success: Boolean) = {
+          val result = if (success) "success" else "failure"
+          latencySummary
+            .labels(clientId, topic, name)
+            .observe(latency.toSeconds)
+          resultCounter
+            .labels(clientId, topic, name, result)
+            .inc()
+        }
 
-      def poll(topic: Topic, bytes: Int, records: Int) = {
-        recordsSummary
-          .labels(clientId, topic)
-          .observe(records.toDouble)
-        bytesSummary
-          .labels(clientId, topic)
-          .observe(bytes.toDouble)
-      }
+        def poll(topic: Topic, bytes: Int, records: Int) = {
+          recordsSummary
+            .labels(clientId, topic)
+            .observe(records.toDouble)
+          bytesSummary
+            .labels(clientId, topic)
+            .observe(bytes.toDouble)
+        }
 
-      def count(name: String, topic: Topic) = {
-        callsCounter
-          .labels(clientId, topic, name)
-          .inc()
-      }
+        def count(name: String, topic: Topic) = {
+          callsCounter
+            .labels(clientId, topic, name)
+            .inc()
+        }
 
-      def rebalance(name: String, topicPartition: TopicPartition) = {
-        rebalancesCounter
-          .labels(clientId, topicPartition.topic, topicPartition.partition.toString, name)
-          .inc()
-      }
+        def rebalance(name: String, topicPartition: TopicPartition) = {
+          rebalancesCounter
+            .labels(clientId, topicPartition.topic, topicPartition.partition.toString, name)
+            .inc()
+        }
 
-      def listTopics(latency: Offset) = {
-        listTopicsLatency
-          .labels(clientId)
-          .observe(latency.toSeconds)
+        def listTopics(latency: Offset) = {
+          listTopicsLatency
+            .labels(clientId)
+            .observe(latency.toSeconds)
+        }
       }
     }
   }

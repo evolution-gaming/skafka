@@ -344,7 +344,7 @@ object Consumer {
 
     implicit val ec = CurrentThreadExecutionContext
 
-    def latency[T](name: String, topics: Set[Topic])(f: => Future[T]): Future[T] = {
+    def latency[T](name: String, topics: => Set[Topic])(f: => Future[T]): Future[T] = {
       val time = Platform.currentTime
       val result = f
       result.onComplete { result =>
@@ -385,6 +385,8 @@ object Consumer {
       }
     }
 
+    def topics() = consumer.assignment().map(_.topic)
+
     new Consumer[K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
@@ -408,13 +410,13 @@ object Consumer {
       def subscription() = consumer.subscription()
 
       def unsubscribe() = {
-        latency("unsubscribe", consumer.subscription()) {
+        latency("unsubscribe", topics()) {
           consumer.unsubscribe()
         }
       }
 
       def poll(timeout: FiniteDuration) = {
-        val result = latency("poll", consumer.subscription()) {
+        val result = latency("poll", topics()) {
           consumer.poll(timeout)
         }
 
@@ -430,7 +432,7 @@ object Consumer {
       }
 
       def commit() = {
-        latency("commit", consumer.subscription()) {
+        latency("commit", topics()) {
           consumer.commit()
         }
       }
@@ -442,7 +444,7 @@ object Consumer {
       }
 
       def commitLater(): Future[Map[TopicPartition, OffsetAndMetadata]] = {
-        latency("commit_later", consumer.subscription()) {
+        latency("commit_later", topics()) {
           consumer.commitLater()
         }
       }
@@ -534,19 +536,19 @@ object Consumer {
       }
 
       def close() = {
-        latency("close", consumer.subscription()) {
+        latency("close", topics()) {
           consumer.close()
         }
       }
 
       def close(timeout: FiniteDuration) = {
-        latency("close", consumer.subscription()) {
+        latency("close", topics()) {
           consumer.close(timeout)
         }
       }
 
       def wakeup() = {
-        count("wakeup", consumer.subscription())
+        count("wakeup", topics())
         consumer.wakeup()
       }
     }

@@ -344,7 +344,7 @@ object Consumer {
 
     implicit val ec = CurrentThreadExecutionContext
 
-    def latency[T](name: String, topics: => Set[Topic])(f: => Future[T]): Future[T] = {
+    def latency[T](name: String, topics: Set[Topic])(f: => Future[T]): Future[T] = {
       val time = Platform.currentTime
       val result = f
       result.onComplete { result =>

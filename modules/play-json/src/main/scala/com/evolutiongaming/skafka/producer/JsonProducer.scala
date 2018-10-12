@@ -5,19 +5,19 @@ import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.Future
 
-trait JsonProducer {
-  def apply(record: ProducerRecord[String, JsValue]): Future[RecordMetadata]
+trait JsonProducer[F[_]] {
+  def apply(record: ProducerRecord[String, JsValue]): F[RecordMetadata]
 }
 
 object JsonProducer {
 
-  val Empty: JsonProducer = apply(Producer.Send.Empty)
+  val Empty: JsonProducer[Future] = apply(Producer.Send.Empty)
 
   implicit val JsValueToBytes: ToBytes[JsValue] = new ToBytes[JsValue] {
     def apply(value: JsValue, topic: Topic): Array[Byte] = Json.toBytes(value)
   }
 
-  def apply(send: Producer.Send)(): JsonProducer = new JsonProducer {
+  def apply[F[_]](send: Producer.Send[F])(): JsonProducer[F] = new JsonProducer[F] {
     def apply(record: ProducerRecord[String, JsValue]) = send(record)
   }
 }

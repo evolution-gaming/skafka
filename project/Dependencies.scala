@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % "3.0.5" % Test
 
-  val `kafka-clients` = "org.apache.kafka" % "kafka-clients" % "1.1.1"
+  val `kafka-clients` = "org.apache.kafka" % "kafka-clients" % "2.0.0"
 
   val `executor-tools` = "com.evolutiongaming" %% "executor-tools" % "1.0.1"
 
@@ -23,7 +23,9 @@ object Dependencies {
 
   val `play-json` = "com.typesafe.play" %% "play-json" % "2.6.10"
   
-  val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.1" % Test
+  val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.2" % Test
+
+  val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
 
   object Akka {
     private val version = "2.5.17"

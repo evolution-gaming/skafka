@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
+import com.evolutiongaming.skafka.OffsetAndMetadata
 import org.scalatest.{FunSuite, Matchers}
 
 class OffsetAndMetadataSpec extends FunSuite with Matchers {

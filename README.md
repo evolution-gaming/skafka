@@ -32,13 +32,11 @@ val future: Future[ConsumerRecords[String, String]] = consumer.poll(100.millis)
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "2.1.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "3.0.0"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-logging" % "2.1.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-logging" % "3.0.0"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-codahale" % "2.1.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-prometheus" % "3.0.0"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-prometheus" % "2.1.0"
-
-libraryDependencies += "com.evolutiongaming" %% "skafka-play-json" % "2.1.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka-play-json" % "3.0.0"
 ``` 

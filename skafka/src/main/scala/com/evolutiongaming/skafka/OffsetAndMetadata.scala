@@ -1,6 +1,4 @@
-package com.evolutiongaming.skafka.consumer
-
-import com.evolutiongaming.skafka.{Metadata, Offset}
+package com.evolutiongaming.skafka
 
 final case class OffsetAndMetadata(
   offset: Offset = Offset.Min,

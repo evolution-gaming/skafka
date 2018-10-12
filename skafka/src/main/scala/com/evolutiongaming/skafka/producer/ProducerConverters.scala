@@ -4,7 +4,7 @@ import java.time.Instant
 
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.TopicPartition
-import org.apache.kafka.clients.producer.{Callback, Producer => JProducer, ProducerRecord => JProducerRecord, RecordMetadata => JRecordMetadata}
+import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
 
@@ -16,8 +16,8 @@ object ProducerConverters {
 
   implicit class ProducerRecordOps[K, V](val self: ProducerRecord[K, V]) extends AnyVal {
 
-    def asJava: JProducerRecord[K, V] = {
-      new JProducerRecord[K, V](
+    def asJava: ProducerRecordJ[K, V] = {
+      new ProducerRecordJ[K, V](
         self.topic,
         self.partition.fold[java.lang.Integer](null) { java.lang.Integer.valueOf },
         self.timestamp.fold[java.lang.Long](null) { timestamp => timestamp.toEpochMilli },
@@ -28,7 +28,7 @@ object ProducerConverters {
   }
 
 
-  implicit class JProducerRecordOps[K, V](val self: JProducerRecord[K, V]) extends AnyVal {
+  implicit class JProducerRecordOps[K, V](val self: ProducerRecordJ[K, V]) extends AnyVal {
 
     def asScala: ProducerRecord[K, V] = {
       ProducerRecord(
@@ -43,13 +43,13 @@ object ProducerConverters {
   }
 
 
-  implicit class JProducerOps[K, V](val self: JProducer[K, V]) extends AnyVal {
+  implicit class ProducerJOps[K, V](val self: ProducerJ[K, V]) extends AnyVal {
 
     def sendAsScala(record: ProducerRecord[K, V]): Future[RecordMetadata] = {
       val jRecord = record.asJava
       val promise = Promise[RecordMetadata]
       val callback = new Callback {
-        def onCompletion(metadata: JRecordMetadata, failure: Exception) = {
+        def onCompletion(metadata: RecordMetadataJ, failure: Exception) = {
           if (failure != null) {
             promise.failure(failure)
           } else if (metadata != null) {
@@ -77,7 +77,7 @@ object ProducerConverters {
   }
 
 
-  implicit class JRecordMetadataOps(val self: JRecordMetadata) extends AnyVal {
+  implicit class JRecordMetadataOps(val self: RecordMetadataJ) extends AnyVal {
 
     def asScala: RecordMetadata = RecordMetadata(
       topicPartition = TopicPartition(self.topic, self.partition()),
@@ -91,8 +91,8 @@ object ProducerConverters {
 
   implicit class RecordMetadataOps(val self: RecordMetadata) extends AnyVal {
 
-    def asJava: JRecordMetadata = {
-      new JRecordMetadata(
+    def asJava: RecordMetadataJ = {
+      new RecordMetadataJ(
         self.topicPartition.asJava,
         0,
         self.offset getOrElse ProduceResponse.INVALID_OFFSET,

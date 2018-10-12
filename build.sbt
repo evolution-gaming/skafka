@@ -19,7 +19,8 @@ lazy val commonSettings = Seq(
     "-Yno-adapted-args",
     "-Ywarn-dead-code",
     "-Ywarn-numeric-widen",
-    "-Xfuture"),
+    "-Xfuture",
+    "-language:higherKinds"),
   scalacOptions in(Compile, doc) ++= Seq("-groups", "-implicits", "-no-link-warnings"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
@@ -31,7 +32,7 @@ lazy val root = (project
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
-  aggregate(skafka, logging, codahale, prometheus, `play-json`, tests))
+  aggregate(skafka, logging, prometheus, `play-json`, tests))
 
 lazy val skafka = (project
   in file("skafka")
@@ -45,7 +46,8 @@ lazy val skafka = (project
     `kafka-clients`,
     `future-helper`,
     scalatest,
-    sequentially)))
+    sequentially,
+    `scala-java8-compat`)))
 
 lazy val logging = (project
   in file("modules/logging")
@@ -53,13 +55,6 @@ lazy val logging = (project
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(`safe-actor`)))
-
-lazy val codahale = (project
-  in file("modules/codahale")
-  settings (name := "skafka-codahale")
-  settings commonSettings
-  dependsOn skafka
-  settings (libraryDependencies ++= Seq(`metric-tools`)))
 
 lazy val prometheus = (project
   in file("modules/prometheus")

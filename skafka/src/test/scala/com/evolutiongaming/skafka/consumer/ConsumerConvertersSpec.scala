@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 
 import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.scalatest.{Matchers, WordSpec}
 

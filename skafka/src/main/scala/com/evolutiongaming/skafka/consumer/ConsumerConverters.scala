@@ -16,16 +16,6 @@ import scala.util.{Failure, Success}
 
 object ConsumerConverters {
 
-  implicit class OffsetAndMetadataJOps(val self: OffsetAndMetadataJ) extends AnyVal {
-    def asScala: OffsetAndMetadata = OffsetAndMetadata(self.offset(), self.metadata())
-  }
-
-
-  implicit class OffsetAndMetadataOps(val self: OffsetAndMetadata) extends AnyVal {
-    def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset, self.metadata)
-  }
-
-
   implicit class OffsetAndTimestampJOps(val self: OffsetAndTimestampJ) extends AnyVal {
     def asScala: OffsetAndTimestamp = OffsetAndTimestamp(
       offset = self.offset(),

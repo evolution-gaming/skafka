@@ -232,7 +232,7 @@ object ProducerConsumerSpec {
   }
 
 
-  implicit class ConsumersOps(val self: Consumer[String, String]) extends AnyVal {
+  implicit class ConsumersOps(val self: Consumer[String, String, Future]) extends AnyVal {
 
     def consume(timeout: FiniteDuration): List[ConsumerRecord[String, String]] = {
       @tailrec

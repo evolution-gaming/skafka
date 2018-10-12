@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
-import java.time.Instant
+import java.time.{Instant, Duration => DurationJ}
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
@@ -89,12 +89,22 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     "commit" in new Scope {
       consumer.commit().value shouldEqual Some(Success(()))
-      commit shouldEqual true
+      commit shouldEqual None
+    }
+
+    "commit with timeout" in new Scope {
+      consumer.commit(1.second).value shouldEqual Some(Success(()))
+      commit shouldEqual Some(1.second)
     }
 
     "commit offsets" in new Scope {
       consumer.commit(offsets).value shouldEqual Some(Success(()))
-      commitOffsets shouldEqual offsets
+      commitSync shouldEqual Some((offsets, None))
+    }
+
+    "commit offsets with timeout" in new Scope {
+      consumer.commit(offsets, 1.second).value shouldEqual Some(Success(()))
+      commitSync shouldEqual Some((offsets, Some(1.second)))
     }
 
     "commitLater" in new Scope {
@@ -125,16 +135,32 @@ class ConsumerSpec extends WordSpec with Matchers {
       consumer.position(topicPartition).value shouldEqual Some(Success(offset))
     }
 
+    "position with timeout" in new Scope {
+      consumer.position(topicPartition, 1.second).value shouldEqual Some(Success(offset))
+    }
+
     "committed" in new Scope {
       consumer.committed(topicPartition).value shouldEqual Some(Success(offsetAndMetadata))
     }
 
-    "partitionsFor" in new Scope {
-      consumer.partitionsFor(topic).value shouldEqual Some(Success(List(partitionInfo)))
+    "committed with timeout" in new Scope {
+      consumer.committed(topicPartition, 1.second).value shouldEqual Some(Success(offsetAndMetadata))
+    }
+
+    "partitions" in new Scope {
+      consumer.partitions(topic).value shouldEqual Some(Success(List(partitionInfo)))
+    }
+
+    "partitions with timeout" in new Scope {
+      consumer.partitions(topic, 1.second).value shouldEqual Some(Success(List(partitionInfo)))
     }
 
     "listTopics" in new Scope {
       consumer.listTopics().value shouldEqual Some(Success(Map((topic, List(partitionInfo)))))
+    }
+
+    "listTopics with timeout" in new Scope {
+      consumer.listTopics(1.second).value shouldEqual Some(Success(Map((topic, List(partitionInfo)))))
     }
 
     "pause" in new Scope {
@@ -155,12 +181,24 @@ class ConsumerSpec extends WordSpec with Matchers {
       consumer.offsetsForTimes(Map((topicPartition, offset))).value shouldEqual Some(Success(Map((topicPartition, Some(offsetAndTimestamp)))))
     }
 
+    "offsetsForTimes with timeout" in new Scope {
+      consumer.offsetsForTimes(Map((topicPartition, offset)), 1.second).value shouldEqual Some(Success(Map((topicPartition, Some(offsetAndTimestamp)))))
+    }
+
     "beginningOffsets" in new Scope {
       consumer.beginningOffsets(partitions).value shouldEqual Some(Success(Map((topicPartition, offset))))
     }
 
+    "beginningOffsets with timeout" in new Scope {
+      consumer.beginningOffsets(partitions, 1.second).value shouldEqual Some(Success(Map((topicPartition, offset))))
+    }
+
     "endOffsets" in new Scope {
       consumer.endOffsets(partitions).value shouldEqual Some(Success(Map((topicPartition, offset))))
+    }
+
+    "endOffsets with timeout" in new Scope {
+      consumer.endOffsets(partitions, 1.second).value shouldEqual Some(Success(Map((topicPartition, offset))))
     }
 
     "close" in new Scope {
@@ -170,7 +208,7 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     "close with timeout" in new Scope {
       consumer.close(1.second).value shouldEqual Some(Success(()))
-      closeTimeout shouldEqual Some((1l, TimeUnit.SECONDS))
+      closeTimeout shouldEqual Some(1.second)
     }
 
     "wakeup" in new Scope {
@@ -191,13 +229,15 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     var commitLater = Map.empty[TopicPartition, OffsetAndMetadata]
 
-    var commit = false
+    var commit = Option.empty[FiniteDuration]
 
-    var commitOffsets = Map.empty[TopicPartition, OffsetAndMetadata]
+    var commitSync = Option.empty[(Map[TopicPartition, OffsetAndMetadata], Option[FiniteDuration])]
+
+    var commitSyncTimeout = Option.empty[Duration]
 
     var close = false
 
-    var closeTimeout = Option.empty[(Long, TimeUnit)]
+    var closeTimeout = Option.empty[FiniteDuration]
 
     var pause = List.empty[TopicPartitionJ]
 
@@ -255,12 +295,24 @@ class ConsumerSpec extends WordSpec with Matchers {
         new ConsumerRecordsJ[Bytes, Bytes](records)
       }
 
+      def poll(timeout: DurationJ) = {
+        poll(timeout.toMillis)
+      }
+
       def commitSync() = {
-        Scope.this.commit = true
+        Scope.this.commit = None
+      }
+
+      def commitSync(timeout: DurationJ) = {
+        Scope.this.commit = Some(timeout.asScala)
       }
 
       def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]) = {
-        commitOffsets = offsets.asScalaMap(_.asScala, _.asScala)
+        Scope.this.commitSync = Some((offsets.asScalaMap(_.asScala, _.asScala), None))
+      }
+
+      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ) = {
+        Scope.this.commitSync = Some((offsets.asScalaMap(_.asScala, _.asScala), Some(timeout.asScala)))
       }
 
       def commitAsync() = {}
@@ -288,16 +340,30 @@ class ConsumerSpec extends WordSpec with Matchers {
 
       def position(partition: TopicPartitionJ) = offset
 
+      def position(partition: TopicPartitionJ, timeout: DurationJ) = position(partition)
+
+
       def committed(partition: TopicPartitionJ) = offsetAndMetadata.asJava
+
+      def committed(partition: TopicPartitionJ, timeout: DurationJ) = offsetAndMetadata.asJava
+
 
       def metrics() = new java.util.HashMap()
 
-      def partitionsFor(topic: String) = {
+      def partitionsFor(topic: Topic) = {
         List(partitionInfo.asJava).to[ListBuffer].asJava
+      }
+
+      def partitionsFor(topic: Topic, timeout: DurationJ) = {
+        partitionsFor(topic)
       }
 
       def listTopics() = {
         Map((topic, List(partitionInfo.asJava).to[ListBuffer].asJava)).asJavaMap(x => x, x => x)
+      }
+
+      def listTopics(timeout: DurationJ) = {
+        listTopics()
       }
 
       def paused() = Set(topicPartition.asJava).asJava
@@ -314,12 +380,24 @@ class ConsumerSpec extends WordSpec with Matchers {
         Map((topicPartition, offsetAndTimestamp)).asJavaMap(_.asJava, _.asJava)
       }
 
+      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ], timeout: DurationJ) = {
+        offsetsForTimes(timestampsToSearch)
+      }
+
       def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]) = {
         Map((topicPartition, offset)).asJavaMap(_.asJava, l => l)
       }
 
+      def beginningOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ) = {
+        beginningOffsets(partitions)
+      }
+
       def endOffsets(partitions: CollectionJ[TopicPartitionJ]) = {
         Map((topicPartition, offset)).asJavaMap(_.asJava, l => l)
+      }
+
+      def endOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ) = {
+        endOffsets(partitions)
       }
 
       def close() = {
@@ -327,7 +405,11 @@ class ConsumerSpec extends WordSpec with Matchers {
       }
 
       def close(timeout: Long, unit: TimeUnit) = {
-        Scope.this.closeTimeout = Some((timeout, unit))
+        Scope.this.closeTimeout = Some(FiniteDuration(timeout, unit))
+      }
+
+      def close(timeout: DurationJ) = {
+        Scope.this.closeTimeout = Some(timeout.asScala)
       }
 
       def wakeup() = {

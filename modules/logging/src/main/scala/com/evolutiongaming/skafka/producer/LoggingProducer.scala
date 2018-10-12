@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.safeakka.actor.ActorLog
-import com.evolutiongaming.skafka.ToBytes
+import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -10,14 +10,25 @@ import scala.util.{Failure, Success}
 
 object LoggingProducer {
 
-  def apply(producer: Producer, log: ActorLog): Producer = {
+  def apply(producer: Producer[Future], log: ActorLog): Producer[Future] = {
     implicit val ec = CurrentThreadExecutionContext
 
-    new Producer {
-      def send[K, V](record: ProducerRecord[K, V])
-        (implicit valueToBytes: ToBytes[V], keyToBytes: ToBytes[K]): Future[RecordMetadata] = {
+    new Producer[Future] {
 
-        val result = producer.send(record)(valueToBytes, keyToBytes)
+      def initTransactions() = producer.initTransactions()
+
+      def beginTransaction() = producer.beginTransaction()
+
+      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+        producer.sendOffsetsToTransaction(offsets, consumerGroupId)
+      }
+
+      def commitTransaction() = producer.commitTransaction()
+
+      def abortTransaction() = producer.abortTransaction()
+
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): Future[RecordMetadata] = {
+        val result = producer.send(record)
         result.onComplete {
           case Success(metadata) =>
             log.debug(s"sent $record, metadata: $metadata")
@@ -27,9 +38,14 @@ object LoggingProducer {
         }
         result
       }
-      def flush(): Future[Unit] = producer.flush()
-      def close(): Future[Unit] = producer.close()
-      def close(timeout: FiniteDuration): Future[Unit] = producer.close(timeout)
+
+      def partitions(topic: Topic) = producer.partitions(topic)
+
+      def flush() = producer.flush()
+
+      def close() = producer.close()
+
+      def close(timeout: FiniteDuration) = producer.close(timeout)
     }
   }
 }

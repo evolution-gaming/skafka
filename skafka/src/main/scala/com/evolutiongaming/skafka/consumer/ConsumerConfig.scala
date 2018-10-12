@@ -21,6 +21,7 @@ final case class ConsumerConfig(
   autoCommitInterval: FiniteDuration = 5.seconds,
   partitionAssignmentStrategy: String = "org.apache.kafka.clients.consumer.RangeAssignor",
   autoOffsetReset: AutoOffsetReset = AutoOffsetReset.Latest,
+  defaultApiTimeout: FiniteDuration = 1.minute,
   fetchMinBytes: Int = 1,
   fetchMaxBytes: Int = 52428800,
   fetchMaxWait: FiniteDuration = 500.millis,
@@ -41,6 +42,7 @@ final case class ConsumerConfig(
       (C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString),
       (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.toString),
       (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
+      (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
       (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
       (C.FETCH_MAX_BYTES_CONFIG, fetchMaxBytes.toString),
       (C.FETCH_MAX_WAIT_MS_CONFIG, fetchMaxWait.toMillis.toString),
@@ -123,6 +125,9 @@ object ConsumerConfig {
       autoOffsetReset = get[AutoOffsetReset](
         "auto-offset-reset",
         "auto.offset.reset") getOrElse default.autoOffsetReset,
+      defaultApiTimeout = get[FiniteDuration](
+        "default-api-timeout",
+        "default.api.timeout.ms") getOrElse default.defaultApiTimeout,
       fetchMinBytes = get[Int](
         "fetch-min-bytes",
         "fetch.min.bytes") getOrElse default.fetchMinBytes,

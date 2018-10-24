@@ -31,8 +31,9 @@ object PrometheusConsumerMetrics {
       .help("Topic call latency in seconds")
       .labelNames("client", "topic", "type")
       .quantile(0.5, 0.05)
-      .quantile(0.9, 0.01)
-      .quantile(0.99, 0.001)
+      .quantile(0.9, 0.05)
+      .quantile(0.95, 0.01)
+      .quantile(0.99, 0.005)
       .register(registry)
 
     val recordsSummary = Summary.build()
@@ -58,8 +59,9 @@ object PrometheusConsumerMetrics {
       .help("List topics latency in seconds")
       .labelNames("client")
       .quantile(0.5, 0.05)
-      .quantile(0.9, 0.01)
-      .quantile(0.99, 0.001)
+      .quantile(0.9, 0.05)
+      .quantile(0.95, 0.01)
+      .quantile(0.99, 0.005)
       .register(registry)
 
     clientId: ClientId => {

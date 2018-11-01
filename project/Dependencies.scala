@@ -9,13 +9,13 @@ object Dependencies {
 
   val sequentially = "com.evolutiongaming" %% "sequentially" % "1.0.12"
 
-  val nel = "com.evolutiongaming" %% "nel" % "1.3.2"
+  val nel = "com.evolutiongaming" %% "nel" % "1.3.3"
 
   val `config-tools` = "com.evolutiongaming" %% "config-tools" % "1.0.3"
 
   val `metric-tools` = "com.evolutiongaming" %% "metric-tools" % "1.1"
 
-  val `safe-actor` = "com.evolutiongaming" %% "safe-actor" % "1.7"
+  val `safe-actor` = "com.evolutiongaming" %% "safe-actor" % "2.0.0"
 
   val Prometheus = "io.prometheus" % "simpleclient" % "0.5.0"
 

@@ -67,7 +67,7 @@ object PrometheusConsumerMetrics {
     clientId: ClientId => {
       new Consumer.Metrics {
 
-        def call(name: String, topic: Topic, latency: Offset, success: Boolean) = {
+        def call(name: String, topic: Topic, latency: Long, success: Boolean) = {
           val result = if (success) "success" else "failure"
           latencySummary
             .labels(clientId, topic, name)
@@ -98,7 +98,7 @@ object PrometheusConsumerMetrics {
             .inc()
         }
 
-        def listTopics(latency: Offset) = {
+        def listTopics(latency: Long) = {
           listTopicsLatency
             .labels(clientId)
             .observe(latency.toSeconds)

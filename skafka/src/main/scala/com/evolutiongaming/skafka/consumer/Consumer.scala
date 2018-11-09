@@ -752,15 +752,15 @@ object Consumer {
 
     val Empty: Metrics = new Metrics {
 
-      def call(name: String, topic: Topic, latency: Offset, success: Boolean) = {}
+      def call(name: String, topic: Topic, latency: Long, success: Boolean) = {}
 
-      def poll(topic: Topic, bytes: Partition, records: Partition) = {}
+      def poll(topic: Topic, bytes: Int, records: Int) = {}
 
       def count(name: String, topic: Topic) = {}
 
       def rebalance(name: String, topicPartition: TopicPartition) = {}
 
-      def listTopics(latency: Offset) = {}
+      def listTopics(latency: Long) = {}
     }
   }
 }

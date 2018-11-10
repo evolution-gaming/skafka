@@ -39,7 +39,7 @@ class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
 
       def result(name: String) = Option {
         registry.getSampleValue(
-          "skafka_producer_result",
+          "skafka_producer_results",
           Array("client", "topic", "result"),
           Array("", "topic", name))
       }
@@ -90,7 +90,7 @@ class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
 
     def callCount(name: String) = Option {
       registry.getSampleValue(
-        "skafka_producer_call_count",
+        "skafka_producer_calls",
         Array("client", "type"),
         Array("", name))
     }

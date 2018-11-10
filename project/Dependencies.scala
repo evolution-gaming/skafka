@@ -3,7 +3,7 @@ import sbt._
 object Dependencies {
   val scalatest = "org.scalatest" %% "scalatest" % "3.0.5" % Test
 
-  val `kafka-clients` = "org.apache.kafka" % "kafka-clients" % "2.0.0"
+  val `kafka-clients` = "org.apache.kafka" % "kafka-clients" % "2.0.1"
 
   val `executor-tools` = "com.evolutiongaming" %% "executor-tools" % "1.0.1"
 
@@ -15,7 +15,7 @@ object Dependencies {
 
   val `metric-tools` = "com.evolutiongaming" %% "metric-tools" % "1.1"
 
-  val `safe-actor` = "com.evolutiongaming" %% "safe-actor" % "2.0.0"
+  val `safe-actor` = "com.evolutiongaming" %% "safe-actor" % "2.0.3"
 
   val Prometheus = "io.prometheus" % "simpleclient" % "0.5.0"
 
@@ -23,12 +23,12 @@ object Dependencies {
 
   val `play-json` = "com.typesafe.play" %% "play-json" % "2.6.10"
   
-  val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.2" % Test
+  val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.3" % Test
 
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
 
   object Akka {
-    private val version = "2.5.17"
+    private val version = "2.5.18"
     val actor   = "com.typesafe.akka" %% "akka-actor" % version
     val stream  = "com.typesafe.akka" %% "akka-stream" % version
     val testkit = "com.typesafe.akka" %% "akka-testkit" % version % Test

@@ -33,7 +33,7 @@ object PrometheusProducerMetrics {
       .register(registry)
 
     val resultCounter = Counter.build()
-      .name(s"${ prefix }_result")
+      .name(s"${ prefix }_results")
       .help("Result: success or failure")
       .labelNames("client", "topic", "result")
       .register(registry)
@@ -49,7 +49,7 @@ object PrometheusProducerMetrics {
       .register(registry)
 
     val callCount = Counter.build()
-      .name(s"${ prefix }_call_count")
+      .name(s"${ prefix }_calls")
       .help("Call count")
       .labelNames("client", "type")
       .register(registry)

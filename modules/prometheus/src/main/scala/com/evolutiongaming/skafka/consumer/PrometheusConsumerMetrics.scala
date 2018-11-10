@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.skafka.PrometheusHelper._
-import com.evolutiongaming.skafka.{ClientId, Offset, Topic, TopicPartition}
+import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 object PrometheusConsumerMetrics {

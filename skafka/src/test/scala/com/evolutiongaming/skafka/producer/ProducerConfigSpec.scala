@@ -48,7 +48,7 @@ class ProducerConfigSpec extends FunSuite with Matchers {
 
     configs.bindings shouldEqual Map(
       "reconnect.backoff.max.ms" -> "1000",
-      "retries" -> "0",
+      "retries" -> "2147483647",
       "compression.type" -> "none",
       "buffer.memory" -> "33554432",
       "connections.max.idle.ms" -> "540000",

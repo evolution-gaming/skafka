@@ -19,7 +19,7 @@ final case class ProducerConfig(
   maxBlock: FiniteDuration = 1.minute,
   bufferMemory: Long = 33554432L,
   compressionType: CompressionType = CompressionType.None,
-  retries: Int = 0,
+  retries: Int = Int.MaxValue,
   maxInFlightRequestsPerConnection: Int = 5,
   partitionerClass: String = "org.apache.kafka.clients.producer.internals.DefaultPartitioner",
   interceptorClasses: List[String] = Nil,

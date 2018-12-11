@@ -11,6 +11,7 @@ class ProducerConfigSpec extends FunSuite with Matchers {
 
   val custom = ProducerConfig(
     batchSize = 1,
+    deliveryTimeout = 2.seconds,
     acks = Acks.All,
     linger = 3.millis,
     maxRequestSize = 4,
@@ -63,6 +64,7 @@ class ProducerConfigSpec extends FunSuite with Matchers {
       "metric.reporters" -> "",
       "transaction.timeout.ms" -> "60000",
       "interceptor.classes" -> "",
+      "delivery.timeout.ms" -> "120000",
       "acks" -> "1",
       "metadata.max.age.ms" -> "300000",
       "enable.idempotence" -> "false",

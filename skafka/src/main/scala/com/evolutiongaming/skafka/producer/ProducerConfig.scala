@@ -13,6 +13,7 @@ import scala.concurrent.duration._
 final case class ProducerConfig(
   common: CommonConfig = CommonConfig.Default,
   batchSize: Int = 16384,
+  deliveryTimeout: FiniteDuration = 2.minutes,
   acks: Acks = Acks.One,
   linger: FiniteDuration = 0.millis,
   maxRequestSize: Int = 1048576,
@@ -30,6 +31,7 @@ final case class ProducerConfig(
   def bindings: Map[String, String] = {
     val bindings = Map[String, String](
       (C.BATCH_SIZE_CONFIG, batchSize.toString),
+      (C.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeout.toMillis.toString),
       (C.ACKS_CONFIG, acks.names.head.toString),
       (C.LINGER_MS_CONFIG, linger.toMillis.toString),
       (C.MAX_REQUEST_SIZE_CONFIG, maxRequestSize.toString),
@@ -108,6 +110,9 @@ object ProducerConfig {
       batchSize = get[Int](
         "batch-size",
         "batch.size") getOrElse default.batchSize,
+      deliveryTimeout = getDuration(
+        "delivery-timeout",
+        "delivery.timeout.ms") getOrElse default.deliveryTimeout,
       linger = getDuration(
         "linger",
         "linger.ms") getOrElse default.linger,

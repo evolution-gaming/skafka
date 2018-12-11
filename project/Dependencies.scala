@@ -21,14 +21,14 @@ object Dependencies {
 
   val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.3"
 
-  val `play-json` = "com.typesafe.play" %% "play-json" % "2.6.10"
+  val `play-json` = "com.typesafe.play" %% "play-json" % "2.6.11"
   
-  val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.4" % Test
+  val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.5" % Test
 
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
 
   object Akka {
-    private val version = "2.5.18"
+    private val version = "2.5.19"
     val actor   = "com.typesafe.akka" %% "akka-actor" % version
     val stream  = "com.typesafe.akka" %% "akka-stream" % version
     val testkit = "com.typesafe.akka" %% "akka-testkit" % version % Test

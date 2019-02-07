@@ -98,7 +98,7 @@ object ConsumerConfig {
     }
 
     ConsumerConfig(
-      common = CommonConfig(config),
+      common = CommonConfig(config, default.common),
       groupId = get[String]("group-id", "group.id") orElse default.groupId,
       maxPollRecords = get[Int](
         "max-poll-records",

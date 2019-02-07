@@ -98,7 +98,7 @@ object ProducerConfig {
     }
 
     ProducerConfig(
-      common = CommonConfig(config),
+      common = CommonConfig(config, default.common),
       acks = get[Acks]("acks") getOrElse default.acks,
       bufferMemory = get[Long](
         "buffer-memory",

@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.Converters._
@@ -10,7 +11,7 @@ import org.scalatest.{Matchers, WordSpec}
 
 class ConsumerConvertersSpec extends WordSpec with Matchers {
 
-  val timestamp = Instant.now()
+  val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
   "ConsumerConverters" should {
 
@@ -20,15 +21,15 @@ class ConsumerConvertersSpec extends WordSpec with Matchers {
     }
 
     "convert OffsetAndTimestamp" in {
-      val value = OffsetAndTimestamp(1, Instant.now())
+      val value = OffsetAndTimestamp(1, instant)
       value shouldEqual value.asJava.asScala
     }
 
     for {
       timestampAndType <- List(
         None,
-        Some(TimestampAndType(timestamp, TimestampType.Create)),
-        Some(TimestampAndType(timestamp, TimestampType.Append)))
+        Some(TimestampAndType(instant, TimestampType.Create)),
+        Some(TimestampAndType(instant, TimestampType.Append)))
       key <- List(Some(WithSize("key", 1)), None)
       value <- List(Some(WithSize("value", 1)), None)
     } {

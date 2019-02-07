@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
+import java.time.temporal.ChronoUnit
 import java.time.{Instant, Duration => DurationJ}
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
@@ -29,11 +30,12 @@ class ConsumerSpec extends WordSpec with Matchers {
   val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
   val offsets = Map((topicPartition, offsetAndMetadata))
   val partitions = Nel(topicPartition)
-  val offsetAndTimestamp = OffsetAndTimestamp(offset, Instant.now())
+  val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
   val consumerRecord = ConsumerRecord(
     topicPartition = topicPartition,
     offset = offset,
-    timestampAndType = Some(TimestampAndType(Instant.now(), TimestampType.Create)),
+    timestampAndType = Some(TimestampAndType(instant, TimestampType.Create)),
     key = Some(WithSize(Bytes.Empty, 1)),
     value = Some(WithSize(Bytes.Empty, 1)),
     headers = List(Header("key", Bytes.Empty)))

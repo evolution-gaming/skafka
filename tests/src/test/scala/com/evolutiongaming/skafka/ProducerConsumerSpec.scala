@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 import akka.actor.ActorSystem
@@ -25,6 +26,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   implicit lazy val ec = system.dispatcher
 
   lazy val shutdown = StartKafka()
+
+  val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
   val timeout = TestKitExtension(system).DefaultTimeout.duration.dilated
 
@@ -95,7 +98,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     test(s"$name produce and consume record") {
       val key = "key1"
       val value = "value1"
-      val timestamp = Instant.now()
+      val timestamp = instant
       val record = ProducerRecord(
         topic = topic,
         value = Some(value),
@@ -131,7 +134,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val keyAndValues = consumer.consume(timeout).map { record => (record.key.map(_.value), record.value.map(_.value)) }
       keyAndValues shouldEqual List((Some(key), record.value))
 
-      val timestamp = Instant.now()
+      val timestamp = instant
       val delete = ProducerRecord[String, String](
         topic = topic,
         key = Some(key),
@@ -155,7 +158,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     }
 
     test(s"$name produce and consume empty record") {
-      val timestamp = Instant.now()
+      val timestamp = instant
       val empty = ProducerRecord[String, String](
         topic = topic,
         timestamp = Some(timestamp),
@@ -179,7 +182,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     test(s"$name commit and subscribe from last committed position") {
       val key = "key3"
       val value = "value3"
-      val timestamp = Instant.now()
+      val timestamp = instant
 
       Await.result(consumer.commit(), timeout)
       Await.result(consumer.close(), timeout)

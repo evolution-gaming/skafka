@@ -1,7 +1,8 @@
 import sbt._
 
 object Dependencies {
-  val scalatest = "org.scalatest" %% "scalatest" % "3.0.5" % Test
+
+  val scalatest = "org.scalatest" %% "scalatest" % "3.0.7" % Test
 
   val `executor-tools` = "com.evolutiongaming" %% "executor-tools" % "1.0.1"
 
@@ -17,9 +18,9 @@ object Dependencies {
 
   val prometheus = "io.prometheus" % "simpleclient" % "0.6.0"
 
-  val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.3"
+  val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.4"
 
-  val `play-json` = "com.typesafe.play" %% "play-json" % "2.7.1"
+  val `play-json` = "com.typesafe.play" %% "play-json" % "2.7.3"
   
   val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.6"
 
@@ -32,7 +33,7 @@ object Dependencies {
   }
 
   object Akka {
-    private val version = "2.5.21"
+    private val version = "2.5.22"
     val actor   = "com.typesafe.akka" %% "akka-actor" % version
     val stream  = "com.typesafe.akka" %% "akka-stream" % version
     val testkit = "com.typesafe.akka" %% "akka-testkit" % version

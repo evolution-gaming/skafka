@@ -11,7 +11,8 @@ lazy val commonSettings = Seq(
   crossScalaVersions := Seq("2.12.8"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
-  releaseCrossBuild := true)
+  releaseCrossBuild := true,
+  scalacOptions in(Compile, doc) += "-no-link-warnings")
 
 
 lazy val root = (project

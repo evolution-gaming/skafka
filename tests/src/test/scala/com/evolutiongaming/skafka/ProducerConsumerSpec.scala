@@ -34,6 +34,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   override def beforeAll() = {
     super.beforeAll()
     shutdown
+    ()
   }
 
   override def afterAll() = {

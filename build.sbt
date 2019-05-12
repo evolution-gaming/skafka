@@ -8,20 +8,7 @@ lazy val commonSettings = Seq(
   organizationHomepage := Some(url("http://evolutiongaming.com")),
   bintrayOrganization := Some("evolutiongaming"),
   scalaVersion := crossScalaVersions.value.last,
-  crossScalaVersions := Seq("2.11.12", "2.12.8"),
-  scalacOptions ++= Seq(
-    "-encoding", "UTF-8",
-    "-feature",
-    "-unchecked",
-    "-deprecation",
-//    "-Xfatal-warnings",
-    "-Xlint",
-    "-Yno-adapted-args",
-    "-Ywarn-dead-code",
-    "-Ywarn-numeric-widen",
-    "-Xfuture",
-    "-language:higherKinds"),
-  scalacOptions in(Compile, doc) ++= Seq("-groups", "-implicits", "-no-link-warnings"),
+  crossScalaVersions := Seq("2.12.8"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true)
@@ -36,18 +23,20 @@ lazy val root = (project
 
 lazy val skafka = (project
   in file("skafka")
-  settings (name := "skafka")
   settings commonSettings
-  settings (libraryDependencies ++= Seq(
-    Akka.actor,
-    Akka.stream,
-    nel,
-    `config-tools`,
-    Kafka.`kafka-clients`,
-    `future-helper`,
-    scalatest,
-    sequentially,
-    `scala-java8-compat`)))
+  settings(                                                                          
+    name := "skafka",
+    scalacOptions -= "-Ywarn-unused:params",
+    libraryDependencies ++= Seq(
+      Akka.actor,
+      Akka.stream,
+      nel,
+      `config-tools`,
+      Kafka.`kafka-clients`,
+      `future-helper`,
+      scalatest,
+      sequentially,
+      `scala-java8-compat`)))
 
 lazy val logging = (project
   in file("modules/logging")

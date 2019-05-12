@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.{OffsetAndMetadata, Partition, TopicPartition}
-import com.evolutiongaming.concurrent.FutureHelper._
 import io.prometheus.client.CollectorRegistry
 import org.scalatest.{Matchers, WordSpec}
 

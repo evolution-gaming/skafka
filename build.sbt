@@ -34,7 +34,7 @@ lazy val skafka = (project
       `config-tools`,
       Kafka.`kafka-clients`,
       `future-helper`,
-      scalatest,
+      scalatest % Test,
       sequentially,
       `scala-java8-compat`)))
 
@@ -50,14 +50,14 @@ lazy val prometheus = (project
   settings (name := "skafka-prometheus")
   settings commonSettings
   dependsOn skafka
-  settings (libraryDependencies ++= Seq(Dependencies.prometheus, `executor-tools`, scalatest)))
+  settings (libraryDependencies ++= Seq(Dependencies.prometheus, `executor-tools`, scalatest % Test)))
 
 lazy val `play-json` = (project
   in file("modules/play-json")
   settings (name := "skafka-play-json")
   settings commonSettings
   dependsOn skafka
-  settings (libraryDependencies ++= Seq(Dependencies.`play-json`, scalatest)))
+  settings (libraryDependencies ++= Seq(Dependencies.`play-json`, scalatest % Test)))
 
 lazy val tests = (project in file("tests")
   settings (name := "skafka-tests")
@@ -76,4 +76,4 @@ lazy val tests = (project in file("tests")
       Slf4j.`log4j-over-slf4j` % Test,
       Logback.core % Test,
       Logback.classic % Test,
-      scalatest)))
+      scalatest % Test)))

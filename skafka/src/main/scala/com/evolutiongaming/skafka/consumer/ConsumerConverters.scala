@@ -4,7 +4,7 @@ import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.{TimestampAndType, TimestampType, TopicPartition}
+import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ, OffsetCommitCallback => CommitCallbackJ}
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
@@ -64,18 +64,15 @@ object ConsumerConverters {
 
   implicit class CommitCallbackOps(val self: CommitCallback) extends AnyVal {
 
-    def asJava: CommitCallbackJ = new CommitCallbackJ {
-
-      def onComplete(offsetsJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception): Unit = {
-        val offsets =
-          if (exception == null) {
-            val offsets = offsetsJ.asScalaMap(_.asScala, _.asScala)
-            Success(offsets)
-          } else {
-            Failure(exception)
-          }
-        self(offsets)
-      }
+    def asJava: CommitCallbackJ = (offsetsJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) => {
+      val offsets =
+        if (exception == null) {
+          val offsets = offsetsJ.asScalaMap(_.asScala, _.asScala)
+          Success(offsets)
+        } else {
+          Failure(exception)
+        }
+      self(offsets)
     }
   }
 
@@ -160,5 +157,11 @@ object ConsumerConverters {
       }
       ConsumerRecords(records.toMap)
     }
+  }
+
+  implicit class TopicPartitionToOffsetMetadataMapOps(val m: Map[TopicPartition, OffsetAndMetadata]) extends AnyVal {
+    def deepAsJava: MapJ[TopicPartitionJ, OffsetAndMetadataJ] = m.map {
+      case (tp, om) => (tp.asJava, om.asJava)
+    }.asJava
   }
 }

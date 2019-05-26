@@ -7,7 +7,9 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestDuration, TestKit, TestKitExtension}
-import com.evolutiongaming.concurrent.FutureHelper._
+import cats.Traverse
+import cats.effect.IO
+import cats.implicits._
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.safeakka.actor.ActorLog
@@ -16,14 +18,15 @@ import com.evolutiongaming.skafka.producer._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.annotation.tailrec
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
 
 class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
   implicit lazy val system: ActorSystem = ActorSystem(getClass.getSimpleName)
   implicit lazy val ec = system.dispatcher
+  implicit lazy val cs = IO.contextShift(ec)
 
   lazy val shutdown = StartKafka()
 
@@ -34,21 +37,17 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   override def beforeAll() = {
     super.beforeAll()
     shutdown
+    ()
   }
 
   override def afterAll() = {
     shutdown()
 
-    val futures = for {
-      (_, producers) <- combinations
-      producer <- producers
-    } yield for {
-      _ <- producer.flush()
-      _ <- producer.close()
-    } yield {}
+    val flushCloseAll =
+      Traverse[List].traverse(combinations.flatMap { case (_, p) => p }.toList)(p => p.flush *> p.close)
+        .unsafeToFuture()
 
-    Await.result(Future.foldUnit(futures), timeout)
-
+    Await.result(flushCloseAll, timeout)
     TestKit.shutdownActorSystem(system)
     super.afterAll()
   }
@@ -58,13 +57,14 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
   def producers(acks: Acks) = {
     val ecBlocking = system.dispatcher
+    implicit val cs = IO.contextShift(ecBlocking)
     val config = ProducerConfig.Default.copy(acks = acks)
     List(
-      LoggingProducer(Producer(config, ecBlocking), ActorLog.empty),
-      Producer(config, ecBlocking, system))
+      LoggingProducer[IO](Producer(config, ecBlocking), Log(ActorLog.empty)),
+      Producer[IO](config, ecBlocking, system))
   }
 
-  lazy val combinations = for {
+  lazy val combinations: Seq[(Acks, List[Producer[IO]])] = for {
     acks <- List(Acks.One, Acks.None)
   } yield (acks, producers(acks))
 
@@ -76,22 +76,19 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     val topic = s"$idx-$acks"
     val name = s"[topic:$topic,acks:$acks]"
 
-    def produce(record: ProducerRecord[String, String]) = {
-      val future = producer.send(record)
-      Await.result(future, timeout)
-    }
+    def produce(record: ProducerRecord[String, String]) = producer.send(record).unsafeRunSync()
 
     lazy val consumer = consumerOf()
 
-    def consumerOf() = {
+    def consumerOf(): Consumer[IO, String, String] = {
       val config = ConsumerConfig.Default.copy(
         groupId = Some(s"group-$topic"),
         autoOffsetReset = AutoOffsetReset.Earliest,
         autoCommit = false,
         common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
-      val consumer = Consumer[String, String](config, ec)
-      consumer.subscribe(Nel(topic), None)
+      val consumer = Consumer[IO, String, String](config, ec)
+      consumer.subscribe(Nel(topic), None).unsafeRunSync()
       consumer
     }
 
@@ -234,15 +231,14 @@ object ProducerConsumerSpec {
     final case class Header(key: String, value: String)
   }
 
-
-  implicit class ConsumersOps(val self: Consumer[String, String, Future]) extends AnyVal {
+  implicit class ConsumersOps(val self: Consumer[IO, String, String]) extends AnyVal {
 
     def consume(timeout: FiniteDuration): List[ConsumerRecord[String, String]] = {
       @tailrec
       def consume(attempts: Int): List[ConsumerRecord[String, String]] = {
         if (attempts <= 0) Nil
         else {
-          val future = self.poll(100.millis)
+          val future = self.poll(100.millis).unsafeToFuture()
           val records = Await.result(future, timeout).values.values.flatten
           if (records.isEmpty) consume(attempts - 1)
           else records.toList
@@ -251,5 +247,9 @@ object ProducerConsumerSpec {
 
       consume(100)
     }
+
+    def commit() = self.commit.unsafeToFuture()
+
+    def close() = self.close.unsafeToFuture()
   }
 }

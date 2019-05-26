@@ -14,7 +14,6 @@ lazy val commonSettings = Seq(
     "-feature",
     "-unchecked",
     "-deprecation",
-//    "-Xfatal-warnings",
     "-Xlint",
     "-Yno-adapted-args",
     "-Ywarn-dead-code",
@@ -39,15 +38,17 @@ lazy val skafka = (project
   settings (name := "skafka")
   settings commonSettings
   settings (libraryDependencies ++= Seq(
-    Akka.actor,
-    Akka.stream,
-    nel,
-    `config-tools`,
-    Kafka.`kafka-clients`,
-    `future-helper`,
-    scalatest,
-    sequentially,
-    `scala-java8-compat`)))
+  Akka.actor,
+  Akka.stream,
+  nel,
+  `config-tools`,
+  Kafka.`kafka-clients`,
+  `future-helper`,
+  `cats-effect`,
+  `cats-helper`,
+  scalatest,
+  sequentially,
+  `scala-java8-compat`)))
 
 lazy val logging = (project
   in file("modules/logging")
@@ -60,7 +61,7 @@ lazy val prometheus = (project
   in file("modules/prometheus")
   settings (name := "skafka-prometheus")
   settings commonSettings
-  dependsOn skafka
+  dependsOn skafka % "compile->compile;test->test"
   settings (libraryDependencies ++= Seq(Dependencies.prometheus, `executor-tools`, scalatest)))
 
 lazy val `play-json` = (project
@@ -74,17 +75,17 @@ lazy val tests = (project in file("tests")
   settings (name := "skafka-tests")
   settings commonSettings
   settings Seq(
-    skip in publish := true,
-    Test / fork := true,
-    Test / parallelExecution := false)
-    dependsOn (skafka, logging)
-    settings (libraryDependencies ++= Seq(
-      Kafka.kafka % Test,
-      `kafka-launcher` % Test,
-      Akka.testkit % Test,
-      Akka.slf4j % Test,
-      Slf4j.api % Test,
-      Slf4j.`log4j-over-slf4j` % Test,
-      Logback.core % Test,
-      Logback.classic % Test,
-      scalatest)))
+  skip in publish := true,
+  Test / fork := true,
+  Test / parallelExecution := false)
+  dependsOn(skafka, logging)
+  settings (libraryDependencies ++= Seq(
+  Kafka.kafka % Test,
+  `kafka-launcher` % Test,
+  Akka.testkit % Test,
+  Akka.slf4j % Test,
+  Slf4j.api % Test,
+  Slf4j.`log4j-over-slf4j` % Test,
+  Logback.core % Test,
+  Logback.classic % Test,
+  scalatest)))

@@ -9,7 +9,5 @@ trait CommitCallback {
 }
 
 object CommitCallback {
-  val Empty: CommitCallback = new CommitCallback {
-    def apply(offsets: Try[Map[TopicPartition, OffsetAndMetadata]]) = {}
-  }
+  val Empty: CommitCallback = (_: Try[Map[TopicPartition, OffsetAndMetadata]]) => {}
 }

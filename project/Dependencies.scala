@@ -21,34 +21,37 @@ object Dependencies {
   val `future-helper` = "com.evolutiongaming" %% "future-helper" % "1.0.4"
 
   val `play-json` = "com.typesafe.play" %% "play-json" % "2.7.3"
-  
+
   val `kafka-launcher` = "com.evolutiongaming" %% "kafka-launcher" % "0.0.6"
 
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
 
+  val `cats-effect` = "org.typelevel" %% "cats-effect" % "1.3.0"
+  val `cats-helper` = "com.evolutiongaming" %% "cats-helper" % "0.0.6"
+
   object Kafka {
     private val version = "2.1.1"
-    val kafka           = "org.apache.kafka" %% "kafka" % version
-    val `kafka-clients` = "org.apache.kafka" %  "kafka-clients" % version
+    val kafka = "org.apache.kafka" %% "kafka" % version
+    val `kafka-clients` = "org.apache.kafka" % "kafka-clients" % version
   }
 
   object Akka {
     private val version = "2.5.22"
-    val actor   = "com.typesafe.akka" %% "akka-actor" % version
-    val stream  = "com.typesafe.akka" %% "akka-stream" % version
+    val actor = "com.typesafe.akka" %% "akka-actor" % version
+    val stream = "com.typesafe.akka" %% "akka-stream" % version
     val testkit = "com.typesafe.akka" %% "akka-testkit" % version
-    val slf4j   = "com.typesafe.akka" %% "akka-slf4j" % version
+    val slf4j = "com.typesafe.akka" %% "akka-slf4j" % version
   }
 
   object Logback {
     private val version = "1.2.3"
-    val core    = "ch.qos.logback" % "logback-core" % version
+    val core = "ch.qos.logback" % "logback-core" % version
     val classic = "ch.qos.logback" % "logback-classic" % version
   }
 
   object Slf4j {
     private val version = "1.7.26"
-    val api                = "org.slf4j" % "slf4j-api" % version
+    val api = "org.slf4j" % "slf4j-api" % version
     val `log4j-over-slf4j` = "org.slf4j" % "log4j-over-slf4j" % version
   }
 }

@@ -1,51 +1,48 @@
 package com.evolutiongaming.skafka.producer
 
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
-import com.evolutiongaming.safeakka.actor.ActorLog
+import cats.implicits._
+import cats.{Monad, MonadError}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 
-import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Success}
 
 object LoggingProducer {
+  type CanFail[F[_]] = MonadError[F, Throwable]
 
-  def apply(producer: Producer[Future], log: ActorLog): Producer[Future] = {
-    implicit val ec = CurrentThreadExecutionContext
+  def apply[F[_] : CanFail : Monad](producer: Producer[F], log: Log[F]): Producer[F] = {
 
-    new Producer[Future] {
+    new Producer[F] {
 
-      def initTransactions() = producer.initTransactions()
+      override val initTransactions = producer.initTransactions
 
-      def beginTransaction() = producer.beginTransaction()
+      override val beginTransaction = producer.beginTransaction
 
-      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+      override def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         producer.sendOffsetsToTransaction(offsets, consumerGroupId)
       }
 
-      def commitTransaction() = producer.commitTransaction()
+      override val commitTransaction = producer.commitTransaction
 
-      def abortTransaction() = producer.abortTransaction()
+      override val abortTransaction = producer.abortTransaction
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): Future[RecordMetadata] = {
-        val result = producer.send(record)
-        result.onComplete {
-          case Success(metadata) =>
-            log.debug(s"sent $record, metadata: $metadata")
-
-          case Failure(failure) =>
-            log.error(s"failed to send record $record: $failure", failure)
+      override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] = {
+        producer.send(record).attempt.flatMap {
+          case Right(metadata) =>
+            log.debug(s"sent $record, metadata: $metadata") *>
+              Monad[F].pure(metadata)
+          case Left(failure)   =>
+            log.error(s"failed to send record $record: $failure") *>
+              implicitly[CanFail[F]].raiseError[RecordMetadata](failure)
         }
-        result
       }
 
-      def partitions(topic: Topic) = producer.partitions(topic)
+      override def partitions(topic: Topic) = producer.partitions(topic)
 
-      def flush() = producer.flush()
+      override val flush = producer.flush
 
-      def close() = producer.close()
+      override val close = producer.close
 
-      def close(timeout: FiniteDuration) = producer.close(timeout)
+      override def close(timeout: FiniteDuration) = producer.close(timeout)
     }
   }
 }

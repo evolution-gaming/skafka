@@ -1,14 +1,14 @@
-package com.evolutiongaming.skafka.consumer
+package com.evolutiongaming.skafka
+package consumer
 
+import cats.effect.IO
+import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.skafka.{OffsetAndMetadata, Partition, TopicPartition}
-import com.evolutiongaming.concurrent.FutureHelper._
+import com.evolutiongaming.skafka.IOMatchers._
 import io.prometheus.client.CollectorRegistry
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.Success
 
 class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
 
@@ -19,12 +19,13 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
 
     "measure assign" in new Scope {
       val topicPartition = TopicPartition(topic = topic, Partition.Min)
-      consumer.assign(Nel(topicPartition))
-      registry.count("assign") shouldEqual Some(1.0)
+      verify(consumer.assign(Nel(topicPartition))) { _ =>
+        registry.count("assign") shouldEqual Some(1.0)
+      }
     }
 
     "measure listTopics" in new Scope {
-      consumer.listTopics().value shouldEqual Some(Success(Map.empty))
+      consumer.listTopics should produce(Map.empty[Topic, List[PartitionInfo]])
 
       def result(name: String) = Option {
         registry.getSampleValue(
@@ -38,39 +39,44 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
     }
 
     "measure poll" in new Scope {
-      consumer.poll(1.second)
-      registry.latencyCount("poll") shouldEqual None
+      verify(consumer.poll(1.second)) { _ =>
+        registry.latencyCount("poll") shouldEqual None
+      }
     }
 
     "measure commit" in new Scope {
       val topicPartition = TopicPartition(topic = topic, Partition.Min)
 
-      consumer.commit(Map((topicPartition, OffsetAndMetadata.Empty))) shouldEqual Future.unit
+      verify(consumer.commit(Map((topicPartition, OffsetAndMetadata.Empty)))) { _ =>
 
-      def result(name: String) = Option {
-        registry.getSampleValue(
-          "skafka_consumer_results",
-          Array("client", "topic", "type", "result"),
-          Array("clientId", topicPartition.topic, "commit", name))
+        def result(name: String) = Option {
+          registry.getSampleValue(
+            "skafka_consumer_results",
+            Array("client", "topic", "type", "result"),
+            Array("clientId", topicPartition.topic, "commit", name))
+        }
+
+        registry.latencySum("commit").isDefined shouldEqual true
+        registry.latencyCount("commit") shouldEqual Some(1.0)
+
+        result("success") shouldEqual Some(1.0)
+        result("failure") shouldEqual None
       }
-
-      registry.latencySum("commit").isDefined shouldEqual true
-      registry.latencyCount("commit") shouldEqual Some(1.0)
-
-      result("success") shouldEqual Some(1.0)
-      result("failure") shouldEqual None
     }
 
     "measure subscribe" in new Scope {
-      consumer.subscribe(Nel(topic), Some(RebalanceListener.Empty))
-      registry.count("subscribe") shouldEqual Some(1.0)
+      verify(consumer.subscribe(Nel(topic), Some(RebalanceListener.Empty))) { _ =>
+        registry.count("subscribe") shouldEqual Some(1.0)
+      }
     }
   }
 
   private trait Scope {
+    implicit val ec = CurrentThreadExecutionContext
+    implicit val cs = IO.contextShift(ec)
     val registry = new CollectorRegistry()
-    val metrics = PrometheusConsumerMetrics(registry)(clientId)
-    val consumer = Consumer(Consumer.empty[String, String], metrics)
+    val metrics = PrometheusConsumerMetrics[IO, String, String](registry)(clientId)
+    val consumer = Consumer(Consumer.empty[IO, String, String], metrics)
   }
 
   implicit class CollectorRegistryOps(registry: CollectorRegistry) {

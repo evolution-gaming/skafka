@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
+import cats.effect.Async
 import com.evolutiongaming.skafka.PrometheusHelper._
 import com.evolutiongaming.skafka.{ClientId, Topic}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
@@ -12,9 +13,9 @@ object PrometheusProducerMetrics {
   }
 
 
-  def apply(
+  def apply[F[_] : Async](
     registry: CollectorRegistry,
-    prefix: Prefix = Prefix.Default): ClientId => Producer.Metrics = {
+    prefix: Prefix = Prefix.Default)(clientId: ClientId): Metrics[F] = {
 
     val latencySummary = Summary.build()
       .name(s"${ prefix }_latency")
@@ -54,7 +55,7 @@ object PrometheusProducerMetrics {
       .labelNames("client", "type")
       .register(registry)
 
-    clientId: ClientId => {
+    {
 
       def sendMeasure(result: String, topic: Topic, latency: Long) = {
         latencySummary
@@ -71,52 +72,56 @@ object PrometheusProducerMetrics {
           .observe(latency.toSeconds)
       }
 
-      new Producer.Metrics {
+      val async = Async[F]
 
-        def initTransactions(latency: Long) = {
+      import async.delay
+
+      new Metrics[F] {
+
+        override def initTransactions(latency: Long) = delay {
           observeLatency("init_transactions", latency)
         }
 
-        def beginTransaction() = {
+        override val beginTransaction = delay {
           callCount
             .labels(clientId, "begin_transaction")
             .inc()
         }
 
-        def sendOffsetsToTransaction(latency: Long) = {
+        override def sendOffsetsToTransaction(latency: Long) = delay {
           observeLatency("send_offsets", latency)
         }
 
-        def commitTransaction(latency: Long) = {
+        override def commitTransaction(latency: Long) = delay {
           observeLatency("commit_transaction", latency)
         }
 
-        def abortTransaction(latency: Long) = {
+        override def abortTransaction(latency: Long) = delay {
           observeLatency("abort_transaction", latency)
         }
 
-        def send(topic: Topic, latency: Long, bytes: Int) = {
+        override def send(topic: Topic, latency: Long, bytes: Int) = delay {
           sendMeasure(result = "success", topic = topic, latency = latency)
           bytesSummary
             .labels(clientId, topic)
             .observe(bytes.toDouble)
         }
 
-        def failure(topic: Topic, latency: Long) = {
+        override def failure(topic: Topic, latency: Long) = delay {
           sendMeasure(result = "failure", topic = topic, latency = latency)
         }
 
-        def partitions(topic: Topic, latency: Long) = {
+        override def partitions(topic: Topic, latency: Long) = delay {
           latencySummary
             .labels(clientId, topic, "partitions")
             .observe(latency.toSeconds)
         }
 
-        def flush(latency: Long): Unit = {
+        override def flush(latency: Long) = delay {
           observeLatency("flush", latency)
         }
 
-        def close(latency: Long) = {
+        override def close(latency: Long) = delay {
           observeLatency("close", latency)
         }
       }

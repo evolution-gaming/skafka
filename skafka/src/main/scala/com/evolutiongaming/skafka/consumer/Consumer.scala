@@ -1,47 +1,49 @@
-package com.evolutiongaming.skafka.consumer
+package com.evolutiongaming.skafka
+package consumer
 
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
-import com.evolutiongaming.concurrent.FutureHelper._
+import cats.effect.{Async, ContextShift}
+import cats.implicits._
+import cats.instances.list.catsStdInstancesForList
+import cats.{Applicative, Traverse}
 import com.evolutiongaming.nel.Nel
+import com.evolutiongaming.skafka.Blocking._
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import org.apache.kafka.clients.consumer.{KafkaConsumer, Consumer => ConsumerJ}
+import org.apache.kafka.clients.consumer.{KafkaConsumer, OffsetCommitCallback, Consumer => ConsumerJ}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Iterable
 import scala.compat.Platform
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Promise}
 import scala.util.Try
-import scala.util.control.NonFatal
 
 /**
   * See [[org.apache.kafka.clients.consumer.Consumer]]
   */
-trait Consumer[K, V, F[_]] {
+trait Consumer[F[_], K, V] {
 
-  def assign(partitions: Nel[TopicPartition]): Unit
+  def assign(partitions: Nel[TopicPartition]): F[Unit]
 
-  def assignment(): Set[TopicPartition]
+  val assignment: F[Set[TopicPartition]]
 
 
-  def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]): Unit
+  def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]): F[Unit]
 
-  def subscribe(pattern: Pattern, listener: Option[RebalanceListener]): Unit
+  def subscribe(pattern: Pattern, listener: Option[RebalanceListener]): F[Unit]
 
-  def subscription(): Set[Topic]
+  val subscription: F[Set[Topic]]
 
-  def unsubscribe(): F[Unit]
+  val unsubscribe: F[Unit]
 
 
   def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]]
 
 
-  def commit(): F[Unit]
+  val commit: F[Unit]
 
   def commit(timeout: FiniteDuration): F[Unit]
 
@@ -50,16 +52,16 @@ trait Consumer[K, V, F[_]] {
   def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit]
 
 
-  def commitLater(): F[Map[TopicPartition, OffsetAndMetadata]]
+  val commitLater: F[Map[TopicPartition, OffsetAndMetadata]]
 
   def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit]
 
 
-  def seek(partition: TopicPartition, offset: Offset): Unit
+  def seek(partition: TopicPartition, offset: Offset): F[Unit]
 
-  def seekToBeginning(partitions: Nel[TopicPartition]): Unit
+  def seekToBeginning(partitions: Nel[TopicPartition]): F[Unit]
 
-  def seekToEnd(partitions: Nel[TopicPartition]): Unit
+  def seekToEnd(partitions: Nel[TopicPartition]): F[Unit]
 
 
   def position(partition: TopicPartition): F[Offset]
@@ -77,16 +79,16 @@ trait Consumer[K, V, F[_]] {
   def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]]
 
 
-  def listTopics(): F[Map[Topic, List[PartitionInfo]]]
+  val listTopics: F[Map[Topic, List[PartitionInfo]]]
 
   def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
 
 
-  def pause(partitions: Nel[TopicPartition]): Unit
+  def pause(partitions: Nel[TopicPartition]): F[Unit]
 
-  def paused(): Set[TopicPartition]
+  val paused: F[Set[TopicPartition]]
 
-  def resume(partitions: Nel[TopicPartition]): Unit
+  def resume(partitions: Nel[TopicPartition]): F[Unit]
 
 
   def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
@@ -104,383 +106,341 @@ trait Consumer[K, V, F[_]] {
   def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
 
-  def close(): F[Unit]
+  val close: F[Unit]
 
   def close(timeout: FiniteDuration): F[Unit]
 
 
-  def wakeup(): F[Unit]
+  val wakeup: F[Unit]
 }
 
 
 object Consumer {
 
-  def empty[K, V]: Consumer[K, V, Future] = new Consumer[K, V, Future] {
+  def empty[F[_] : Applicative, K, V]: Consumer[F, K, V] = new Consumer[F, K, V] {
+    def pure[A](a: A) = Applicative[F].pure(a)
 
-    def assign(partitions: Nel[TopicPartition]) = {}
+    private val empty = pure(())
 
-    def assignment() = Set.empty
+    override def assign(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = {}
+    override val assignment: F[Set[TopicPartition]] = pure(Set.empty)
 
-    def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = {}
+    override def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]): F[Unit] = empty
 
-    def subscription() = Set.empty
+    override def subscribe(pattern: Pattern, listener: Option[RebalanceListener]): F[Unit] = empty
 
-    def unsubscribe() = Future.unit
+    override val subscription: F[Set[Topic]] = pure(Set.empty)
+    override val unsubscribe: F[Unit] = empty
 
-    def poll(timeout: FiniteDuration) = ConsumerRecords.empty[K, V].future
+    override def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]] = Applicative[F].pure(ConsumerRecords.empty)
 
-    def commit() = Future.unit
+    override val commit: F[Unit] = empty
 
-    def commit(timeout: FiniteDuration) = Future.unit
+    override def commit(timeout: FiniteDuration): F[Unit] = empty
 
-    def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = Future.unit
+    override def commit(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit] = empty
 
-    def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = Future.unit
+    override def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit] = empty
 
-    def commitLater() = Map.empty[TopicPartition, OffsetAndMetadata].future
+    override val commitLater: F[Map[TopicPartition, OffsetAndMetadata]] = pure(Map.empty)
 
-    def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = Future.unit
+    override def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit] = empty
 
-    def seek(partition: TopicPartition, offset: Offset) = {}
+    override def seek(partition: TopicPartition, offset: Offset): F[Unit] = empty
 
-    def seekToBeginning(partitions: Nel[TopicPartition]) = {}
+    override def seekToBeginning(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    def seekToEnd(partitions: Nel[TopicPartition]) = {}
+    override def seekToEnd(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    def position(partition: TopicPartition) = Offset.Min.future
+    override def position(partition: TopicPartition): F[Offset] = pure(Offset.Min)
 
-    def position(partition: TopicPartition, timeout: FiniteDuration) = Offset.Min.future
+    override def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset] = pure(Offset.Min)
 
-    def committed(partition: TopicPartition) = OffsetAndMetadata.Empty.future
+    override def committed(partition: TopicPartition): F[OffsetAndMetadata] = pure(OffsetAndMetadata.Empty)
 
-    def committed(partition: TopicPartition, timeout: FiniteDuration) = OffsetAndMetadata.Empty.future
 
-    def partitions(topic: Topic) = Future.nil
+    override def committed(partition: TopicPartition, timeout: FiniteDuration): F[OffsetAndMetadata] =
+      pure(OffsetAndMetadata.Empty)
 
-    def partitions(topic: Topic, timeout: FiniteDuration) = Future.nil
+    override def partitions(topic: Topic): F[List[PartitionInfo]] = pure(Nil)
 
-    def listTopics() = Map.empty[Topic, List[PartitionInfo]].future
+    override def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]] = pure(Nil)
 
-    def listTopics(timeout: FiniteDuration) = Map.empty[Topic, List[PartitionInfo]].future
+    override val listTopics: F[Map[Topic, List[PartitionInfo]]] = pure(Map.empty)
 
-    def pause(partitions: Nel[TopicPartition]) = {}
+    override def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = pure(Map.empty)
 
-    def paused() = Set.empty
+    override def pause(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    def resume(partitions: Nel[TopicPartition]) = {}
+    override val paused: F[Set[TopicPartition]] = pure(Set.empty[TopicPartition])
 
-    def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = Map.empty[TopicPartition, Option[OffsetAndTimestamp]].future
+    override def resume(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = Map.empty[TopicPartition, Option[OffsetAndTimestamp]].future
+    override def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = pure(Map.empty)
 
-    def beginningOffsets(partitions: Nel[TopicPartition]) = Map.empty[TopicPartition, Offset].future
+    override def offsetsForTimes(
+      timestampsToSearch: Map[TopicPartition, Offset],
+      timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = pure(Map.empty)
 
-    def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = Map.empty[TopicPartition, Offset].future
+    override def beginningOffsets(partitions: Nel[TopicPartition]) = pure(Map.empty)
 
-    def endOffsets(partitions: Nel[TopicPartition]) = Map.empty[TopicPartition, Offset].future
+    override def beginningOffsets(
+      partitions: Nel[TopicPartition],
+      timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = pure(Map.empty)
 
-    def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = Map.empty[TopicPartition, Offset].future
+    override def endOffsets(partitions: Nel[TopicPartition]) = pure(Map.empty)
 
-    def close() = Future.unit
+    override def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = pure(Map.empty)
 
-    def close(timeout: FiniteDuration) = Future.unit
+    override val close: F[Unit] = empty
 
-    def wakeup() = Future.unit
+    override def close(timeout: FiniteDuration): F[Unit] = empty
+
+    override val wakeup: F[Unit] = empty
   }
 
 
-  def apply[K, V](
+  def apply[F[_] : Async : ContextShift, K, V](
     config: ConsumerConfig,
-    ecBlocking: ExecutionContext)(implicit
-    valueFromBytes: FromBytes[V],
-    keyFromBytes: FromBytes[K]): Consumer[K, V, Future] = {
+    ecBlocking: ExecutionContext)(
+    implicit valueFromBytes: FromBytes[V],
+    keyFromBytes: FromBytes[K]): Consumer[F, K, V] = {
 
     val valueDeserializer = valueFromBytes.asJava
     val keyDeserializer = keyFromBytes.asJava
-    val consumer = new KafkaConsumer(config.properties, keyDeserializer, valueDeserializer)
-    apply(consumer, ecBlocking)
+    val consumerK = new KafkaConsumer(config.properties, keyDeserializer, valueDeserializer)
+    apply(consumerK, ecBlocking)
   }
 
-  def apply[K, V](consumer: ConsumerJ[K, V], ecBlocking: ExecutionContext): Consumer[K, V, Future] = {
-    val blocking = Blocking.future(ecBlocking)
-    apply(consumer, blocking)
-  }
+  def apply[F[_] : Async : ContextShift, K, V](consumer: ConsumerJ[K, V], ecBlocking: ExecutionContext): Consumer[F, K, V] = {
+    implicit val b: Blocking = Blocking(ecBlocking)
 
-  def apply[K, V](consumer: ConsumerJ[K, V], blocking: Blocking[Future]): Consumer[K, V, Future] = {
-
-    def callbackAndFuture() = {
+    def commitWithCallback(f: OffsetCommitCallback => Unit): F[Map[TopicPartition, OffsetAndMetadata]] = {
       val promise = Promise[Map[TopicPartition, OffsetAndMetadata]]()
       val callback = new CommitCallback {
         def apply(offsets: Try[Map[TopicPartition, OffsetAndMetadata]]) = {
           promise.complete(offsets)
         }
       }
-      (callback, promise.future)
+      f(callback.asJava)
+      fromFutureBlocking(promise.future)
     }
 
-    new Consumer[K, V, Future] {
+    new Consumer[F, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = {
+      def assign(partitions: Nel[TopicPartition]) = blocking {
         val partitionsJ = partitions.toList.map(_.asJava).asJavaCollection
         consumer.assign(partitionsJ)
       }
 
-      def assignment() = {
+      val assignment = blocking {
         val partitionsJ = consumer.assignment()
         partitionsJ.asScala.map(_.asScala).toSet
       }
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = {
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = blocking {
         val topicsJ = topics.asJava
         consumer.subscribe(topicsJ, (listener getOrElse RebalanceListener.Empty).asJava)
       }
 
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = {
+      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = blocking {
         consumer.subscribe(pattern, (listener getOrElse RebalanceListener.Empty).asJava)
       }
 
-      def subscription() = {
+      val subscription = blocking {
         consumer.subscription().asScala.toSet
       }
 
-      def unsubscribe() = {
+      val unsubscribe = blocking {
+        consumer.unsubscribe()
+      }
+
+      def poll(timeout: FiniteDuration) = blocking {
+        val records = consumer.poll(timeout.asJava)
+        records.asScala
+      }
+
+      val commit = blocking {
+        consumer.commitSync()
+      }
+
+      def commit(timeout: FiniteDuration) = blocking {
+        consumer.commitSync(timeout.asJava)
+      }
+
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) =
         blocking {
-          consumer.unsubscribe()
+          consumer.commitSync(offsets.asJavaMap(_.asJava, _.asJava))
         }
-      }
 
-      def poll(timeout: FiniteDuration) = {
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) =
         blocking {
-          val records = consumer.poll(timeout.asJava)
-          records.asScala
+          consumer.commitSync(offsets.asJavaMap(_.asJava, _.asJava), timeout.asJava)
         }
-      }
 
-      def commit() = {
-        blocking {
-          consumer.commitSync()
-        }
-      }
+      val commitLater = commitWithCallback(consumer.commitAsync)
 
-      def commit(timeout: FiniteDuration) = {
-        blocking {
-          consumer.commitSync(timeout.asJava)
-        }
-      }
+      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) =
+        commitWithCallback(consumer.commitAsync(offsets.deepAsJava, _)) *> Async[F].unit
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
-        blocking {
-          consumer.commitSync(offsetsJ)
-        }
-      }
-
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-        val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
-        blocking {
-          consumer.commitSync(offsetsJ, timeout.asJava)
-        }
-      }
-
-      def commitLater() = {
-        try {
-          val (callback, future) = callbackAndFuture()
-          consumer.commitAsync(callback.asJava)
-          future
-        } catch {
-          case NonFatal(failure) => Future.failed(failure)
-        }
-      }
-
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        try {
-          val (callback, future) = callbackAndFuture()
-          val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
-          consumer.commitAsync(offsetsJ, callback.asJava)
-          future.unit
-        } catch {
-          case NonFatal(failure) => Future.failed(failure)
-        }
-      }
-
-      def seek(partition: TopicPartition, offset: Offset) = {
+      def seek(partition: TopicPartition, offset: Offset) = blocking {
         consumer.seek(partition.asJava, offset)
       }
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = {
+      def seekToBeginning(partitions: Nel[TopicPartition]) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         consumer.seekToBeginning(partitionsJ)
       }
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = {
+      def seekToEnd(partitions: Nel[TopicPartition]) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         consumer.seekToEnd(partitionsJ)
       }
 
-      def position(partition: TopicPartition) = {
-        blocking {
-          consumer.position(partition.asJava)
-        }
+      def position(partition: TopicPartition) = blocking {
+        consumer.position(partition.asJava)
       }
 
-      def position(partition: TopicPartition, timeout: FiniteDuration) = {
-        blocking {
-          consumer.position(partition.asJava, timeout.asJava)
-        }
+
+      def position(partition: TopicPartition, timeout: FiniteDuration) = blocking {
+        consumer.position(partition.asJava, timeout.asJava)
       }
 
-      def committed(partition: TopicPartition) = {
-        val partitionJ = partition.asJava
-        blocking {
-          val result = consumer.committed(partitionJ)
-          result.asScala
-        }
+      def committed(partition: TopicPartition) = blocking {
+        val result = consumer.committed(partition.asJava)
+        result.asScala
       }
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = {
-        val partitionJ = partition.asJava
-        blocking {
-          val result = consumer.committed(partitionJ, timeout.asJava)
-          result.asScala
-        }
+      def committed(partition: TopicPartition, timeout: FiniteDuration) = blocking {
+        val result = consumer.committed(partition.asJava, timeout.asJava)
+        result.asScala
       }
 
-      def partitions(topic: Topic) = {
-        blocking {
-          val result = consumer.partitionsFor(topic)
-          result.asScala.map(_.asScala).toList
-        }
+      def partitions(topic: Topic) = blocking {
+        val result = consumer.partitionsFor(topic)
+        result.asScala.map(_.asScala).toList
       }
 
-      def partitions(topic: Topic, timeout: FiniteDuration) = {
-        blocking {
-          val result = consumer.partitionsFor(topic, timeout.asJava)
-          result.asScala.map(_.asScala).toList
-        }
+      def partitions(topic: Topic, timeout: FiniteDuration) = blocking {
+        val result = consumer.partitionsFor(topic, timeout.asJava)
+        result.asScala.map(_.asScala).toList
       }
 
-      def listTopics() = {
-        blocking {
-          val result = consumer.listTopics()
-          result.asScalaMap(k => k, _.asScala.map(_.asScala).toList)
-        }
+      val listTopics = blocking {
+        val result = consumer.listTopics()
+        result.asScalaMap(k => k, _.asScala.map(_.asScala).toList)
       }
 
-      def listTopics(timeout: FiniteDuration) = {
-        blocking {
-          val result = consumer.listTopics(timeout.asJava)
-          result.asScalaMap(k => k, _.asScala.map(_.asScala).toList)
-        }
+      def listTopics(timeout: FiniteDuration) = blocking {
+        val result = consumer.listTopics(timeout.asJava)
+        result.asScalaMap(k => k, _.asScala.map(_.asScala).toList)
       }
 
-      def pause(partitions: Nel[TopicPartition]) = {
+      def pause(partitions: Nel[TopicPartition]) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         consumer.pause(partitionsJ)
       }
 
-      def paused() = {
+      val paused = blocking {
         val partitionsJ = consumer.paused()
         partitionsJ.asScala.map(_.asScala).toSet
       }
 
-      def resume(partitions: Nel[TopicPartition]) = {
+      def resume(partitions: Nel[TopicPartition]) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         consumer.resume(partitionsJ)
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = blocking {
+        val result = consumer.offsetsForTimes(timestampsToSearch.asJavaMap(_.asJava, LongJ.valueOf))
+        result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
+      }
+
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = blocking {
         val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, LongJ.valueOf)
-        blocking {
-          val result = consumer.offsetsForTimes(timestampsToSearchJ)
-          result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
-        }
+        val result = consumer.offsetsForTimes(timestampsToSearchJ, timeout.asJava)
+        result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = {
-        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, LongJ.valueOf)
-        blocking {
-          val result = consumer.offsetsForTimes(timestampsToSearchJ, timeout.asJava)
-          result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
-        }
-      }
-
-      def beginningOffsets(partitions: Nel[TopicPartition]) = {
+      def beginningOffsets(partitions: Nel[TopicPartition]) = blockingS({
         val partitionsJ = partitions.map(_.asJava).asJava
-        blocking {
-          val result = consumer.beginningOffsets(partitionsJ)
-          result.asScalaMap(_.asScala, v => v)
-        }
-      }
+        val result = consumer.beginningOffsets(partitionsJ)
+        result.asScalaMap(_.asScala, v => v)
+      })
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = blockingS {
         val partitionsJ = partitions.map(_.asJava).asJava
-        blocking {
-          val result = consumer.beginningOffsets(partitionsJ, timeout.asJava)
-          result.asScalaMap(_.asScala, v => v)
-        }
+        val result = consumer.beginningOffsets(partitionsJ, timeout.asJava)
+        result.asScalaMap(_.asScala, v => v)
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
+      def endOffsets(partitions: Nel[TopicPartition]) = blockingS {
         val partitionsJ = partitions.map(_.asJava).asJava
-        blocking {
-          val result = consumer.endOffsets(partitionsJ)
-          result.asScalaMap(_.asScala, v => v)
-        }
+        val result = consumer.endOffsets(partitionsJ)
+        result.asScalaMap(_.asScala, v => v)
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = blockingS {
         val partitionsJ = partitions.map(_.asJava).asJava
-        blocking {
-          val result = consumer.endOffsets(partitionsJ, timeout.asJava)
-          result.asScalaMap(_.asScala, v => v)
-        }
+        val result = consumer.endOffsets(partitionsJ, timeout.asJava)
+        result.asScalaMap(_.asScala, v => v)
       }
 
-      def close() = {
-        blocking {
-          consumer.close()
-        }
+      val close = blocking {
+        consumer.close()
       }
 
-      def close(timeout: FiniteDuration) = {
-        blocking {
-          consumer.close(timeout.asJava)
-        }
+      def close(timeout: FiniteDuration) = blocking {
+        consumer.close(timeout.asJava)
       }
 
-      def wakeup() = {
-        blocking {
-          consumer.wakeup()
-        }
+      val wakeup = blocking {
+        consumer.wakeup()
       }
     }
   }
 
+  def apply[F[_] : Async : ContextShift, K, V](
+    consumer: Consumer[F, K, V],
+    metrics: Metrics[F]): Consumer[F, K, V] = {
 
-  def apply[K, V](consumer: Consumer[K, V, Future], metrics: Metrics): Consumer[K, V, Future] = {
-
-    implicit val ec = CurrentThreadExecutionContext
-
-    def latency[T](name: String, topics: Set[Topic])(f: => Future[T]): Future[T] = {
-      val time = Platform.currentTime
-      val result = f
-      result.onComplete { result =>
-        val latency = Platform.currentTime - time
-        for {topic <- topics} {
-          metrics.call(name = name, topic = topic, latency = latency, success = result.isSuccess)
+    def latencyForMetric[T](action: Consumer[F, K, V] => F[T])(measure: Metrics[F] => Long => F[Unit]): F[T] =
+      for {
+        time <- Async[F].delay(Platform.currentTime)
+        either <- action(consumer).attempt
+        latency <- Async[F].delay(Platform.currentTime - time)
+        _ <- measure(metrics)(latency)
+        result <- either match {
+          case Right(result) => Async[F].pure(result)
+          case Left(error)   => error.raiseError[F, T]
         }
-      }
-      result
-    }
+      } yield result
 
-    def count(name: String, topics: Set[Topic]) = {
-      topics.foreach { topic =>
-        metrics.count(name = name, topic = topic)
-      }
-    }
+    val topics = consumer.assignment.map(_.map(_.topic).toList)
 
+    def latencyFor[T](name: String, topics: Iterable[Topic])(f: F[T]): F[T] =
+      for {
+        time <- Async[F].delay(Platform.currentTime)
+        either <- f.attempt
+        latency <- Async[F].delay(Platform.currentTime - time)
+        _ <- Traverse[List].traverse(topics.toList)(metrics.call(name, _, latency, either.isRight))
+        result <- either match {
+          case Right(result) => Async[F].pure(result)
+          case Left(error)   => error.raiseError[F, T]
+        }
+      } yield result
+
+    implicit def nelToList[T](nel: Nel[T]): List[T] = nel.toList
+
+    def latency[T](name: String)(f: F[T]): F[T] =
+      topics.flatMap(latencyFor(name, _)(f))
+
+    def count(name: String): F[Unit] =
+      topics.flatMap(countFor(name, _))
+
+    def countFor(name: String, topics: Iterable[Topic]): F[Unit] =
+      Traverse[List].traverse(topics.toList)(metrics.count(name, _)) *> Applicative[F].unit
 
     def rebalanceListener(listener: RebalanceListener) = {
 
@@ -504,264 +464,156 @@ object Consumer {
       }
     }
 
-    def topics() = consumer.assignment().map(_.topic)
-
-    new Consumer[K, V, Future] {
+    new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
         val topics = partitions.map(_.topic).to[Set]
-        count("assign", topics)
-        consumer.assign(partitions)
+        countFor("assign", topics) *> consumer.assign(partitions)
       }
 
-      def assignment() = consumer.assignment()
+      val assignment = consumer.assignment
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = {
-        count("subscribe", topics.to[Set])
-        consumer.subscribe(topics, listener.map(rebalanceListener))
-      }
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) =
+        countFor("subscribe", topics.to[List]).liftTo[F] *> consumer.subscribe(topics, listener.map(rebalanceListener))
+
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = {
-        count("subscribe", Set("pattern"))
-        consumer.subscribe(pattern, listener.map(rebalanceListener))
+        countFor("subscribe", List("pattern")).liftTo[F] *> consumer.subscribe(pattern, listener.map(rebalanceListener))
       }
 
-      def subscription() = consumer.subscription()
+      val subscription = consumer.subscription
 
-      def unsubscribe() = {
-        latency("unsubscribe", topics()) {
-          consumer.unsubscribe()
-        }
-      }
-
-      def poll(timeout: FiniteDuration) = {
-        val result = latency("poll", topics()) {
-          consumer.poll(timeout)
+      val unsubscribe =
+        latency("unsubscribe") {
+          consumer.unsubscribe
         }
 
+      def poll(timeout: FiniteDuration) =
         for {
-          records <- result
-          (topic, records) <- records.values.values.flatten.groupBy(_.topic)
-        } {
-          val bytes = records.foldLeft(0) { (acc, record) => acc + record.value.fold(0)(_.serializedSize) }
-          metrics.poll(topic, bytes = bytes, records = records.size)
+          records <- latency("poll") {
+            consumer.poll(timeout)
+          }
+          topics <- Async[F].delay(records.values.values.flatten.groupBy(_.topic))
+          _ <- topics.toList.traverse {
+            case (topic, topicRecords) =>
+              val bytes = topicRecords.flatMap(_.value).map(_.serializedSize).sum
+              metrics.poll(topic, bytes = bytes, records = topicRecords.size)
+          }
+        } yield records
+
+      val commit =
+        latency("commit") {
+          consumer.commit
         }
 
-        result
-      }
-
-      def commit() = {
-        latency("commit", topics()) {
-          consumer.commit()
-        }
-      }
-
-      def commit(timeout: FiniteDuration) = {
-        latency("commit", topics()) {
+      def commit(timeout: FiniteDuration) =
+        latency("commit") {
           consumer.commit(timeout)
         }
+
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = latencyFor("commit", offsets.keySet.map(_.topic)) {
+        consumer.commit(offsets)
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        latency("commit", offsets.keySet.map(_.topic)) {
-          consumer.commit(offsets)
-        }
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = latencyFor("commit", offsets.keySet.map(_.topic)) {
+        consumer.commit(offsets, timeout)
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-        latency("commit", offsets.keySet.map(_.topic)) {
-          consumer.commit(offsets, timeout)
-        }
-      }
-
-      def commitLater(): Future[Map[TopicPartition, OffsetAndMetadata]] = {
-        latency("commit_later", topics()) {
-          consumer.commitLater()
-        }
+      val commitLater = latency("commit_later") {
+        consumer.commitLater
       }
 
       def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        latency("commit_later", offsets.keySet.map(_.topic)) {
+        latencyFor("commit_later", offsets.keySet.map(_.topic)) {
           consumer.commitLater(offsets)
         }
       }
 
       def seek(partition: TopicPartition, offset: Offset) = {
-        count("seek", Set(partition.topic))
+        countFor("seek", Set(partition.topic))
         consumer.seek(partition, offset)
       }
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
-        count("seek_to_beginning", topics)
-        consumer.seekToBeginning(partitions)
-      }
+      def seekToBeginning(partitions: Nel[TopicPartition]) =
+        countFor("seek_to_beginning", partitions.map(_.topic).toList).liftTo[F] *> consumer.seekToBeginning(partitions)
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
-        count("seek_to_end", topics)
-        consumer.seekToEnd(partitions)
-      }
+      def seekToEnd(partitions: Nel[TopicPartition]) =
+        countFor("seek_to_end", partitions.map(_.topic).toList).liftTo[F] *> consumer.seekToEnd(partitions)
 
-      def position(partition: TopicPartition) = {
-        latency("position", Set(partition.topic)) {
-          consumer.position(partition)
-        }
-      }
+      def position(partition: TopicPartition) =
+        countFor("position", List(partition.topic)).liftTo[F] *> consumer.position(partition)
 
-      def position(partition: TopicPartition, timeout: FiniteDuration) = {
-        latency("position", Set(partition.topic)) {
-          consumer.position(partition, timeout)
-        }
-      }
+      def position(partition: TopicPartition, timeout: FiniteDuration) =
+        countFor("position", List(partition.topic)).liftTo[F] *> consumer.position(partition, timeout)
 
       def committed(partition: TopicPartition) = {
-        latency("committed", Set(partition.topic)) {
-          consumer.committed(partition)
-        }
+        countFor("committed", List(partition.topic)).liftTo[F] *> consumer.committed(partition)
       }
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = {
-        latency("committed", Set(partition.topic)) {
-          consumer.committed(partition, timeout)
-        }
-      }
+      def committed(partition: TopicPartition, timeout: FiniteDuration) =
+        countFor("committed", List(partition.topic)).liftTo[F] *> consumer.committed(partition, timeout)
 
-      def partitions(topic: Topic) = {
-        latency("partitions", Set(topic)) {
-          consumer.partitions(topic)
-        }
-      }
+      def partitions(topic: Topic) =
+        countFor("partitions", List(topic)).liftTo[F] *> consumer.partitions(topic)
 
-      def partitions(topic: Topic, timeout: FiniteDuration) = {
-        latency("partitions", Set(topic)) {
-          consumer.partitions(topic, timeout)
-        }
-      }
+      def partitions(topic: Topic, timeout: FiniteDuration) =
+        countFor("partitions", List(topic)).liftTo[F] *> consumer.partitions(topic, timeout)
 
-      def listTopics() = {
-        val start = Platform.currentTime
-        val result = consumer.listTopics()
-        result.onComplete { _ =>
-          val latency = Platform.currentTime - start
-          metrics.listTopics(latency)
-        }
-        result
-      }
+      val listTopics = latencyForMetric(_.listTopics)(_.listTopics)
 
-      def listTopics(timeout: FiniteDuration) = {
-        val start = Platform.currentTime
-        val result = consumer.listTopics(timeout)
-        result.onComplete { _ =>
-          val latency = Platform.currentTime - start
-          metrics.listTopics(latency)
-        }
-        result
-      }
+      def listTopics(timeout: FiniteDuration) = latencyForMetric(_.listTopics(timeout))(_.listTopics)
 
-      def pause(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
-        count("pause", topics)
-        consumer.pause(partitions)
-      }
+      def pause(partitions: Nel[TopicPartition]) =
+        countFor("pause", partitions.map(_.topic).toList).liftTo[F] *> consumer.pause(partitions)
 
-      def paused() = consumer.paused()
+      val paused = consumer.paused
 
-      def resume(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
-        count("resume", topics)
-        consumer.resume(partitions)
-      }
+      def resume(partitions: Nel[TopicPartition]) =
+        countFor("resume", partitions.map(_.topic).toList).liftTo[F] *> consumer.resume(partitions)
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = {
-        val topics = timestampsToSearch.keySet.map(_.topic)
-        latency("offsets_for_times", topics) {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) =
+        latencyFor("offsets_for_times", timestampsToSearch.keySet.map(_.topic)) {
           consumer.offsetsForTimes(timestampsToSearch)
         }
-      }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = {
-        val topics = timestampsToSearch.keySet.map(_.topic)
-        latency("offsets_for_times", topics) {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) =
+        latencyFor("offsets_for_times", timestampsToSearch.keySet.map(_.topic)) {
           consumer.offsetsForTimes(timestampsToSearch, timeout)
         }
-      }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
-        latency("beginning_offsets", topics) {
+      def beginningOffsets(partitions: Nel[TopicPartition]) =
+        latencyFor("beginning_offsets", partitions.map(_.topic)) {
           consumer.beginningOffsets(partitions)
         }
-      }
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        val topics = partitions.map(_.topic).to[Set]
-        latency("beginning_offsets", topics) {
+      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) =
+        latencyFor("beginning_offsets", partitions.map(_.topic).toList) {
           consumer.beginningOffsets(partitions, timeout)
         }
-      }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
-        latency("end_offsets", topics) {
+      def endOffsets(partitions: Nel[TopicPartition]) =
+        latencyFor("end_offsets", partitions.map(_.topic).toList) {
           consumer.endOffsets(partitions)
         }
-      }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        val topics = partitions.map(_.topic).to[Set]
-        latency("end_offsets", topics) {
+      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) =
+        latencyFor("end_offsets", partitions.map(_.topic)) {
           consumer.endOffsets(partitions, timeout)
         }
-      }
 
-      def close() = {
-        latency("close", topics()) {
-          consumer.close()
+      val close =
+        latency("close") {
+          consumer.close
         }
-      }
 
-      def close(timeout: FiniteDuration) = {
-        latency("close", topics()) {
+      def close(timeout: FiniteDuration) =
+        latency("close") {
           consumer.close(timeout)
         }
-      }
 
-      def wakeup() = {
-        count("wakeup", topics())
-        consumer.wakeup()
-      }
+      val wakeup = count("wakeup") *> consumer.wakeup
     }
   }
 
-
-  trait Metrics {
-
-    def call(name: String, topic: Topic, latency: Long, success: Boolean): Unit
-
-    def poll(topic: Topic, bytes: Int, records: Int): Unit
-
-    def count(name: String, topic: Topic): Unit
-
-    def rebalance(name: String, topicPartition: TopicPartition): Unit
-
-    def listTopics(latency: Long): Unit
-  }
-
-  object Metrics {
-
-    val Empty: Metrics = new Metrics {
-
-      def call(name: String, topic: Topic, latency: Long, success: Boolean) = {}
-
-      def poll(topic: Topic, bytes: Int, records: Int) = {}
-
-      def count(name: String, topic: Topic) = {}
-
-      def rebalance(name: String, topicPartition: TopicPartition) = {}
-
-      def listTopics(latency: Long) = {}
-    }
-  }
 }
 

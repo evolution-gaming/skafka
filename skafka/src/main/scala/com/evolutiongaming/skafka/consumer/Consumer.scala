@@ -474,11 +474,11 @@ object Consumer {
       val assignment = consumer.assignment
 
       def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) =
-        countFor("subscribe", topics.to[List]).liftTo[F] *> consumer.subscribe(topics, listener.map(rebalanceListener))
+        countFor("subscribe", topics.to[List]) *> consumer.subscribe(topics, listener.map(rebalanceListener))
 
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = {
-        countFor("subscribe", List("pattern")).liftTo[F] *> consumer.subscribe(pattern, listener.map(rebalanceListener))
+        countFor("subscribe", List("pattern")) *> consumer.subscribe(pattern, listener.map(rebalanceListener))
       }
 
       val subscription = consumer.subscription
@@ -535,41 +535,41 @@ object Consumer {
       }
 
       def seekToBeginning(partitions: Nel[TopicPartition]) =
-        countFor("seek_to_beginning", partitions.map(_.topic).toList).liftTo[F] *> consumer.seekToBeginning(partitions)
+        countFor("seek_to_beginning", partitions.map(_.topic).toList) *> consumer.seekToBeginning(partitions)
 
       def seekToEnd(partitions: Nel[TopicPartition]) =
-        countFor("seek_to_end", partitions.map(_.topic).toList).liftTo[F] *> consumer.seekToEnd(partitions)
+        countFor("seek_to_end", partitions.map(_.topic).toList) *> consumer.seekToEnd(partitions)
 
       def position(partition: TopicPartition) =
-        countFor("position", List(partition.topic)).liftTo[F] *> consumer.position(partition)
+        countFor("position", List(partition.topic)) *> consumer.position(partition)
 
       def position(partition: TopicPartition, timeout: FiniteDuration) =
-        countFor("position", List(partition.topic)).liftTo[F] *> consumer.position(partition, timeout)
+        countFor("position", List(partition.topic)) *> consumer.position(partition, timeout)
 
       def committed(partition: TopicPartition) = {
-        countFor("committed", List(partition.topic)).liftTo[F] *> consumer.committed(partition)
+        countFor("committed", List(partition.topic)) *> consumer.committed(partition)
       }
 
       def committed(partition: TopicPartition, timeout: FiniteDuration) =
-        countFor("committed", List(partition.topic)).liftTo[F] *> consumer.committed(partition, timeout)
+        countFor("committed", List(partition.topic)) *> consumer.committed(partition, timeout)
 
       def partitions(topic: Topic) =
-        countFor("partitions", List(topic)).liftTo[F] *> consumer.partitions(topic)
+        countFor("partitions", List(topic)) *> consumer.partitions(topic)
 
       def partitions(topic: Topic, timeout: FiniteDuration) =
-        countFor("partitions", List(topic)).liftTo[F] *> consumer.partitions(topic, timeout)
+        countFor("partitions", List(topic)) *> consumer.partitions(topic, timeout)
 
       val listTopics = latencyForMetric(_.listTopics)(_.listTopics)
 
       def listTopics(timeout: FiniteDuration) = latencyForMetric(_.listTopics(timeout))(_.listTopics)
 
       def pause(partitions: Nel[TopicPartition]) =
-        countFor("pause", partitions.map(_.topic).toList).liftTo[F] *> consumer.pause(partitions)
+        countFor("pause", partitions.map(_.topic).toList) *> consumer.pause(partitions)
 
       val paused = consumer.paused
 
       def resume(partitions: Nel[TopicPartition]) =
-        countFor("resume", partitions.map(_.topic).toList).liftTo[F] *> consumer.resume(partitions)
+        countFor("resume", partitions.map(_.topic).toList) *> consumer.resume(partitions)
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) =
         latencyFor("offsets_for_times", timestampsToSearch.keySet.map(_.topic)) {

@@ -10,7 +10,7 @@ trait JsonProducer[F[_]] {
 
 object JsonProducer {
 
-  def Empty[F[_] : Applicative]: JsonProducer[F] = apply(Producer.Send.Empty[F])
+  def empty[F[_] : Applicative]: JsonProducer[F] = apply(Producer.Send.Empty[F])
 
   implicit val JsValueToBytes: ToBytes[JsValue] = (value: JsValue, _: Topic) => Json.toBytes(value)
 

@@ -441,7 +441,7 @@ class ConsumerSpec extends WordSpec with Matchers {
     val consumer = {
       implicit val ec = CurrentThreadExecutionContext
       implicit val cs = IO.contextShift(ec)
-      val metrics = Metrics.Empty[IO]
+      val metrics = Metrics.empty[IO]
       val consumer = Consumer[IO, Bytes, Bytes](consumerJ, ec)
       Consumer[IO, Bytes, Bytes](consumer, metrics)
     }

@@ -107,7 +107,7 @@ class ProducerSpec extends WordSpec with Matchers {
 
   "CreateProducer.Empty" should {
 
-    implicit val empty = Producer.Empty[IO]
+    implicit val empty = Producer.empty[IO]
 
     "initTransactions" in {
       verify(Producer[IO].initTransactions) { _ => }

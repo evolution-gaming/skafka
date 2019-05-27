@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.producer
 import cats.Applicative
 import com.evolutiongaming.skafka.Topic
 import com.evolutiongaming.skafka.producer.Metrics.Latency
+import cats.implicits._
 
 trait Metrics[F[_]] {
 
@@ -32,7 +33,7 @@ object Metrics {
   type Latency = Long
 
   def empty[F[_] : Applicative]: Metrics[F] = new Metrics[F] {
-    val empty: F[Unit] = Applicative[F].pure(())
+    val empty: F[Unit] = ().pure[F]
 
     override def initTransactions(latency: Long): F[Unit] = empty
 

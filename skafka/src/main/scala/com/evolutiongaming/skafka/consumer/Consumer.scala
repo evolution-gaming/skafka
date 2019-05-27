@@ -118,22 +118,21 @@ trait Consumer[F[_], K, V] {
 object Consumer {
 
   def empty[F[_] : Applicative, K, V]: Consumer[F, K, V] = new Consumer[F, K, V] {
-    def pure[A](a: A) = Applicative[F].pure(a)
 
-    private val empty = pure(())
+    private val empty = ().pure[F]
 
     override def assign(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    override val assignment: F[Set[TopicPartition]] = pure(Set.empty)
+    override val assignment: F[Set[TopicPartition]] = Set.empty[TopicPartition].pure[F]
 
     override def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]): F[Unit] = empty
 
     override def subscribe(pattern: Pattern, listener: Option[RebalanceListener]): F[Unit] = empty
 
-    override val subscription: F[Set[Topic]] = pure(Set.empty)
+    override val subscription: F[Set[Topic]] = Set.empty[Topic].pure[F]
     override val unsubscribe: F[Unit] = empty
 
-    override def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]] = Applicative[F].pure(ConsumerRecords.empty)
+    override def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]] = ConsumerRecords.empty[K, V].pure[F]
 
     override val commit: F[Unit] = empty
 
@@ -143,7 +142,8 @@ object Consumer {
 
     override def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit] = empty
 
-    override val commitLater: F[Map[TopicPartition, OffsetAndMetadata]] = pure(Map.empty)
+    override val commitLater: F[Map[TopicPartition, OffsetAndMetadata]] =
+      Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
 
     override def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit] = empty
 
@@ -153,45 +153,51 @@ object Consumer {
 
     override def seekToEnd(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    override def position(partition: TopicPartition): F[Offset] = pure(Offset.Min)
+    override def position(partition: TopicPartition): F[Offset] = Offset.Min.pure[F]
 
-    override def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset] = pure(Offset.Min)
+    override def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset] = Offset.Min.pure[F]
 
-    override def committed(partition: TopicPartition): F[OffsetAndMetadata] = pure(OffsetAndMetadata.Empty)
+    override def committed(partition: TopicPartition): F[OffsetAndMetadata] = OffsetAndMetadata.Empty.pure[F]
 
 
     override def committed(partition: TopicPartition, timeout: FiniteDuration): F[OffsetAndMetadata] =
-      pure(OffsetAndMetadata.Empty)
+      OffsetAndMetadata.Empty.pure[F]
 
-    override def partitions(topic: Topic): F[List[PartitionInfo]] = pure(Nil)
+    override def partitions(topic: Topic): F[List[PartitionInfo]] = List.empty[PartitionInfo].pure[F]
 
-    override def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]] = pure(Nil)
+    override def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]] =
+      List.empty[PartitionInfo].pure[F]
 
-    override val listTopics: F[Map[Topic, List[PartitionInfo]]] = pure(Map.empty)
+    override val listTopics: F[Map[Topic, List[PartitionInfo]]] =
+      Map.empty[Topic, List[PartitionInfo]].pure[F]
 
-    override def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = pure(Map.empty)
+    override def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] =
+      Map.empty[Topic, List[PartitionInfo]].pure[F]
 
     override def pause(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    override val paused: F[Set[TopicPartition]] = pure(Set.empty[TopicPartition])
+    override val paused: F[Set[TopicPartition]] = Set.empty[TopicPartition].pure[F]
 
     override def resume(partitions: Nel[TopicPartition]): F[Unit] = empty
 
-    override def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = pure(Map.empty)
+    override def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) =
+      Map.empty[TopicPartition, Option[OffsetAndTimestamp]].pure[F]
 
     override def offsetsForTimes(
       timestampsToSearch: Map[TopicPartition, Offset],
-      timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = pure(Map.empty)
+      timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] =
+      Map.empty[TopicPartition, Option[OffsetAndTimestamp]].pure[F]
 
-    override def beginningOffsets(partitions: Nel[TopicPartition]) = pure(Map.empty)
+    override def beginningOffsets(partitions: Nel[TopicPartition]) = Map.empty[TopicPartition, Offset].pure[F]
 
     override def beginningOffsets(
       partitions: Nel[TopicPartition],
-      timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = pure(Map.empty)
+      timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = Map.empty[TopicPartition, Offset].pure[F]
 
-    override def endOffsets(partitions: Nel[TopicPartition]) = pure(Map.empty)
+    override def endOffsets(partitions: Nel[TopicPartition]) = Map.empty[TopicPartition, Offset].pure[F]
 
-    override def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = pure(Map.empty)
+    override def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) =
+      Map.empty[TopicPartition, Offset].pure[F]
 
     override val close: F[Unit] = empty
 
@@ -412,7 +418,7 @@ object Consumer {
         latency <- Async[F].delay(Platform.currentTime - time)
         _ <- measure(metrics)(latency)
         result <- either match {
-          case Right(result) => Async[F].pure(result)
+          case Right(result) => result.pure[F]
           case Left(error)   => error.raiseError[F, T]
         }
       } yield result
@@ -426,7 +432,7 @@ object Consumer {
         latency <- Async[F].delay(Platform.currentTime - time)
         _ <- Traverse[List].traverse(topics.toList)(metrics.call(name, _, latency, either.isRight))
         result <- either match {
-          case Right(result) => Async[F].pure(result)
+          case Right(result) => result.pure[F]
           case Left(error)   => error.raiseError[F, T]
         }
       } yield result

@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.Applicative
 import com.evolutiongaming.skafka.{Topic, TopicPartition}
+import cats.implicits._
 
 trait Metrics[F[_]] {
 
@@ -19,7 +20,7 @@ trait Metrics[F[_]] {
 object Metrics {
 
   def Empty[F[_] : Applicative]: Metrics[F] = new Metrics[F] {
-    private val empty: F[Unit] = Applicative[F].pure(())
+    private val empty: F[Unit] = ().pure[F]
 
     def call(name: String, topic: Topic, latency: Long, success: Boolean) = empty
 

@@ -28,8 +28,7 @@ object LoggingProducer {
       override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] = {
         producer.send(record).attempt.flatMap {
           case Right(metadata) =>
-            log.debug(s"sent $record, metadata: $metadata") *>
-              Monad[F].pure(metadata)
+            log.debug(s"sent $record, metadata: $metadata").as(metadata)
           case Left(failure)   =>
             log.error(s"failed to send record $record: $failure") *>
               implicitly[CanFail[F]].raiseError[RecordMetadata](failure)

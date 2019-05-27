@@ -27,7 +27,7 @@ object Dependencies {
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
 
   val `cats-effect` = "org.typelevel" %% "cats-effect" % "1.3.0"
-  val `cats-helper` = "com.evolutiongaming" %% "cats-helper" % "0.0.6"
+  val `cats-helper` = "com.evolutiongaming" %% "cats-helper" % "0.0.8"
 
   object Kafka {
     private val version = "2.1.1"

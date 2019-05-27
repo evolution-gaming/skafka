@@ -4,7 +4,7 @@ package consumer
 import cats.effect.IO
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.skafka.{OffsetAndMetadata, Partition, TopicPartition}
+import IOMatchers._
 import io.prometheus.client.CollectorRegistry
 import org.scalatest.{Matchers, WordSpec}
 

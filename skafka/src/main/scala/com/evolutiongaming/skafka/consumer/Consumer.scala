@@ -8,8 +8,8 @@ import cats.effect.{Async, ContextShift}
 import cats.implicits._
 import cats.instances.list.catsStdInstancesForList
 import cats.{Applicative, Traverse}
+import com.evolutiongaming.catshelper.FromFuture
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.skafka.Blocking._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{KafkaConsumer, OffsetCommitCallback, Consumer => ConsumerJ}
@@ -207,7 +207,7 @@ object Consumer {
   }
 
 
-  def apply[F[_] : Async : ContextShift, K, V](
+  def apply[F[_] : Async : ContextShift : FromFuture, K, V](
     config: ConsumerConfig,
     ecBlocking: ExecutionContext)(
     implicit valueFromBytes: FromBytes[V],
@@ -219,8 +219,8 @@ object Consumer {
     apply(consumerK, ecBlocking)
   }
 
-  def apply[F[_] : Async : ContextShift, K, V](consumer: ConsumerJ[K, V], ecBlocking: ExecutionContext): Consumer[F, K, V] = {
-    implicit val b: Blocking = Blocking(ecBlocking)
+  def apply[F[_] : Async : ContextShift : FromFuture, K, V](consumer: ConsumerJ[K, V], ecBlocking: ExecutionContext): Consumer[F, K, V] = {
+    val blocking = Blocking(ecBlocking)
 
     def commitWithCallback(f: OffsetCommitCallback => Unit): F[Map[TopicPartition, OffsetAndMetadata]] = {
       val promise = Promise[Map[TopicPartition, OffsetAndMetadata]]()
@@ -230,7 +230,7 @@ object Consumer {
         }
       }
       f(callback.asJava)
-      fromFutureBlocking(promise.future)
+      blocking.future(promise.future)
     }
 
     new Consumer[F, K, V] {
@@ -369,25 +369,25 @@ object Consumer {
         result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = blockingS({
+      def beginningOffsets(partitions: Nel[TopicPartition]) = blocking({
         val partitionsJ = partitions.map(_.asJava).asJava
         val result = consumer.beginningOffsets(partitionsJ)
         result.asScalaMap(_.asScala, v => v)
       })
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = blockingS {
+      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         val result = consumer.beginningOffsets(partitionsJ, timeout.asJava)
         result.asScalaMap(_.asScala, v => v)
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = blockingS {
+      def endOffsets(partitions: Nel[TopicPartition]) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         val result = consumer.endOffsets(partitionsJ)
         result.asScalaMap(_.asScala, v => v)
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = blockingS {
+      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = blocking {
         val partitionsJ = partitions.map(_.asJava).asJava
         val result = consumer.endOffsets(partitionsJ, timeout.asJava)
         result.asScalaMap(_.asScala, v => v)

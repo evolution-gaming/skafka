@@ -6,8 +6,8 @@ import akka.stream.{Materializer, OverflowStrategy}
 import cats.Applicative
 import cats.effect.{Async, ContextShift}
 import cats.implicits._
+import com.evolutiongaming.catshelper.FromFuture
 import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
-import com.evolutiongaming.skafka.Blocking.{blocking, fromFutureBlocking}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{Producer => ProducerJ}
@@ -88,10 +88,10 @@ object Producer {
     override def close(timeout: FiniteDuration): F[Unit] = empty
   }
 
-  abstract class DefaultProducer[F[_] : Async : ContextShift](
-    producer: ProducerJ[Bytes, Bytes],
-    implicit val blockingEc: Blocking
-  ) extends Producer[F] {
+  abstract class DefaultProducer[F[_] : Async : ContextShift : FromFuture : Blocking](
+    producer: ProducerJ[Bytes, Bytes]) extends Producer[F] {
+
+    val blocking = implicitly[Blocking[F]]
 
     val initTransactions = blocking {
       producer.initTransactions
@@ -118,7 +118,7 @@ object Producer {
     def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
       for {
         recordBytes <- Async[F].delay(record.toBytes)
-        result <- fromFutureBlocking(producer.sendAsScala(recordBytes))
+        result <- blocking.future(producer.sendAsScala(recordBytes))
       } yield result
 
 
@@ -141,27 +141,32 @@ object Producer {
 
   def apply[F[_] : Producer]: Producer[F] = implicitly[Producer[F]]
 
-  def apply[F[_] : Async : ContextShift](
+  def apply[F[_] : Async : ContextShift : FromFuture](
     producer: ProducerJ[Bytes, Bytes],
-    blockingEc: ExecutionContext): Producer[F] = new DefaultProducer[F](producer, Blocking(blockingEc)) {}
+    blockingEc: ExecutionContext): Producer[F] = {
+    implicit val b = Blocking(blockingEc)
+    new DefaultProducer[F](producer) {}
+  }
 
 
-  def apply[F[_] : Async : ContextShift](
+  def apply[F[_] : Async : ContextShift : FromFuture](
     producer: ProducerJ[Bytes, Bytes],
     sequentially: SequentiallyAsync[Int],
     blockingEc: ExecutionContext,
-    random: Random = new Random): Producer[F] = new DefaultProducer[F](producer, Blocking(blockingEc)) {
-    implicit val intelliJHint = blockingEc
+    random: Random = new Random): Producer[F] = {
+    implicit val b = Blocking[F](blockingEc)
+    new DefaultProducer[F](producer) {
+      val async = Async[F]
+      import async.delay
+      import b._
 
-    val async = Async[F]
-    import async.delay
-
-    override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
-      for {
-        key <- delay(record.key.fold(random.nextInt())(_.hashCode()))
-        recordBytes <- delay(record.toBytes)
-        metadata <- fromFutureBlocking(sequentially.async(key)(producer.sendAsScala(recordBytes)))
-      } yield metadata
+      override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
+        for {
+          key <- delay(record.key.fold(random.nextInt())(_.hashCode()))
+          recordBytes <- delay(record.toBytes)
+          metadata <- future(sequentially.async(key)(producer.sendAsScala(recordBytes)))
+        } yield metadata
+    }
   }
 
   def apply[F[_] : Async](
@@ -222,7 +227,7 @@ object Producer {
     }
   }
 
-  def apply[F[_] : Async : ContextShift](
+  def apply[F[_] : Async : ContextShift : FromFuture](
     config: ProducerConfig,
     ecBlocking: ExecutionContext,
     system: ActorSystem): Producer[F] = {
@@ -232,7 +237,7 @@ object Producer {
     apply(jProducer, sequentially, ecBlocking)
   }
 
-  def apply[F[_] : Async : ContextShift](
+  def apply[F[_] : Async : ContextShift : FromFuture](
     config: ProducerConfig,
     ecBlocking: ExecutionContext): Producer[F] = {
     val producer = CreateJProducer(config)

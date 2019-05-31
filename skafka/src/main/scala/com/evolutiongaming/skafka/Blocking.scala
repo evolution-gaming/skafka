@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka
 
 import cats.effect.{Async, ContextShift}
-import cats.implicits._
 import com.evolutiongaming.catshelper.FromFuture
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -22,9 +21,6 @@ object Blocking {
 
   private[skafka] def fromFutureBlocking[F[_] : Async : ContextShift, A](f: => Future[A])(implicit b: Blocking): F[A] =
     blocking {
-      for {
-        f <- Async[F].delay(f)
-        result <- FromFuture.lift(Async[F], b.ec)(f)
-      } yield result
+      FromFuture.lift(Async[F], b.ec)(f)
     }
 }

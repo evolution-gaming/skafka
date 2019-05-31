@@ -15,7 +15,7 @@ object PrometheusProducerMetrics {
 
   def apply[F[_] : Async](
     registry: CollectorRegistry,
-    prefix: Prefix = Prefix.Default)(clientId: ClientId): Metrics[F] = {
+    prefix: Prefix = Prefix.Default): ClientId => Metrics[F] = {
 
     val latencySummary = Summary.build()
       .name(s"${ prefix }_latency")
@@ -55,7 +55,7 @@ object PrometheusProducerMetrics {
       .labelNames("client", "type")
       .register(registry)
 
-    {
+    clientId: ClientId => {
 
       def sendMeasure(result: String, topic: Topic, latency: Long) = {
         latencySummary

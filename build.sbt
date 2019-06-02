@@ -45,8 +45,7 @@ lazy val logging = (project
   in file("modules/logging")
   settings (name := "skafka-logging")
   settings commonSettings
-  dependsOn skafka
-  settings (libraryDependencies ++= Seq(`safe-actor`)))
+  dependsOn skafka)
 
 lazy val prometheus = (project
   in file("modules/prometheus")

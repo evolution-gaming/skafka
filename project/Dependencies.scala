@@ -7,7 +7,6 @@ object Dependencies {
   val nel                  = "com.evolutiongaming"    %% "nel"                % "1.3.3"
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"       % "1.0.3"
   val `metric-tools`       = "com.evolutiongaming"    %% "metric-tools"       % "1.1"
-  val `safe-actor`         = "com.evolutiongaming"    %% "safe-actor"         % "2.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.4"
   val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.3"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"     % "0.0.6"

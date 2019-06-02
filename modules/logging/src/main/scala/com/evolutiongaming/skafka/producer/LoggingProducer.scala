@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import cats.implicits._
 import cats.{Monad, MonadError}
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 
 import scala.concurrent.duration.FiniteDuration

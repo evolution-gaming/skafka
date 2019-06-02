@@ -10,9 +10,9 @@ import akka.testkit.{TestDuration, TestKit, TestKitExtension}
 import cats.Traverse
 import cats.effect.IO
 import cats.implicits._
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.nel.Nel
-import com.evolutiongaming.safeakka.actor.ActorLog
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
@@ -60,7 +60,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     implicit val cs = IO.contextShift(ecBlocking)
     val config = ProducerConfig.Default.copy(acks = acks)
     List(
-      LoggingProducer[IO](Producer(config, ecBlocking), Log(ActorLog.empty)),
+      LoggingProducer[IO](Producer(config, ecBlocking), Log.empty),
       Producer[IO](config, ecBlocking, system))
   }
 

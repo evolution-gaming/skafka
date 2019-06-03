@@ -29,14 +29,14 @@ class ConvertersSpec extends WordSpec with Matchers {
 
     "convert ToBytes" in {
       val serializer = ToBytes.BytesToBytes.asJava
-      serializer.serialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
-      serializer.asScala.apply(Bytes.Empty, "topic") shouldEqual Bytes.Empty
+      serializer.serialize("topic", Bytes.empty) shouldEqual Bytes.empty
+      serializer.asScala.apply(Bytes.empty, "topic") shouldEqual Bytes.empty
     }
 
     "convert FromBytes" in {
       val deserializer = FromBytes.BytesFromBytes.asJava
-      deserializer.deserialize("topic", Bytes.Empty) shouldEqual Bytes.Empty
-      deserializer.asScala.apply(Bytes.Empty, "topic") shouldEqual Bytes.Empty
+      deserializer.deserialize("topic", Bytes.empty) shouldEqual Bytes.empty
+      deserializer.asScala.apply(Bytes.empty, "topic") shouldEqual Bytes.empty
     }
   }
 }

@@ -12,13 +12,13 @@ trait ToBytes[-A] {
 
 object ToBytes {
 
-  private val Empty = const(Bytes.Empty)
+  private val _empty = const(Bytes.empty)
 
   implicit val StringToBytes: ToBytes[String] = (a: String, _: Topic) => a.getBytes(UTF_8)
 
   implicit val BytesToBytes: ToBytes[Bytes] = (value: Bytes, _: Topic) => value
 
-  def empty[A]: ToBytes[A] = Empty
+  def empty[A]: ToBytes[A] = _empty
 
   def const[A](bytes: Bytes): ToBytes[A] = (_: A, _: Topic) => bytes
 

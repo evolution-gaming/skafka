@@ -15,7 +15,7 @@ trait RebalanceListener {
 
 object RebalanceListener {
 
-  val Empty: RebalanceListener = new RebalanceListener {
+  val empty: RebalanceListener = new RebalanceListener {
     def onPartitionsAssigned(partitions: Iterable[TopicPartition]) = {}
     def onPartitionsRevoked(partitions: Iterable[TopicPartition]) = {}
   }

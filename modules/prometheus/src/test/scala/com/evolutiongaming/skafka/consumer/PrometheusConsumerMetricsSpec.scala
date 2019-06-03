@@ -47,7 +47,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
     "measure commit" in new Scope {
       val topicPartition = TopicPartition(topic = topic, Partition.Min)
 
-      verify(consumer.commit(Map((topicPartition, OffsetAndMetadata.Empty)))) { _ =>
+      verify(consumer.commit(Map((topicPartition, OffsetAndMetadata.empty)))) { _ =>
 
         def result(name: String) = Option {
           registry.getSampleValue(
@@ -65,7 +65,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
     }
 
     "measure subscribe" in new Scope {
-      verify(consumer.subscribe(Nel(topic), Some(RebalanceListener.Empty))) { _ =>
+      verify(consumer.subscribe(Nel(topic), Some(RebalanceListener.empty))) { _ =>
         registry.count("subscribe") shouldEqual Some(1.0)
       }
     }

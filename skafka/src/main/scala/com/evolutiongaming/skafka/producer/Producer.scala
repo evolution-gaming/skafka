@@ -262,7 +262,7 @@ object Producer {
   }
 
   object Send {
-    def Empty[F[_] : Applicative]: Send[F] = apply(Producer.empty)
+    def empty[F[_] : Applicative]: Send[F] = apply(Producer.empty)
 
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {
       def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {

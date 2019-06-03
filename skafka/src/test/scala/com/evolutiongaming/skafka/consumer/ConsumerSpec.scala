@@ -37,9 +37,9 @@ class ConsumerSpec extends WordSpec with Matchers {
     topicPartition = topicPartition,
     offset = offset,
     timestampAndType = Some(TimestampAndType(instant, TimestampType.Create)),
-    key = Some(WithSize(Bytes.Empty, 1)),
-    value = Some(WithSize(Bytes.Empty, 1)),
-    headers = List(Header("key", Bytes.Empty)))
+    key = Some(WithSize(Bytes.empty, 1)),
+    value = Some(WithSize(Bytes.empty, 1)),
+    headers = List(Header("key", Bytes.empty)))
   val consumerRecords = ConsumerRecords(Map((topicPartition, List(consumerRecord))))
 
   val node = new Node(1, "host", 2)

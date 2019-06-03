@@ -24,13 +24,13 @@ package object skafka {
   type Metadata = String
 
   object Metadata {
-    val Empty: Metadata = ""
+    val empty: Metadata = ""
   }
 
 
   type Bytes = Array[Byte]
 
   object Bytes {
-    val Empty: Bytes = Array.empty
+    val empty: Bytes = Array.empty
   }
 }

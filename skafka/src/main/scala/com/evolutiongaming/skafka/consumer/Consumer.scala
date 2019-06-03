@@ -157,11 +157,11 @@ object Consumer {
 
     override def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset] = Offset.Min.pure[F]
 
-    override def committed(partition: TopicPartition): F[OffsetAndMetadata] = OffsetAndMetadata.Empty.pure[F]
+    override def committed(partition: TopicPartition): F[OffsetAndMetadata] = OffsetAndMetadata.empty.pure[F]
 
 
     override def committed(partition: TopicPartition, timeout: FiniteDuration): F[OffsetAndMetadata] =
-      OffsetAndMetadata.Empty.pure[F]
+      OffsetAndMetadata.empty.pure[F]
 
     override def partitions(topic: Topic): F[List[PartitionInfo]] = List.empty[PartitionInfo].pure[F]
 
@@ -247,11 +247,11 @@ object Consumer {
 
       def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = blocking {
         val topicsJ = topics.asJava
-        consumer.subscribe(topicsJ, (listener getOrElse RebalanceListener.Empty).asJava)
+        consumer.subscribe(topicsJ, (listener getOrElse RebalanceListener.empty).asJava)
       }
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = blocking {
-        consumer.subscribe(pattern, (listener getOrElse RebalanceListener.Empty).asJava)
+        consumer.subscribe(pattern, (listener getOrElse RebalanceListener.empty).asJava)
       }
 
       val subscription = blocking {

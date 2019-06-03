@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 final case class OffsetAndMetadata(
   offset: Offset = Offset.Min,
-  metadata: Metadata = Metadata.Empty) {
+  metadata: Metadata = Metadata.empty) {
 
   override def toString = {
     if (metadata.isEmpty) s"$productPrefix($offset)"
@@ -11,5 +11,5 @@ final case class OffsetAndMetadata(
 }
 
 object OffsetAndMetadata {
-  val Empty: OffsetAndMetadata = OffsetAndMetadata()
+  val empty: OffsetAndMetadata = OffsetAndMetadata()
 }

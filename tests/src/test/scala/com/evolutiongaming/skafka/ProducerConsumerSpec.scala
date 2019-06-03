@@ -23,15 +23,15 @@ import scala.concurrent.duration._
 class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
-  implicit lazy val system: ActorSystem = ActorSystem(getClass.getSimpleName)
-  implicit lazy val ec = system.dispatcher
-  implicit lazy val cs = IO.contextShift(ec)
+  private implicit lazy val system: ActorSystem = ActorSystem(getClass.getSimpleName)
+  private implicit lazy val executor = system.dispatcher
+  private implicit lazy val contextShift = IO.contextShift(executor)
 
-  lazy val shutdown = StartKafka()
+  private lazy val shutdown = StartKafka()
 
-  val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
-  val timeout = TestKitExtension(system).DefaultTimeout.duration.dilated
+  private val timeout = TestKitExtension(system).DefaultTimeout.duration.dilated
 
   override def beforeAll() = {
     super.beforeAll()
@@ -46,7 +46,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       producer       <- producers
     } yield producer
 
-    val closeAll = producers.foldMapM { producer =>
+    val closeAll = producers.distinct.foldMapM { producer =>
       for {
         _ <- producer.flush
         _ <- producer.close
@@ -55,7 +55,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
     closeAll.unsafeRunTimed(timeout)
     TestKit.shutdownActorSystem(system)
-    
+
     shutdown()
     super.afterAll()
   }
@@ -64,11 +64,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
   def producers(acks: Acks) = {
-    val ecBlocking = system.dispatcher
-    implicit val cs = IO.contextShift(ecBlocking)
     val config = ProducerConfig.Default.copy(acks = acks)
-    List(
-      LoggingProducer[IO](Producer(config, ecBlocking), Log.empty))
+    List(LoggingProducer[IO](Producer(config, executor), Log.empty))
   }
 
   lazy val combinations: Seq[(Acks, List[Producer[IO]])] = for {
@@ -94,7 +91,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         autoCommit = false,
         common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
-      val consumer = Consumer[IO, String, String](config, ec)
+      val consumer = Consumer[IO, String, String](config, executor)
       consumer.subscribe(Nel(topic), None).unsafeRunSync()
       consumer
     }

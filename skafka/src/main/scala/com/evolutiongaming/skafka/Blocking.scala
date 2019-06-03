@@ -12,9 +12,9 @@ trait Blocking[F[_]] {
 }
 
 object Blocking {
-  def apply[F[_] : Sync : ContextShift : FromFuture](blockingEC: ExecutionContext): Blocking[F] =
+  def apply[F[_] : Sync : ContextShift : FromFuture](ec: ExecutionContext): Blocking[F] =
     new Blocking[F] {
-      def blocking[A](f: F[A]): F[A] = ContextShift[F].evalOn(blockingEC)(f)
+      def blocking[A](f: F[A]): F[A] = ContextShift[F].evalOn(ec)(f)
 
       override def apply[A](thunk: => A): F[A] = blocking {
         Sync[F].delay(thunk)

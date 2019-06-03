@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
+import cats.effect.Sync
 import com.evolutiongaming.skafka.PrometheusHelper._
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
@@ -12,7 +13,10 @@ object PrometheusConsumerMetrics {
     val Default: Prefix = "skafka_consumer"
   }
 
-  def apply[K, V](registry: CollectorRegistry, prefix: Prefix = Prefix.Default): ClientId => Consumer.Metrics = {
+  def apply[F[_] : Sync, K, V](
+    registry: CollectorRegistry,
+    prefix: Prefix = Prefix.Default):
+  ClientId => Metrics[F] = {
 
     val callsCounter = Counter.build()
       .name(s"${ prefix }_calls")
@@ -64,10 +68,13 @@ object PrometheusConsumerMetrics {
       .quantile(0.99, 0.005)
       .register(registry)
 
-    clientId: ClientId => {
-      new Consumer.Metrics {
+    val sync = Sync[F]
 
-        def call(name: String, topic: Topic, latency: Long, success: Boolean) = {
+    import sync.delay
+
+    clientId: ClientId => {
+      new Metrics[F] {
+        def call(name: String, topic: Topic, latency: Long, success: Boolean) = delay {
           val result = if (success) "success" else "failure"
           latencySummary
             .labels(clientId, topic, name)
@@ -77,7 +84,7 @@ object PrometheusConsumerMetrics {
             .inc()
         }
 
-        def poll(topic: Topic, bytes: Int, records: Int) = {
+        def poll(topic: Topic, bytes: Int, records: Int) = delay {
           recordsSummary
             .labels(clientId, topic)
             .observe(records.toDouble)
@@ -86,19 +93,19 @@ object PrometheusConsumerMetrics {
             .observe(bytes.toDouble)
         }
 
-        def count(name: String, topic: Topic) = {
+        def count(name: String, topic: Topic) = delay {
           callsCounter
             .labels(clientId, topic, name)
             .inc()
         }
 
-        def rebalance(name: String, topicPartition: TopicPartition) = {
+        def rebalance(name: String, topicPartition: TopicPartition) = delay {
           rebalancesCounter
             .labels(clientId, topicPartition.topic, topicPartition.partition.toString, name)
             .inc()
         }
 
-        def listTopics(latency: Long) = {
+        def listTopics(latency: Long) = delay {
           listTopicsLatency
             .labels(clientId)
             .observe(latency.toSeconds)

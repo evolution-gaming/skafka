@@ -19,6 +19,7 @@ object Converters {
 
     def asJava: HeaderJ = new HeaderJ {
       def value = self.value
+
       def key = self.key
     }
   }
@@ -99,17 +100,13 @@ object Converters {
 
   implicit class SerializerOps[A](val self: Serializer[A]) extends AnyVal {
 
-    def asScala: ToBytes[A] = new ToBytes[A] {
-      def apply(a: A, topic: Topic): Bytes = self.serialize(topic, a)
-    }
+    def asScala: ToBytes[A] = (a: A, topic: Topic) => self.serialize(topic, a)
   }
 
 
   implicit class DeserializerOps[A](val self: Deserializer[A]) extends AnyVal {
 
-    def asScala: FromBytes[A] = new FromBytes[A] {
-      def apply(value: Bytes, topic: Topic): A = self.deserialize(topic, value)
-    }
+    def asScala: FromBytes[A] = (value: Bytes, topic: Topic) => self.deserialize(topic, value)
   }
 
 
@@ -117,7 +114,9 @@ object Converters {
 
     def asJava: Serializer[A] = new Serializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
+
       def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic)
+
       def close(): Unit = {}
     }
   }
@@ -127,7 +126,9 @@ object Converters {
 
     def asJava: Deserializer[A] = new Deserializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean) = {}
+
       def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic)
+
       def close() = {}
     }
   }

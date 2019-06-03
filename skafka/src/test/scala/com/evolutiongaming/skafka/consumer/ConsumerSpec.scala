@@ -7,9 +7,11 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import cats.effect.IO
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
+import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
@@ -20,7 +22,6 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
-import scala.util.Success
 
 class ConsumerSpec extends WordSpec with Matchers {
   val topic = "topic"
@@ -36,9 +37,9 @@ class ConsumerSpec extends WordSpec with Matchers {
     topicPartition = topicPartition,
     offset = offset,
     timestampAndType = Some(TimestampAndType(instant, TimestampType.Create)),
-    key = Some(WithSize(Bytes.Empty, 1)),
-    value = Some(WithSize(Bytes.Empty, 1)),
-    headers = List(Header("key", Bytes.Empty)))
+    key = Some(WithSize(Bytes.empty, 1)),
+    value = Some(WithSize(Bytes.empty, 1)),
+    headers = List(Header("key", Bytes.empty)))
   val consumerRecords = ConsumerRecords(Map((topicPartition, List(consumerRecord))))
 
   val node = new Node(1, "host", 2)
@@ -53,169 +54,186 @@ class ConsumerSpec extends WordSpec with Matchers {
   "Consumer" should {
 
     "assign" in new Scope {
-      consumer.assign(partitions)
-      assign shouldEqual List(topicPartition.asJava)
+      verify(consumer.assign(partitions)) { _ =>
+        assign shouldEqual List(topicPartition.asJava)
+      }
     }
 
     "assignment" in new Scope {
-      consumer.assignment() shouldEqual Set(topicPartition)
+      consumer.assignment should produce(Set(topicPartition))
     }
 
     "subscribe topics" in new Scope {
-      consumer.subscribe(Nel(topic), Some(rebalanceListener))
-      subscribeTopics shouldEqual List(topic)
-      assigned shouldEqual true
-      revoked shouldEqual true
+      verify(consumer.subscribe(Nel(topic), Some(rebalanceListener))) { _ =>
+        subscribeTopics shouldEqual List(topic)
+        assigned shouldEqual true
+        revoked shouldEqual true
+      }
     }
 
     "subscribe pattern" in new Scope {
       val pattern = Pattern.compile(".")
-      consumer.subscribe(pattern, Some(rebalanceListener))
-      subscribePattern shouldEqual Some(pattern)
-      assigned shouldEqual true
-      revoked shouldEqual true
+      verify(consumer.subscribe(pattern, Some(rebalanceListener))) { _ =>
+        subscribePattern shouldEqual Some(pattern)
+        assigned shouldEqual true
+        revoked shouldEqual true
+      }
     }
 
     "subscription" in new Scope {
-      consumer.subscription() shouldEqual Set(topic)
+      consumer.subscription should produce(Set(topic))
     }
 
     "unsubscribe" in new Scope {
-      consumer.unsubscribe().value shouldEqual Some(Success(()))
-      unsubscribe shouldEqual true
+      verify(consumer.unsubscribe) { _ =>
+        unsubscribe shouldEqual true
+      }
     }
 
     "poll" in new Scope {
-      consumer.poll(1.second).value shouldEqual Some(Success(consumerRecords))
+      consumer.poll(1.second) should produce(consumerRecords)
     }
 
     "commit" in new Scope {
-      consumer.commit().value shouldEqual Some(Success(()))
-      commit shouldEqual None
+      verify(consumer.commit) { _ =>
+        commit shouldEqual None
+      }
     }
 
     "commit with timeout" in new Scope {
-      consumer.commit(1.second).value shouldEqual Some(Success(()))
-      commit shouldEqual Some(1.second)
+      verify(consumer.commit(1.second)) { _ =>
+        commit shouldEqual Some(1.second)
+      }
     }
 
     "commit offsets" in new Scope {
-      consumer.commit(offsets).value shouldEqual Some(Success(()))
-      commitSync shouldEqual Some((offsets, None))
+      verify(consumer.commit(offsets)) { _ =>
+        commitSync shouldEqual Some((offsets, None))
+      }
     }
 
     "commit offsets with timeout" in new Scope {
-      consumer.commit(offsets, 1.second).value shouldEqual Some(Success(()))
-      commitSync shouldEqual Some((offsets, Some(1.second)))
+      verify(consumer.commit(offsets, 1.second)) { _ =>
+        commitSync shouldEqual Some((offsets, Some(1.second)))
+      }
     }
 
     "commitLater" in new Scope {
-      consumer.commitLater().value shouldEqual Some(Success(offsets))
+      consumer.commitLater should produce(offsets)
     }
 
     "commitLater offsets" in new Scope {
-      consumer.commitLater(offsets).value shouldEqual Some(Success(()))
-      commitLater shouldEqual offsets
+      verify(consumer.commitLater(offsets)) { _ =>
+        commitLater shouldEqual offsets
+      }
     }
 
     "seek" in new Scope {
-      consumer.seek(topicPartition, offset)
-      seek shouldEqual Some((topicPartition.asJava, offset))
+      verify(consumer.seek(topicPartition, offset)) { _ =>
+        seek shouldEqual Some((topicPartition.asJava, offset))
+      }
     }
 
     "seekToBeginning" in new Scope {
-      consumer.seekToBeginning(partitions)
-      seekToBeginning shouldEqual List(topicPartition.asJava)
+      verify(consumer.seekToBeginning(partitions)) { _ =>
+        seekToBeginning shouldEqual List(topicPartition.asJava)
+      }
     }
 
     "seekToEnd" in new Scope {
-      consumer.seekToEnd(partitions)
-      seekToEnd shouldEqual List(topicPartition.asJava)
+      verify(consumer.seekToEnd(partitions)) { _ =>
+        seekToEnd shouldEqual List(topicPartition.asJava)
+      }
     }
 
     "position" in new Scope {
-      consumer.position(topicPartition).value shouldEqual Some(Success(offset))
+      consumer.position(topicPartition) should produce(offset)
     }
 
     "position with timeout" in new Scope {
-      consumer.position(topicPartition, 1.second).value shouldEqual Some(Success(offset))
+      consumer.position(topicPartition, 1.second) should produce(offset)
     }
 
     "committed" in new Scope {
-      consumer.committed(topicPartition).value shouldEqual Some(Success(offsetAndMetadata))
+      consumer.committed(topicPartition) should produce(offsetAndMetadata)
     }
 
     "committed with timeout" in new Scope {
-      consumer.committed(topicPartition, 1.second).value shouldEqual Some(Success(offsetAndMetadata))
+      consumer.committed(topicPartition, 1.second) should produce(offsetAndMetadata)
     }
 
     "partitions" in new Scope {
-      consumer.partitions(topic).value shouldEqual Some(Success(List(partitionInfo)))
+      consumer.partitions(topic) should produce(List(partitionInfo))
     }
 
     "partitions with timeout" in new Scope {
-      consumer.partitions(topic, 1.second).value shouldEqual Some(Success(List(partitionInfo)))
+      consumer.partitions(topic, 1.second) should produce(List(partitionInfo))
     }
 
     "listTopics" in new Scope {
-      consumer.listTopics().value shouldEqual Some(Success(Map((topic, List(partitionInfo)))))
+      consumer.listTopics should produce(Map((topic, List(partitionInfo))))
     }
 
     "listTopics with timeout" in new Scope {
-      consumer.listTopics(1.second).value shouldEqual Some(Success(Map((topic, List(partitionInfo)))))
+      consumer.listTopics(1.second) should produce(Map((topic, List(partitionInfo))))
     }
 
     "pause" in new Scope {
-      consumer.pause(partitions)
-      pause shouldEqual List(topicPartition.asJava)
+      verify(consumer.pause(partitions)) { _ =>
+        pause shouldEqual List(topicPartition.asJava)
+      }
     }
 
     "paused" in new Scope {
-      consumer.paused() shouldEqual Set(topicPartition)
+      consumer.paused should produce(Set(topicPartition))
     }
 
     "resume" in new Scope {
-      consumer.resume(partitions)
-      resume shouldEqual List(topicPartition.asJava)
+      verify(consumer.resume(partitions)) { _ =>
+        resume shouldEqual List(topicPartition.asJava)
+      }
     }
 
     "offsetsForTimes" in new Scope {
-      consumer.offsetsForTimes(Map((topicPartition, offset))).value shouldEqual Some(Success(Map((topicPartition, Some(offsetAndTimestamp)))))
+      consumer.offsetsForTimes(Map((topicPartition, offset))) should produce(Map((topicPartition, Option(offsetAndTimestamp))))
     }
 
     "offsetsForTimes with timeout" in new Scope {
-      consumer.offsetsForTimes(Map((topicPartition, offset)), 1.second).value shouldEqual Some(Success(Map((topicPartition, Some(offsetAndTimestamp)))))
+      consumer.offsetsForTimes(Map((topicPartition, offset)), 1.second) should produce(Map((topicPartition, Option(offsetAndTimestamp))))
     }
 
     "beginningOffsets" in new Scope {
-      consumer.beginningOffsets(partitions).value shouldEqual Some(Success(Map((topicPartition, offset))))
+      consumer.beginningOffsets(partitions) should produce(Map((topicPartition, offset)))
     }
 
     "beginningOffsets with timeout" in new Scope {
-      consumer.beginningOffsets(partitions, 1.second).value shouldEqual Some(Success(Map((topicPartition, offset))))
+      consumer.beginningOffsets(partitions, 1.second) should produce(Map((topicPartition, offset)))
     }
 
     "endOffsets" in new Scope {
-      consumer.endOffsets(partitions).value shouldEqual Some(Success(Map((topicPartition, offset))))
+      consumer.endOffsets(partitions) should produce(Map((topicPartition, offset)))
     }
 
     "endOffsets with timeout" in new Scope {
-      consumer.endOffsets(partitions, 1.second).value shouldEqual Some(Success(Map((topicPartition, offset))))
+      consumer.endOffsets(partitions, 1.second) should produce(Map((topicPartition, offset)))
     }
 
     "close" in new Scope {
-      consumer.close().value shouldEqual Some(Success(()))
-      close shouldEqual true
+      verify(consumer.close) { _ =>
+        close shouldEqual true
+      }
     }
 
     "close with timeout" in new Scope {
-      consumer.close(1.second).value shouldEqual Some(Success(()))
-      closeTimeout shouldEqual Some(1.second)
+      verify(consumer.close(1.second)) { _ =>
+        closeTimeout shouldEqual Some(1.second)
+      }
     }
 
     "wakeup" in new Scope {
-      consumer.wakeup().value shouldEqual Some(Success(()))
-      wakeup shouldEqual true
+      verify(consumer.wakeup) { _ =>
+        wakeup shouldEqual true
+      }
     }
   }
 
@@ -259,6 +277,7 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     val rebalanceListener = new RebalanceListener {
       def onPartitionsAssigned(partitions: immutable.Iterable[TopicPartition]) = assigned = true
+
       def onPartitionsRevoked(partitions: immutable.Iterable[TopicPartition]): Unit = revoked = true
     }
 
@@ -420,8 +439,11 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     val consumer = {
-      val consumer = Consumer(consumerJ, CurrentThreadExecutionContext)
-      Consumer(consumer, Consumer.Metrics.Empty)
+      implicit val ec = CurrentThreadExecutionContext
+      implicit val cs = IO.contextShift(ec)
+      val metrics = Metrics.empty[IO]
+      val consumer = Consumer[IO, Bytes, Bytes](consumerJ, ec)
+      Consumer[IO, Bytes, Bytes](consumer, metrics)
     }
   }
 }

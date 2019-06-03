@@ -71,11 +71,7 @@ object ProducerConfig {
   private implicit val AcksFromConf = FromConf[Acks] { (conf, path) =>
     val str = conf.getString(path)
 
-    val values = for {
-      value <- Acks.Values
-      name <- value.names.toList
-      if name equalsIgnoreCase str
-    } yield value
+    val values = Acks.Values.filter(_.names.exists(str.equalsIgnoreCase))
 
     values.headOption getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse Acks from $str")

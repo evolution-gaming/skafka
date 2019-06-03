@@ -20,9 +20,9 @@ final case class ConsumerRecord[K, V](
 final case class ConsumerRecords[K, V](values: Map[TopicPartition, List[ConsumerRecord[K, V]]])
 
 object ConsumerRecords {
-  private val Empty = ConsumerRecords(Map.empty)
+  private val _empty = ConsumerRecords(Map.empty)
 
-  def empty[K, V]: ConsumerRecords[K, V] = Empty.asInstanceOf[ConsumerRecords[K, V]]
+  def empty[K, V]: ConsumerRecords[K, V] = _empty.asInstanceOf[ConsumerRecords[K, V]]
 }
 
 

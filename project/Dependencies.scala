@@ -7,13 +7,15 @@ object Dependencies {
   val nel                  = "com.evolutiongaming"    %% "nel"                % "1.3.3"
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"       % "1.0.3"
   val `metric-tools`       = "com.evolutiongaming"    %% "metric-tools"       % "1.1"
-  val `safe-actor`         = "com.evolutiongaming"    %% "safe-actor"         % "2.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.4"
   val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.3"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"     % "0.0.6"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
   val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.7"
   val prometheus           = "io.prometheus"           % "simpleclient"       % "0.6.0"
+
+  val `cats-effect` = "org.typelevel" %% "cats-effect" % "1.3.0"
+  val `cats-helper` = "com.evolutiongaming" %% "cats-helper" % "0.0.8"
 
   object Kafka {
     private val version = "2.1.1"

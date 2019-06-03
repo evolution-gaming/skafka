@@ -40,7 +40,7 @@ class ConsumerConvertersSpec extends WordSpec with Matchers {
           timestampAndType = timestampAndType,
           key = key,
           value = value,
-          headers = List(Header("key", Bytes.Empty)))
+          headers = List(Header("key", Bytes.empty)))
         consumerRecord shouldEqual consumerRecord.asJava.asScala
       }
     }

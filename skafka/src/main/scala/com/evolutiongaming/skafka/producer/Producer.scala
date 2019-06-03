@@ -4,7 +4,7 @@ package producer
 import akka.actor.ActorSystem
 import akka.stream.{Materializer, OverflowStrategy}
 import cats.Applicative
-import cats.effect.{Async, ContextShift}
+import cats.effect.{Sync, ContextShift}
 import cats.implicits._
 import com.evolutiongaming.catshelper.FromFuture
 import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
@@ -88,7 +88,7 @@ object Producer {
     override def close(timeout: FiniteDuration): F[Unit] = empty
   }
 
-  abstract class DefaultProducer[F[_] : Async : ContextShift : FromFuture : Blocking](
+  abstract class DefaultProducer[F[_] : Sync : ContextShift : FromFuture : Blocking](
     producer: ProducerJ[Bytes, Bytes]) extends Producer[F] {
 
     val blocking = implicitly[Blocking[F]]
@@ -117,7 +117,7 @@ object Producer {
 
     def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
       for {
-        recordBytes <- Async[F].delay(record.toBytes)
+        recordBytes <- Sync[F].delay(record.toBytes)
         result <- blocking.future(producer.sendAsScala(recordBytes))
       } yield result
 
@@ -141,7 +141,7 @@ object Producer {
 
   def apply[F[_] : Producer]: Producer[F] = implicitly[Producer[F]]
 
-  def apply[F[_] : Async : ContextShift : FromFuture](
+  def apply[F[_] : Sync : ContextShift : FromFuture](
     producer: ProducerJ[Bytes, Bytes],
     blockingEc: ExecutionContext): Producer[F] = {
     implicit val b = Blocking(blockingEc)
@@ -149,14 +149,14 @@ object Producer {
   }
 
 
-  def apply[F[_] : Async : ContextShift : FromFuture](
+  def apply[F[_] : Sync : ContextShift : FromFuture](
     producer: ProducerJ[Bytes, Bytes],
     sequentially: SequentiallyAsync[Int],
     blockingEc: ExecutionContext,
     random: Random = new Random): Producer[F] = {
     implicit val b = Blocking[F](blockingEc)
     new DefaultProducer[F](producer) {
-      val async = Async[F]
+      val async = Sync[F]
       import async.delay
       import b._
 
@@ -169,10 +169,10 @@ object Producer {
     }
   }
 
-  def apply[F[_] : Async](
+  def apply[F[_] : Sync](
     producer: Producer[F],
     metrics: Metrics[F]): Producer[F] = {
-    val async = Async[F]
+    val async = Sync[F]
     import async.delay
 
     def measured[A](action: Producer[F] => F[A])(metric: Metrics[F] => Long => F[Unit]): F[A] =
@@ -227,7 +227,7 @@ object Producer {
     }
   }
 
-  def apply[F[_] : Async : ContextShift : FromFuture](
+  def apply[F[_] : Sync : ContextShift : FromFuture](
     config: ProducerConfig,
     ecBlocking: ExecutionContext,
     system: ActorSystem): Producer[F] = {
@@ -237,7 +237,7 @@ object Producer {
     apply(jProducer, sequentially, ecBlocking)
   }
 
-  def apply[F[_] : Async : ContextShift : FromFuture](
+  def apply[F[_] : Sync : ContextShift : FromFuture](
     config: ProducerConfig,
     ecBlocking: ExecutionContext): Producer[F] = {
     val producer = CreateJProducer(config)

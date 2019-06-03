@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.effect.{Async, ContextShift}
+import cats.effect.{Sync, ContextShift}
 import com.evolutiongaming.catshelper.FromFuture
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -12,12 +12,12 @@ trait Blocking[F[_]] {
 }
 
 object Blocking {
-  def apply[F[_] : Async : ContextShift : FromFuture](blockingEC: ExecutionContext): Blocking[F] =
+  def apply[F[_] : Sync : ContextShift : FromFuture](blockingEC: ExecutionContext): Blocking[F] =
     new Blocking[F] {
       def blocking[A](f: F[A]): F[A] = ContextShift[F].evalOn(blockingEC)(f)
 
       override def apply[A](thunk: => A): F[A] = blocking {
-        Async[F].delay(thunk)
+        Sync[F].delay(thunk)
       }
 
       override def future[A](f: => Future[A]): F[A] = blocking {

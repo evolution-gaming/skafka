@@ -4,7 +4,7 @@ package consumer
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 
-import cats.effect.{Async, ContextShift}
+import cats.effect.{Sync, ContextShift}
 import cats.implicits._
 import cats.instances.list.catsStdInstancesForList
 import cats.{Applicative, Traverse}
@@ -207,7 +207,7 @@ object Consumer {
   }
 
 
-  def apply[F[_] : Async : ContextShift : FromFuture, K, V](
+  def apply[F[_] : Sync : ContextShift : FromFuture, K, V](
     config: ConsumerConfig,
     ecBlocking: ExecutionContext)(
     implicit valueFromBytes: FromBytes[V],
@@ -219,7 +219,7 @@ object Consumer {
     apply(consumerK, ecBlocking)
   }
 
-  def apply[F[_] : Async : ContextShift : FromFuture, K, V](consumer: ConsumerJ[K, V], ecBlocking: ExecutionContext): Consumer[F, K, V] = {
+  def apply[F[_] : Sync : ContextShift : FromFuture, K, V](consumer: ConsumerJ[K, V], ecBlocking: ExecutionContext): Consumer[F, K, V] = {
     val blocking = Blocking(ecBlocking)
 
     def commitWithCallback(f: OffsetCommitCallback => Unit): F[Map[TopicPartition, OffsetAndMetadata]] = {
@@ -288,7 +288,7 @@ object Consumer {
       val commitLater = commitWithCallback(consumer.commitAsync)
 
       def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) =
-        commitWithCallback(consumer.commitAsync(offsets.deepAsJava, _)) *> Async[F].unit
+        commitWithCallback(consumer.commitAsync(offsets.deepAsJava, _)) *> Sync[F].unit
 
       def seek(partition: TopicPartition, offset: Offset) = blocking {
         consumer.seek(partition.asJava, offset)
@@ -407,15 +407,15 @@ object Consumer {
     }
   }
 
-  def apply[F[_] : Async : ContextShift, K, V](
+  def apply[F[_] : Sync : ContextShift, K, V](
     consumer: Consumer[F, K, V],
     metrics: Metrics[F]): Consumer[F, K, V] = {
 
     def latencyForMetric[T](action: Consumer[F, K, V] => F[T])(measure: Metrics[F] => Long => F[Unit]): F[T] =
       for {
-        time <- Async[F].delay(Platform.currentTime)
+        time <- Sync[F].delay(Platform.currentTime)
         either <- action(consumer).attempt
-        latency <- Async[F].delay(Platform.currentTime - time)
+        latency <- Sync[F].delay(Platform.currentTime - time)
         _ <- measure(metrics)(latency)
         result <- either match {
           case Right(result) => result.pure[F]
@@ -427,9 +427,9 @@ object Consumer {
 
     def latencyFor[T](name: String, topics: Iterable[Topic])(f: F[T]): F[T] =
       for {
-        time <- Async[F].delay(Platform.currentTime)
+        time <- Sync[F].delay(Platform.currentTime)
         either <- f.attempt
-        latency <- Async[F].delay(Platform.currentTime - time)
+        latency <- Sync[F].delay(Platform.currentTime - time)
         _ <- Traverse[List].traverse(topics.toList)(metrics.call(name, _, latency, either.isRight))
         result <- either match {
           case Right(result) => result.pure[F]
@@ -499,7 +499,7 @@ object Consumer {
           records <- latency("poll") {
             consumer.poll(timeout)
           }
-          topics <- Async[F].delay(records.values.values.flatten.groupBy(_.topic))
+          topics <- Sync[F].delay(records.values.values.flatten.groupBy(_.topic))
           _ <- topics.toList.traverse {
             case (topic, topicRecords) =>
               val bytes = topicRecords.flatMap(_.value).map(_.serializedSize).sum

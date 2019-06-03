@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.effect.Async
+import cats.effect.Sync
 import com.evolutiongaming.skafka.PrometheusHelper._
 import com.evolutiongaming.skafka.{ClientId, Topic}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
@@ -13,7 +13,7 @@ object PrometheusProducerMetrics {
   }
 
 
-  def apply[F[_] : Async](
+  def apply[F[_] : Sync](
     registry: CollectorRegistry,
     prefix: Prefix = Prefix.Default): ClientId => Metrics[F] = {
 
@@ -72,7 +72,7 @@ object PrometheusProducerMetrics {
           .observe(latency.toSeconds)
       }
 
-      val async = Async[F]
+      val async = Sync[F]
 
       import async.delay
 

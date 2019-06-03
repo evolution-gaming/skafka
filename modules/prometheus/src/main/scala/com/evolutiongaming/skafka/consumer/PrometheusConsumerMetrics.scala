@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect.Async
+import cats.effect.Sync
 import com.evolutiongaming.skafka.PrometheusHelper._
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
@@ -13,7 +13,7 @@ object PrometheusConsumerMetrics {
     val Default: Prefix = "skafka_consumer"
   }
 
-  def apply[F[_] : Async, K, V](
+  def apply[F[_] : Sync, K, V](
     registry: CollectorRegistry,
     prefix: Prefix = Prefix.Default)
     (clientId: ClientId): Metrics[F] = {
@@ -68,7 +68,7 @@ object PrometheusConsumerMetrics {
       .quantile(0.99, 0.005)
       .register(registry)
 
-    val async = Async[F]
+    val async = Sync[F]
 
     import async.delay
 

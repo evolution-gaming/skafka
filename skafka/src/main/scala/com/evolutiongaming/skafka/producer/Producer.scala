@@ -156,8 +156,8 @@ object Producer {
     random: Random = new Random): Producer[F] = {
     implicit val b = Blocking[F](blockingEc)
     new DefaultProducer[F](producer) {
-      val async = Sync[F]
-      import async.delay
+      val sync = Sync[F]
+      import sync.delay
       import b._
 
       override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
@@ -172,8 +172,8 @@ object Producer {
   def apply[F[_] : Sync](
     producer: Producer[F],
     metrics: Metrics[F]): Producer[F] = {
-    val async = Sync[F]
-    import async.delay
+    val sync = Sync[F]
+    import sync.delay
 
     def measured[A](action: Producer[F] => F[A])(metric: Metrics[F] => Long => F[Unit]): F[A] =
       for {

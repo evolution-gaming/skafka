@@ -72,9 +72,9 @@ object PrometheusProducerMetrics {
           .observe(latency.toSeconds)
       }
 
-      val async = Sync[F]
+      val sync = Sync[F]
 
-      import async.delay
+      import sync.delay
 
       new Metrics[F] {
 

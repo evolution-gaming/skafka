@@ -68,9 +68,9 @@ object PrometheusConsumerMetrics {
       .quantile(0.99, 0.005)
       .register(registry)
 
-    val async = Sync[F]
+    val sync = Sync[F]
 
-    import async.delay
+    import sync.delay
 
     clientId: ClientId => {
       new Metrics[F] {

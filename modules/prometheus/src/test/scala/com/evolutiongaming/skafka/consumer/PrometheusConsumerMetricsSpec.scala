@@ -75,7 +75,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
     implicit val ec = CurrentThreadExecutionContext
     implicit val cs = IO.contextShift(ec)
     val registry = new CollectorRegistry()
-    val metrics = PrometheusConsumerMetrics[IO, String, String](registry)(clientId)
+    val metrics = PrometheusConsumerMetrics[IO, String, String](registry).apply(clientId)
     val consumer = Consumer(Consumer.empty[IO, String, String], metrics)
   }
 

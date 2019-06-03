@@ -8,9 +8,9 @@ import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicParti
 import scala.concurrent.duration.FiniteDuration
 
 object LoggingProducer {
-  type MonadThrowable[F[_]] = ApplicativeError[F, Throwable]
+  type ApplicativeThrowable[F[_]] = ApplicativeError[F, Throwable]
 
-  def apply[F[_] : MonadThrowable : FlatMap](producer: Producer[F], log: Log[F]): Producer[F] = {
+  def apply[F[_] : ApplicativeThrowable : FlatMap](producer: Producer[F], log: Log[F]): Producer[F] = {
 
     new Producer[F] {
 

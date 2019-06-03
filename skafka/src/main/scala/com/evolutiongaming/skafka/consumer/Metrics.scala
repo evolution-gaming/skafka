@@ -20,7 +20,7 @@ trait Metrics[F[_]] {
 object Metrics {
 
   def empty[F[_] : Applicative]: Metrics[F] = new Metrics[F] {
-    private val empty: F[Unit] = ().pure[F]
+    val empty: F[Unit] = ().pure[F]
 
     def call(name: String, topic: Topic, latency: Long, success: Boolean) = empty
 

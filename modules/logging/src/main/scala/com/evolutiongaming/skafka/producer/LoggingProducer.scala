@@ -1,16 +1,16 @@
 package com.evolutiongaming.skafka.producer
 
+import cats.MonadError
 import cats.implicits._
-import cats.{ApplicativeError, FlatMap}
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 
 import scala.concurrent.duration.FiniteDuration
 
 object LoggingProducer {
-  type ApplicativeThrowable[F[_]] = ApplicativeError[F, Throwable]
+  type MonadThrowable[F[_]] = MonadError[F, Throwable]
 
-  def apply[F[_] : ApplicativeThrowable : FlatMap](producer: Producer[F], log: Log[F]): Producer[F] = {
+  def apply[F[_] : MonadThrowable](producer: Producer[F], log: Log[F]): Producer[F] = {
 
     new Producer[F] {
 
@@ -29,11 +29,9 @@ object LoggingProducer {
       override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] = {
         producer.send(record).attempt.flatMap {
           case Right(metadata) =>
-            log.debug(s"sent $record, metadata: $metadata")
-              .flatMap(_ => metadata.pure[F])
+            log.debug(s"sent $record, metadata: $metadata").as(metadata)
           case Left(failure)   =>
-            log.error(s"failed to send record $record: $failure")
-              .flatMap(_ => failure.raiseError[F, RecordMetadata])
+            log.error(s"failed to send record $record: $failure") *> failure.raiseError[F, RecordMetadata]
         }
       }
 

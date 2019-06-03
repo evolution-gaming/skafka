@@ -20,15 +20,15 @@ import scala.util.Random
 
 trait Producer[F[_]] {
 
-  val initTransactions: F[Unit]
+  def initTransactions: F[Unit]
 
-  val beginTransaction: F[Unit]
+  def beginTransaction: F[Unit]
 
   def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String): F[Unit]
 
-  val commitTransaction: F[Unit]
+  def commitTransaction: F[Unit]
 
-  val abortTransaction: F[Unit]
+  def abortTransaction: F[Unit]
 
   def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata]
 
@@ -47,9 +47,9 @@ trait Producer[F[_]] {
 
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
-  val flush: F[Unit]
+  def flush: F[Unit]
 
-  val close: F[Unit]
+  def close: F[Unit]
 
   def close(timeout: FiniteDuration): F[Unit]
 }

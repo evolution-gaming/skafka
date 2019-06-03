@@ -9,7 +9,7 @@ trait Metrics[F[_]] {
 
   def initTransactions(latency: Long): F[Unit]
 
-  val beginTransaction: F[Unit]
+  def beginTransaction: F[Unit]
 
   def sendOffsetsToTransaction(latency: Long): F[Unit]
 

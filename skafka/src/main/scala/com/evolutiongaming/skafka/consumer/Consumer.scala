@@ -28,22 +28,22 @@ trait Consumer[F[_], K, V] {
 
   def assign(partitions: Nel[TopicPartition]): F[Unit]
 
-  val assignment: F[Set[TopicPartition]]
+  def assignment: F[Set[TopicPartition]]
 
 
   def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]): F[Unit]
 
   def subscribe(pattern: Pattern, listener: Option[RebalanceListener]): F[Unit]
 
-  val subscription: F[Set[Topic]]
+  def subscription: F[Set[Topic]]
 
-  val unsubscribe: F[Unit]
+  def unsubscribe: F[Unit]
 
 
   def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]]
 
 
-  val commit: F[Unit]
+  def commit: F[Unit]
 
   def commit(timeout: FiniteDuration): F[Unit]
 
@@ -52,7 +52,7 @@ trait Consumer[F[_], K, V] {
   def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit]
 
 
-  val commitLater: F[Map[TopicPartition, OffsetAndMetadata]]
+  def commitLater: F[Map[TopicPartition, OffsetAndMetadata]]
 
   def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit]
 
@@ -79,14 +79,14 @@ trait Consumer[F[_], K, V] {
   def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]]
 
 
-  val listTopics: F[Map[Topic, List[PartitionInfo]]]
+  def listTopics: F[Map[Topic, List[PartitionInfo]]]
 
   def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
 
 
   def pause(partitions: Nel[TopicPartition]): F[Unit]
 
-  val paused: F[Set[TopicPartition]]
+  def paused: F[Set[TopicPartition]]
 
   def resume(partitions: Nel[TopicPartition]): F[Unit]
 
@@ -106,12 +106,12 @@ trait Consumer[F[_], K, V] {
   def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
 
-  val close: F[Unit]
+  def close: F[Unit]
 
   def close(timeout: FiniteDuration): F[Unit]
 
 
-  val wakeup: F[Unit]
+  def wakeup: F[Unit]
 }
 
 

@@ -208,13 +208,7 @@ object Producer {
       override val abortTransaction: F[Unit] = measured(_.abortTransaction)(_.abortTransaction)
 
       override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
-        measuredParam {
-          delay {
-            println(s"Calling `producer.send($record)`")
-          } *> _.send(record)
-        } { (m, r) =>
-          delay(println(s"Calling `metrics.send($record)`")) *> m.send(record.topic, _, r.valueSerializedSize.getOrElse(0))
-        }
+        measuredParam(_.send(record))((m, r) => m.send(record.topic, _, r.valueSerializedSize.getOrElse(0)))
 
       override def partitions(topic: Topic): F[List[PartitionInfo]] =
         measured(_.partitions(topic))(m => m.partitions(topic, _))

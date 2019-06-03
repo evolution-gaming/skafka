@@ -7,7 +7,6 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestDuration, TestKit, TestKitExtension}
-import cats.Traverse
 import cats.effect.IO
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
@@ -41,14 +40,23 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   }
 
   override def afterAll() = {
-    shutdown()
 
-    val flushCloseAll =
-      Traverse[List].traverse(combinations.flatMap { case (_, p) => p }.toList)(p => p.flush *> p.close)
-        .unsafeToFuture()
+    val producers = for {
+      (_, producers) <- combinations.toList
+      producer       <- producers
+    } yield producer
 
-    Await.result(flushCloseAll, timeout)
+    val closeAll = producers.foldMapM { producer =>
+      for {
+        _ <- producer.flush
+        _ <- producer.close
+      } yield {}
+    }
+
+    closeAll.unsafeRunTimed(timeout)
     TestKit.shutdownActorSystem(system)
+    
+    shutdown()
     super.afterAll()
   }
 
@@ -60,8 +68,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     implicit val cs = IO.contextShift(ecBlocking)
     val config = ProducerConfig.Default.copy(acks = acks)
     List(
-      LoggingProducer[IO](Producer(config, ecBlocking), Log.empty),
-      Producer[IO](config, ecBlocking, system))
+      LoggingProducer[IO](Producer(config, ecBlocking), Log.empty))
   }
 
   lazy val combinations: Seq[(Acks, List[Producer[IO]])] = for {

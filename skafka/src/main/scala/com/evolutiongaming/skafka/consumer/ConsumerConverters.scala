@@ -5,14 +5,13 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ, OffsetCommitCallback => CommitCallbackJ}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Iterable
-import scala.util.{Failure, Success}
 
 object ConsumerConverters {
 
@@ -58,21 +57,6 @@ object ConsumerConverters {
         val partitionsJ = partitions.map(_.asJava).asJavaCollection
         self.onPartitionsRevoked(partitionsJ)
       }
-    }
-  }
-
-
-  implicit class CommitCallbackOps(val self: CommitCallback) extends AnyVal {
-
-    def asJava: CommitCallbackJ = (offsetsJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) => {
-      val offsets =
-        if (exception == null) {
-          val offsets = offsetsJ.asScalaMap(_.asScala, _.asScala)
-          Success(offsets)
-        } else {
-          Failure(exception)
-        }
-      self(offsets)
     }
   }
 

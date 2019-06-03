@@ -3,6 +3,7 @@ package producer
 
 import cats.effect.IO
 import com.evolutiongaming.skafka.IOMatchers._
+import com.evolutiongaming.skafka.IOSuite._
 import io.prometheus.client.CollectorRegistry
 import org.scalatest.{Matchers, WordSpec}
 

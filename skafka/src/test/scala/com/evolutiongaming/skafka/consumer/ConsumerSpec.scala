@@ -8,11 +8,11 @@ import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.effect.IO
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
@@ -439,10 +439,8 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     val consumer = {
-      implicit val ec = CurrentThreadExecutionContext
-      implicit val cs = IO.contextShift(ec)
       val metrics = Metrics.empty[IO]
-      val consumer = Consumer[IO, Bytes, Bytes](consumerJ, ec)
+      val consumer = Consumer[IO, Bytes, Bytes](consumerJ, executor)
       Consumer[IO, Bytes, Bytes](consumer, metrics)
     }
   }

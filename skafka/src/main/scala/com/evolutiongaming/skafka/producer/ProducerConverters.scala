@@ -4,13 +4,11 @@ import java.time.Instant
 
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.TopicPartition
-import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
+import org.apache.kafka.clients.producer.{ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionException, Future, Promise}
-import scala.util.control.NonFatal
 
 object ProducerConverters {
 
@@ -39,40 +37,6 @@ object ProducerConverters {
         timestamp = Option(self.timestamp) map { Instant.ofEpochMilli(_) },
         headers = self.headers.asScala.map { _.asScala }.toList
       )
-    }
-  }
-
-
-  implicit class ProducerJOps[K, V](val self: ProducerJ[K, V]) extends AnyVal {
-
-    def sendAsScala(record: ProducerRecord[K, V]): Future[RecordMetadata] = {
-      val jRecord = record.asJava
-      val promise = Promise[RecordMetadata]
-      val callback = new Callback {
-        def onCompletion(metadata: RecordMetadataJ, failure: Exception) = {
-          if (failure != null) {
-            promise.failure(failure)
-          } else if (metadata != null) {
-            promise.success(metadata.asScala)
-          } else {
-            val failure = new RuntimeException("both metadata & exception are nulls")
-            promise.failure(failure)
-          }
-        }
-      }
-      try {
-        val result = self.send(jRecord, callback)
-        if (result.isDone) {
-          val jMetadata = result.get()
-          val metadata = jMetadata.asScala
-          Future.successful(metadata)
-        } else {
-          promise.future
-        }
-      } catch {
-        case NonFatal(failure: ExecutionException) => Future.failed(failure.getCause)
-        case NonFatal(failure)                     => Future.failed(failure)
-      }
     }
   }
 

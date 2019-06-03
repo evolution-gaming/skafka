@@ -1,22 +1,19 @@
 package com.evolutiongaming.skafka
 package producer
 
-import akka.actor.ActorSystem
-import akka.stream.{Materializer, OverflowStrategy}
 import cats.Applicative
-import cats.effect.{Sync, ContextShift}
+import cats.effect.{Async, Clock, ContextShift, Sync}
 import cats.implicits._
-import com.evolutiongaming.catshelper.FromFuture
-import com.evolutiongaming.concurrent.sequentially.SequentiallyAsync
+import com.evolutiongaming.catshelper.ClockHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import org.apache.kafka.clients.producer.{Producer => ProducerJ}
+import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.collection.JavaConverters._
-import scala.compat.Platform
-import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
-import scala.util.Random
+import scala.concurrent.{ExecutionContext, ExecutionException}
+import scala.util.control.NoStackTrace
+
 
 trait Producer[F[_]] {
 
@@ -55,188 +52,266 @@ trait Producer[F[_]] {
 }
 
 object Producer {
-  def empty[F[_] : Applicative] = new Producer[F] {
-    private val ap = Applicative[F]
-    private val empty: F[Unit] = ap.pure(())
 
-    override val initTransactions: F[Unit] = empty
+  def apply[F[_]](implicit F: Producer[F]): Producer[F] = F
+  
+  
+  def empty[F[_] : Applicative]: Producer[F] = {
+    
+    val empty = ().pure[F]
 
-    override val beginTransaction: F[Unit] = empty
+    new Producer[F] {
 
-    override def sendOffsetsToTransaction(
-      offsets: Map[TopicPartition, OffsetAndMetadata],
-      consumerGroupId: String): F[Unit] = empty
+      val initTransactions = empty
 
-    override val commitTransaction: F[Unit] = empty
+      val beginTransaction = empty
 
-    override val abortTransaction: F[Unit] = empty
+      def sendOffsetsToTransaction(
+        offsets: Map[TopicPartition, OffsetAndMetadata],
+        consumerGroupId: String
+      ) = empty
 
-    override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
-      ap.pure {
+      val commitTransaction = empty
+
+      val abortTransaction = empty
+
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
         val partition = record.partition getOrElse Partition.Min
         val topicPartition = TopicPartition(record.topic, partition)
         val metadata = RecordMetadata(topicPartition, record.timestamp)
-        metadata
+        metadata.pure[F]
       }
 
-    override def partitions(topic: Topic): F[List[PartitionInfo]] = ap.pure(Nil)
+      def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
-    override val flush: F[Unit] = empty
+      val flush = empty
 
-    override val close: F[Unit] = empty
+      val close = empty
 
-    override def close(timeout: FiniteDuration): F[Unit] = empty
+      def close(timeout: FiniteDuration) = empty
+    }
   }
 
-  abstract class DefaultProducer[F[_] : Sync : ContextShift : FromFuture : Blocking](
-    producer: ProducerJ[Bytes, Bytes]) extends Producer[F] {
 
-    val blocking = implicitly[Blocking[F]]
+  def apply[F[_] : Async : ContextShift](
+    producer: ProducerJ[Bytes, Bytes],
+    executorBlocking: ExecutionContext
+  ): Producer[F] = {
 
-    val initTransactions = blocking {
-      producer.initTransactions
-    }
+    val blocking = Blocking(executorBlocking)
 
-    val beginTransaction = blocking {
-      producer.beginTransaction
-    }
+    apply(producer, blocking)
+  }
 
-    def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) =
-      blocking {
+  
+  def apply[F[_] : Async : ContextShift](
+    producer: ProducerJ[Bytes, Bytes],
+    blocking: Blocking[F]
+  ): Producer[F] = {
+    
+    new Producer[F] {
+
+      val initTransactions = {
+        blocking { producer.initTransactions() }
+      }
+
+      val beginTransaction = {
+        Sync[F].delay { producer.beginTransaction() }
+      }
+
+      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
-        producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId)
+        blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
       }
 
-    val commitTransaction = blocking {
-      producer.commitTransaction
-    }
+      val commitTransaction = {
+        blocking { producer.commitTransaction() }
+      }
 
-    val abortTransaction = blocking {
-      producer.abortTransaction
-    }
-
-    def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
-      for {
-        recordBytes <- Sync[F].delay(record.toBytes)
-        result <- blocking.future(producer.sendAsScala(recordBytes))
-      } yield result
+      val abortTransaction = {
+        blocking { producer.abortTransaction() }
+      }
 
 
-    def partitions(topic: Topic) = blocking {
-      producer.partitionsFor(topic).asScala.map(_.asScala).toList
-    }
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
 
-    val flush = blocking {
-      producer.flush
-    }
+        def send(record: ProducerRecordJ[Bytes, Bytes]) = {
+          Async[F].asyncF[RecordMetadataJ] { f =>
+            val callback = new Callback {
+              def onCompletion(metadata: RecordMetadataJ, exception: Exception) = {
+                if (exception != null) {
+                  f(exception.asLeft)
+                } else if (metadata != null) {
+                  f(metadata.asRight)
+                } else {
+                  val exception = new RuntimeException("both metadata & exception are nulls") with NoStackTrace
+                  f(exception.asLeft)
+                }
+              }
+            }
 
-    def close(timeout: FiniteDuration) = blocking {
-      producer.close(timeout.length, timeout.unit)
-    }
+            blocking { producer.send(record, callback) }
+              .void
+              .recoverWith { case failure: ExecutionException => failure.getCause.raiseError[F, Unit] }
+          }
+        }
 
-    val close = blocking {
-      producer.close
-    }
-  }
-
-  def apply[F[_] : Producer]: Producer[F] = implicitly[Producer[F]]
-
-  def apply[F[_] : Sync : ContextShift : FromFuture](
-    producer: ProducerJ[Bytes, Bytes],
-    blockingEc: ExecutionContext): Producer[F] = {
-    implicit val b = Blocking(blockingEc)
-    new DefaultProducer[F](producer) {}
-  }
-
-
-  def apply[F[_] : Sync : ContextShift : FromFuture](
-    producer: ProducerJ[Bytes, Bytes],
-    sequentially: SequentiallyAsync[Int],
-    blockingEc: ExecutionContext,
-    random: Random = new Random): Producer[F] = {
-    implicit val b = Blocking[F](blockingEc)
-    new DefaultProducer[F](producer) {
-      val sync = Sync[F]
-      import sync.delay
-      import b._
-
-      override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
         for {
-          key <- delay(record.key.fold(random.nextInt())(_.hashCode()))
-          recordBytes <- delay(record.toBytes)
-          metadata <- future(sequentially.async(key)(producer.sendAsScala(recordBytes)))
-        } yield metadata
+          recordBytes <- Sync[F].delay { record.toBytes }
+          recordJ      = recordBytes.asJava
+          result      <- send(recordJ)
+          _           <- ContextShift[F].shift
+        } yield {
+          result.asScala
+        }
+      }
+
+
+      def partitions(topic: Topic) = {
+        for {
+          result <- blocking { producer.partitionsFor(topic) }
+        } yield {
+          result.asScala.map(_.asScala).toList
+        }
+      }
+
+      val flush = {
+        blocking { producer.flush() }
+      }
+
+      def close(timeout: FiniteDuration) = {
+        blocking { producer.close(timeout.length, timeout.unit) }
+      }
+
+      val close = {
+        blocking { producer.close() }
+      }
     }
   }
 
-  def apply[F[_] : Sync](
+
+  def apply[F[_] : Sync : Clock](
     producer: Producer[F],
-    metrics: Metrics[F]): Producer[F] = {
-    val sync = Sync[F]
-    import sync.delay
-
-    def measured[A](action: Producer[F] => F[A])(metric: Metrics[F] => Long => F[Unit]): F[A] =
+    metrics: Metrics[F]
+  ): Producer[F] = {
+    
+    def latency[A](fa: F[A]) = {
       for {
-        time <- delay(Platform.currentTime)
-        result <- action(producer)
-        latency <- delay(Platform.currentTime - time)
-        _ <- metric(metrics)(latency)
+        start   <- Clock[F].millis
+        result  <- fa
+        end     <- Clock[F].millis
+        latency  = end - start
       } yield {
-        result
+        (result, latency)
       }
-
-    def measuredParam[A](action: Producer[F] => F[A])(metric: (Metrics[F], A) => Long => F[Unit]): F[A] =
-      for {
-        time <- delay(Platform.currentTime)
-        result <- action(producer)
-        latency <- delay(Platform.currentTime - time)
-        _ <- metric(metrics, result)(latency)
-      } yield {
-        result
-      }
+    }
 
     new Producer[F] {
-      override val initTransactions: F[Unit] = measured(_.initTransactions)(_.initTransactions)
+      
+      val initTransactions = {
+        for {
+          rl     <- latency { producer.initTransactions.attempt }
+          (r, l)  = rl
+          _      <- metrics.initTransactions(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override val beginTransaction: F[Unit] = metrics.beginTransaction *> producer.beginTransaction
+      val beginTransaction = {
+        for {
+          r  <- producer.beginTransaction
+          _  <- metrics.beginTransaction
+        } yield r
+      }
 
-      override def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String): F[Unit] =
-        measured(_.sendOffsetsToTransaction(offsets, consumerGroupId))(_.sendOffsetsToTransaction)
+      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+        for {
+          rl     <- latency { producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt }
+          (r, l)  = rl
+          _      <- metrics.sendOffsetsToTransaction(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override val commitTransaction: F[Unit] = measured(_.commitTransaction)(_.commitTransaction)
+      val commitTransaction = {
+        for {
+          rl     <- latency { producer.commitTransaction.attempt }
+          (r, l)  = rl
+          _      <- metrics.commitTransaction(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override val abortTransaction: F[Unit] = measured(_.abortTransaction)(_.abortTransaction)
+      val abortTransaction = {
+        for {
+          rl     <- latency { producer.abortTransaction.attempt }
+          (r, l)  = rl
+          _      <- metrics.abortTransaction(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] =
-        measuredParam(_.send(record))((m, r) => m.send(record.topic, _, r.valueSerializedSize.getOrElse(0)))
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+        for {
+          rl     <- latency { producer.send(record).attempt }
+          (r, l)  = rl
+          _      <- r match {
+            case Right(r) => metrics.send(record.topic, l, r.valueSerializedSize getOrElse 0)
+            case Left(_)  => metrics.failure(record.topic, l)
+          }
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override def partitions(topic: Topic): F[List[PartitionInfo]] =
-        measured(_.partitions(topic))(m => m.partitions(topic, _))
+      def partitions(topic: Topic) = {
+        for {
+          rl     <- latency { producer.partitions(topic).attempt }
+          (r, l)  = rl
+          _      <- metrics.partitions(topic, l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override val flush: F[Unit] = measured(_.flush)(_.flush)
+      val flush = {
+        for {
+          rl     <- latency { producer.flush.attempt }
+          (r, l)  = rl
+          _      <- metrics.flush(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override val close: F[Unit] = measured(_.close)(_.close)
+      val close = {
+        for {
+          rl     <- latency { producer.close.attempt }
+          (r, l)  = rl
+          _      <- metrics.close(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
 
-      override def close(timeout: FiniteDuration): F[Unit] = measured(_.close(timeout))(_.close)
+      def close(timeout: FiniteDuration) = {
+        for {
+          rl     <- latency { producer.close(timeout).attempt }
+          (r, l)  = rl
+          _      <- metrics.close(l)
+          r      <- r.raiseOrPure[F]
+        } yield r
+      }
     }
   }
 
-  def apply[F[_] : Sync : ContextShift : FromFuture](
-    config: ProducerConfig,
-    ecBlocking: ExecutionContext,
-    system: ActorSystem): Producer[F] = {
-    implicit val materializer: Materializer = CreateMaterializer(config)(system)
-    val sequentially = SequentiallyAsync[Int](overflowStrategy = OverflowStrategy.dropNew)
-    val jProducer = CreateJProducer(config)
-    apply(jProducer, sequentially, ecBlocking)
-  }
 
-  def apply[F[_] : Sync : ContextShift : FromFuture](
+  def apply[F[_] : Async : ContextShift](
     config: ProducerConfig,
-    ecBlocking: ExecutionContext): Producer[F] = {
+    executorBlocking: ExecutionContext
+  ): Producer[F] = {
+
     val producer = CreateJProducer(config)
-    apply(producer, ecBlocking)
+    
+    apply(producer, executorBlocking)
   }
+  
 
   trait Send[F[_]] {
 
@@ -256,6 +331,7 @@ object Producer {
   }
 
   object Send {
+    
     def empty[F[_] : Applicative]: Send[F] = apply(Producer.empty)
 
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {

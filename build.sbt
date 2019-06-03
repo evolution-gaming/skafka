@@ -38,7 +38,6 @@ lazy val skafka = (project
       `cats-effect`,
       `cats-helper`,
       scalatest % Test,
-      sequentially,
       `scala-java8-compat`)))
 
 lazy val logging = (project

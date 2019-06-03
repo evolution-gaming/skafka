@@ -2,9 +2,9 @@ package com.evolutiongaming.skafka
 package consumer
 
 import cats.effect.IO
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.nel.Nel
-import IOMatchers._
+import com.evolutiongaming.skafka.IOMatchers._
+import com.evolutiongaming.skafka.IOSuite._
 import io.prometheus.client.CollectorRegistry
 import org.scalatest.{Matchers, WordSpec}
 
@@ -72,8 +72,6 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
   }
 
   private trait Scope {
-    implicit val ec = CurrentThreadExecutionContext
-    implicit val cs = IO.contextShift(ec)
     val registry = new CollectorRegistry()
     val metrics = PrometheusConsumerMetrics[IO, String, String](registry).apply(clientId)
     val consumer = Consumer(Consumer.empty[IO, String, String], metrics)

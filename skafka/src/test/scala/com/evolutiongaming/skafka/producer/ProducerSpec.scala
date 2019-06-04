@@ -131,8 +131,6 @@ class ProducerSpec extends WordSpec with Matchers {
 
   private trait Scope {
     var flushCalled = false
-    var closeCalled = false
-    var closeTimeout = Option.empty[FiniteDuration]
     var commitTransaction = false
     var beginTransaction = false
     var initTransactions = false
@@ -161,9 +159,9 @@ class ProducerSpec extends WordSpec with Matchers {
 
       def metrics() = Map.empty[MetricName, Metric].asJava
 
-      def close() = closeCalled = true
+      def close() = {}
 
-      def close(timeout: Long, unit: TimeUnit) = closeTimeout = Some(FiniteDuration(timeout, unit))
+      def close(timeout: Long, unit: TimeUnit) = {}
 
       def send(record: ProducerRecordJ[Bytes, Bytes]) = completableFuture
 

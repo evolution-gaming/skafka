@@ -5,7 +5,7 @@ import org.scalatest.matchers.{MatchResult, Matcher}
 
 trait IOMatchers {
   class IOResultMatcher[-T](expected: T) extends Matcher[IO[T]] {
-    override def apply(left: IO[T]): MatchResult =
+    def apply(left: IO[T]): MatchResult =
       MatchResult(
         matches = left.unsafeRunSync() == expected,
         rawFailureMessage = s"IO result didn't equal $expected",

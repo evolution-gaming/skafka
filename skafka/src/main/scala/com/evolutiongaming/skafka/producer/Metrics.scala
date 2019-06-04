@@ -24,8 +24,6 @@ trait Metrics[F[_]] {
   def partitions(topic: Topic, latency: Latency): F[Unit]
 
   def flush(latency: Long): F[Unit]
-
-  def close(latency: Long): F[Unit]
 }
 
 object Metrics {
@@ -35,25 +33,23 @@ object Metrics {
   def empty[F[_] : Applicative]: Metrics[F] = new Metrics[F] {
     val empty: F[Unit] = ().pure[F]
 
-    override def initTransactions(latency: Long): F[Unit] = empty
+    def initTransactions(latency: Long): F[Unit] = empty
 
-    override val beginTransaction: F[Unit] = empty
+    val beginTransaction: F[Unit] = empty
 
-    override def sendOffsetsToTransaction(latency: Long): F[Unit] = empty
+    def sendOffsetsToTransaction(latency: Long): F[Unit] = empty
 
-    override def commitTransaction(latency: Long): F[Unit] = empty
+    def commitTransaction(latency: Long): F[Unit] = empty
 
-    override def abortTransaction(latency: Long): F[Unit] = empty
+    def abortTransaction(latency: Long): F[Unit] = empty
 
-    override def send(topic: Topic, latency: Long, bytes: Int): F[Unit] = empty
+    def send(topic: Topic, latency: Long, bytes: Int): F[Unit] = empty
 
-    override def failure(topic: Topic, latency: Long): F[Unit] = empty
+    def failure(topic: Topic, latency: Long): F[Unit] = empty
 
-    override def partitions(topic: Topic, latency: Latency): F[Unit] = empty
+    def partitions(topic: Topic, latency: Latency): F[Unit] = empty
 
-    override def flush(latency: Long): F[Unit] = empty
-
-    override def close(latency: Long): F[Unit] = empty
+    def flush(latency: Long): F[Unit] = empty
   }
 }
 

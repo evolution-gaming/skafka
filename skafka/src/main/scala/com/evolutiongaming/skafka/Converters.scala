@@ -117,7 +117,7 @@ object Converters {
 
       def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic)
 
-      def close(): Unit = {}
+      def close() = {}
     }
   }
 

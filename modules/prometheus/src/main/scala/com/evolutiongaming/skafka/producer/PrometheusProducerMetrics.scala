@@ -78,51 +78,47 @@ object PrometheusProducerMetrics {
 
       new Metrics[F] {
 
-        override def initTransactions(latency: Long) = delay {
+        def initTransactions(latency: Long) = delay {
           observeLatency("init_transactions", latency)
         }
 
-        override val beginTransaction = delay {
+        val beginTransaction = delay {
           callCount
             .labels(clientId, "begin_transaction")
             .inc()
         }
 
-        override def sendOffsetsToTransaction(latency: Long) = delay {
+        def sendOffsetsToTransaction(latency: Long) = delay {
           observeLatency("send_offsets", latency)
         }
 
-        override def commitTransaction(latency: Long) = delay {
+        def commitTransaction(latency: Long) = delay {
           observeLatency("commit_transaction", latency)
         }
 
-        override def abortTransaction(latency: Long) = delay {
+        def abortTransaction(latency: Long) = delay {
           observeLatency("abort_transaction", latency)
         }
 
-        override def send(topic: Topic, latency: Long, bytes: Int) = delay {
+        def send(topic: Topic, latency: Long, bytes: Int) = delay {
           sendMeasure(result = "success", topic = topic, latency = latency)
           bytesSummary
             .labels(clientId, topic)
             .observe(bytes.toDouble)
         }
 
-        override def failure(topic: Topic, latency: Long) = delay {
+        def failure(topic: Topic, latency: Long) = delay {
           sendMeasure(result = "failure", topic = topic, latency = latency)
         }
 
-        override def partitions(topic: Topic, latency: Long) = delay {
+        def partitions(topic: Topic, latency: Long) = delay {
           latencySummary
             .labels(clientId, topic, "partitions")
             .observe(latency.toSeconds)
         }
 
-        override def flush(latency: Long) = delay {
+        def flush(latency: Long) = delay {
           observeLatency("flush", latency)
-        }
-
-        override def close(latency: Long) = delay {
-          observeLatency("close", latency)
         }
       }
     }

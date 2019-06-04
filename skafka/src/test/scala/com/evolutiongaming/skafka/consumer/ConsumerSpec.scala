@@ -243,10 +243,6 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     var commitSyncTimeout = Option.empty[Duration]
 
-    var close = false
-
-    var closeTimeout = Option.empty[FiniteDuration]
-
     var pause = List.empty[TopicPartitionJ]
 
     var resume = List.empty[TopicPartitionJ]
@@ -409,17 +405,11 @@ class ConsumerSpec extends WordSpec with Matchers {
         endOffsets(partitions)
       }
 
-      def close() = {
-        Scope.this.close = true
-      }
+      def close() = {}
 
-      def close(timeout: Long, unit: TimeUnit) = {
-        Scope.this.closeTimeout = Some(FiniteDuration(timeout, unit))
-      }
+      def close(timeout: Long, unit: TimeUnit) = {}
 
-      def close(timeout: DurationJ) = {
-        Scope.this.closeTimeout = Some(timeout.asScala)
-      }
+      def close(timeout: DurationJ) = {}
 
       def wakeup() = {
         Scope.this.wakeup = true

@@ -20,7 +20,7 @@ lazy val root = (project
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
-  aggregate(skafka, logging, prometheus, `play-json`, tests))
+  aggregate(skafka, prometheus, `play-json`, tests))
 
 lazy val skafka = (project
   in file("skafka")
@@ -39,12 +39,6 @@ lazy val skafka = (project
       `cats-helper`,
       scalatest % Test,
       `scala-java8-compat`)))
-
-lazy val logging = (project
-  in file("modules/logging")
-  settings (name := "skafka-logging")
-  settings commonSettings
-  dependsOn skafka)
 
 lazy val prometheus = (project
   in file("modules/prometheus")
@@ -67,7 +61,7 @@ lazy val tests = (project in file("tests")
     skip in publish := true,
     Test / fork := true,
     Test / parallelExecution := false)
-    dependsOn (skafka, logging)
+    dependsOn skafka % "compile->compile;test->test"
     settings (libraryDependencies ++= Seq(
       Kafka.kafka % Test,
       `kafka-launcher` % Test,

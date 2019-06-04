@@ -7,13 +7,15 @@ import java.util.UUID
 
 import akka.actor.ActorSystem
 import akka.testkit.{TestDuration, TestKit, TestKitExtension}
-import cats.effect.IO
+import cats.arrow.FunctionK
+import cats.effect.{IO, Resource}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
+import com.evolutiongaming.skafka.IOSuite._
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.annotation.tailrec
@@ -24,8 +26,6 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   import ProducerConsumerSpec._
 
   private implicit lazy val system: ActorSystem = ActorSystem(getClass.getSimpleName)
-  private implicit lazy val executor = system.dispatcher
-  private implicit lazy val contextShift = IO.contextShift(executor)
 
   private lazy val shutdown = StartKafka()
 
@@ -46,10 +46,10 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       producer       <- producers
     } yield producer
 
-    val closeAll = producers.distinct.foldMapM { producer =>
+    val closeAll = producers.distinct.foldMapM { case (producer, release) =>
       for {
         _ <- producer.flush
-        _ <- producer.close
+        _ <- release
       } yield {}
     }
 
@@ -65,16 +65,23 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
   def producers(acks: Acks) = {
     val config = ProducerConfig.Default.copy(acks = acks)
-    List(LoggingProducer[IO](Producer(config, executor), Log.empty))
+    val producer = for {
+      producer <- Producer.of(config, executor)
+    } yield {
+      producer
+        .withLogging(Log.empty)
+        .withMetrics(com.evolutiongaming.skafka.producer.Metrics.empty)
+    }
+    List(producer.allocated.unsafeRunSync())
   }
 
-  lazy val combinations: Seq[(Acks, List[Producer[IO]])] = for {
+  lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {
     acks <- List(Acks.One, Acks.None)
   } yield (acks, producers(acks))
 
   for {
     (acks, producers) <- combinations
-    (producer, idx) <- producers.zipWithIndex
+    ((producer, _), idx) <- producers.zipWithIndex
   } yield {
 
     val topic = s"$idx-$acks"
@@ -82,18 +89,24 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
     def produce(record: ProducerRecord[String, String]) = producer.send(record).unsafeRunSync()
 
-    lazy val consumer = consumerOf()
+    lazy val (consumer, consumerRelease) = consumerOf()
 
-    def consumerOf(): Consumer[IO, String, String] = {
+    def consumerOf(): (Consumer[IO, String, String], IO[Unit]) = {
       val config = ConsumerConfig.Default.copy(
         groupId = Some(s"group-$topic"),
         autoOffsetReset = AutoOffsetReset.Earliest,
         autoCommit = false,
         common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
-      val consumer = Consumer[IO, String, String](config, executor)
-      consumer.subscribe(Nel(topic), None).unsafeRunSync()
-      consumer
+      val consumer = for {
+        consumer <- Consumer.of[IO, String, String](config, executor)
+        _        <- Resource.liftF(consumer.subscribe(Nel(topic), None))
+      } yield {
+        consumer
+          .withMetrics(com.evolutiongaming.skafka.consumer.Metrics.empty)
+          .mapK(FunctionK.id)
+      }
+      consumer.allocated.unsafeRunSync()
     }
 
     test(s"$name produce and consume record") {
@@ -186,7 +199,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val timestamp = instant
 
       Await.result(consumer.commit(), timeout)
-      Await.result(consumer.close(), timeout)
+      consumerRelease.unsafeRunSync()
 
       val record = ProducerRecord(
         topic = topic,
@@ -197,7 +210,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
       val metadata = produce(record)
 
-      val consumer2 = consumerOf()
+      val (consumer2, consumer2Release) = consumerOf()
 
       val records = consumer2.consume(timeout).map(Record(_))
 
@@ -212,6 +225,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         headers = List(Record.Header(key = "key", value = "value")))
 
       records shouldEqual List(expected)
+
+      consumer2Release.unsafeRunSync()
     }
   }
 }
@@ -253,7 +268,5 @@ object ProducerConsumerSpec {
     }
 
     def commit() = self.commit.unsafeToFuture()
-
-    def close() = self.close.unsafeToFuture()
   }
 }

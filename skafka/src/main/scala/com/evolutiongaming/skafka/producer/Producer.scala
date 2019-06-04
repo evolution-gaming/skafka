@@ -1,16 +1,16 @@
 package com.evolutiongaming.skafka
 package producer
 
-import cats.Applicative
-import cats.effect.{Async, Clock, ContextShift, Sync}
+import cats.effect._
 import cats.implicits._
+import cats.{Applicative, ~>}
 import com.evolutiongaming.catshelper.ClockHelper._
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionException}
 import scala.util.control.NoStackTrace
 
@@ -45,17 +45,13 @@ trait Producer[F[_]] {
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def flush: F[Unit]
-
-  def close: F[Unit]
-
-  def close(timeout: FiniteDuration): F[Unit]
 }
 
 object Producer {
 
   def apply[F[_]](implicit F: Producer[F]): Producer[F] = F
   
-  
+
   def empty[F[_] : Applicative]: Producer[F] = {
     
     val empty = ().pure[F]
@@ -85,25 +81,28 @@ object Producer {
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
       val flush = empty
-
-      val close = empty
-
-      def close(timeout: FiniteDuration) = empty
     }
   }
 
 
-  def apply[F[_] : Async : ContextShift](
-    producer: ProducerJ[Bytes, Bytes],
+  def of[F[_] : Async : ContextShift](
+    config: ProducerConfig,
     executorBlocking: ExecutionContext
-  ): Producer[F] = {
+  ): Resource[F, Producer[F]] = {
 
     val blocking = Blocking(executorBlocking)
 
-    apply(producer, blocking)
+    val result = for {
+      producerJ <- CreateProducerJ(config)
+      producer   = apply(producerJ, blocking)
+      release    = blocking { producerJ.close() }
+    } yield {
+      (producer, release)
+    }
+    Resource(result)
   }
-
   
+
   def apply[F[_] : Async : ContextShift](
     producer: ProducerJ[Bytes, Bytes],
     blocking: Blocking[F]
@@ -177,14 +176,6 @@ object Producer {
 
       val flush = {
         blocking { producer.flush() }
-      }
-
-      def close(timeout: FiniteDuration) = {
-        blocking { producer.close(timeout.length, timeout.unit) }
-      }
-
-      val close = {
-        blocking { producer.close() }
       }
     }
   }
@@ -280,38 +271,42 @@ object Producer {
           r      <- r.raiseOrPure[F]
         } yield r
       }
-
-      val close = {
-        for {
-          rl     <- latency { producer.close.attempt }
-          (r, l)  = rl
-          _      <- metrics.close(l)
-          r      <- r.raiseOrPure[F]
-        } yield r
-      }
-
-      def close(timeout: FiniteDuration) = {
-        for {
-          rl     <- latency { producer.close(timeout).attempt }
-          (r, l)  = rl
-          _      <- metrics.close(l)
-          r      <- r.raiseOrPure[F]
-        } yield r
-      }
     }
   }
 
 
-  def apply[F[_] : Async : ContextShift](
-    config: ProducerConfig,
-    executorBlocking: ExecutionContext
-  ): Producer[F] = {
+  implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
-    val producer = CreateJProducer(config)
-    
-    apply(producer, executorBlocking)
+    def withLogging(log: Log[F])(implicit F: ProducerLogging.MonadThrowable[F]): Producer[F] = {
+      ProducerLogging(self, log)
+    }
+
+    def withMetrics(metrics: Metrics[F])(implicit F: Sync[F], clock: Clock[F]): Producer[F] = {
+      Producer(self, metrics)
+    }
+
+    def mapK[G[_]](f: F ~> G): Producer[G] = new Producer[G] {
+
+      def initTransactions = f(self.initTransactions)
+
+      def beginTransaction = f(self.beginTransaction)
+
+      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+        f(self.sendOffsetsToTransaction(offsets, consumerGroupId))
+      }
+
+      def commitTransaction = f(self.commitTransaction)
+
+      def abortTransaction = f(self.abortTransaction)
+
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = f(self.send(record))
+
+      def partitions(topic: Topic) = f(self.partitions(topic))
+
+      def flush = f(self.flush)
+    }
   }
-  
+
 
   trait Send[F[_]] {
 

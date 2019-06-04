@@ -5,16 +5,16 @@ import java.lang.{Long => LongJ}
 import java.util.{Map => MapJ}
 import java.util.regex.Pattern
 
-import cats.effect.{Async, Clock, ContextShift, Sync}
+import cats.effect.{Async, Clock, ContextShift, Resource, Sync}
 import cats.implicits._
-import cats.Applicative
+import cats.{Applicative, ~>}
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.catshelper.ClockHelper._
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
-import org.apache.kafka.clients.consumer.{KafkaConsumer, OffsetCommitCallback, Consumer => ConsumerJ}
+import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Iterable
@@ -106,12 +106,6 @@ trait Consumer[F[_], K, V] {
 
   def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
-
-  def close: F[Unit]
-
-  def close(timeout: FiniteDuration): F[Unit]
-
-
   def wakeup: F[Unit]
 }
 
@@ -202,37 +196,29 @@ object Consumer {
         Map.empty[TopicPartition, Offset].pure[F]
       }
 
-      val close = empty
-
-      def close(timeout: FiniteDuration) = empty
-
       val wakeup = empty
     }
   }
 
 
-  def apply[F[_] : Async : ContextShift, K, V](
+  def of[F[_] : Async : ContextShift, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext)(implicit
     valueFromBytes: FromBytes[V],
     keyFromBytes: FromBytes[K]
-  ): Consumer[F, K, V] = {
-
-    val valueDeserializer = valueFromBytes.asJava
-    val keyDeserializer = keyFromBytes.asJava
-    val consumerK = new KafkaConsumer(config.properties, keyDeserializer, valueDeserializer)
-    apply(consumerK, executorBlocking)
-  }
-
-
-  def apply[F[_] : Async : ContextShift, K, V](
-    consumer: ConsumerJ[K, V],
-    executorBlocking: ExecutionContext
-  ): Consumer[F, K, V] = {
+  ): Resource[F, Consumer[F, K, V]] = {
 
     val blocking = Blocking(executorBlocking)
+    val consumerJ = CreateConsumerJ(config, valueFromBytes, keyFromBytes)
 
-    apply(consumer, blocking)
+    val result = for {
+      consumerJ <- consumerJ
+      consumer   = apply(consumerJ, blocking)
+      release    = blocking { consumerJ.close() }
+    } yield {
+      (consumer, release)
+    }
+    Resource(result)
   }
 
 
@@ -500,16 +486,7 @@ object Consumer {
           result.asScalaMap(_.asScala, v => v)
         }
       }
-
-      val close = {
-        blocking { consumer.close() }
-      }
-
-      def close(timeout: FiniteDuration) =  {
-        val timeoutJ = timeout.asJava
-        blocking { consumer.close(timeoutJ) }
-      }
-
+      
       val wakeup = {
         blocking { consumer.wakeup() }
       }
@@ -801,20 +778,101 @@ object Consumer {
         call("end_offsets", topics) { consumer.endOffsets(partitions, timeout) }
       }
 
-      val close = {
-        call1("close") { consumer.close }
-      }
-
-      def close(timeout: FiniteDuration) = {
-        call1("close") { consumer.close(timeout) }
-      }
-
       val wakeup = {
         for {
           _ <- count1("wakeup")
           r <- consumer.wakeup
         } yield r
       }
+    }
+  }
+
+
+  implicit class ConsumerOps[F[_], K, V](val self: Consumer[F, K, V]) extends AnyVal {
+
+    def withMetrics(metrics: Metrics[F])(implicit F: Sync[F], clock: Clock[F]): Consumer[F, K, V] = {
+      Consumer(self, metrics)
+    }
+
+    def mapK[G[_]](f: F ~> G): Consumer[G, K, V] = new Consumer[G, K, V] {
+
+      def assign(partitions: Nel[TopicPartition]) = f(self.assign(partitions))
+
+      def assignment = f(self.assignment)
+
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = f(self.subscribe(topics, listener))
+
+      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = f(self.subscribe(pattern, listener))
+
+      def subscription = f(self.subscription)
+
+      def unsubscribe = f(self.unsubscribe)
+
+      def poll(timeout: FiniteDuration) = f(self.poll(timeout))
+
+      def commit = f(self.commit)
+
+      def commit(timeout: FiniteDuration) = f(self.commit(timeout))
+
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = f(self.commit(offsets))
+
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = f(self.commit(offsets, timeout))
+
+      def commitLater = f(self.commitLater)
+
+      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = f(self.commitLater(offsets))
+
+      def seek(partition: TopicPartition, offset: Offset) = f(self.seek(partition, offset))
+
+      def seekToBeginning(partitions: Nel[TopicPartition]) = f(self.seekToBeginning(partitions))
+
+      def seekToEnd(partitions: Nel[TopicPartition]) = f(self.seekToEnd(partitions))
+
+      def position(partition: TopicPartition) = f(self.position(partition))
+
+      def position(partition: TopicPartition, timeout: FiniteDuration) = f(self.position(partition, timeout))
+
+      def committed(partition: TopicPartition) = f(self.committed(partition))
+
+      def committed(partition: TopicPartition, timeout: FiniteDuration) = f(self.committed(partition, timeout))
+
+      def partitions(topic: Topic) = f(self.partitions(topic))
+
+      def partitions(topic: Topic, timeout: FiniteDuration) = f(self.partitions(topic, timeout))
+
+      def listTopics = f(self.listTopics)
+
+      def listTopics(timeout: FiniteDuration) = f(self.listTopics(timeout))
+
+      def pause(partitions: Nel[TopicPartition]) = f(self.pause(partitions))
+
+      def paused = f(self.paused)
+
+      def resume(partitions: Nel[TopicPartition]) = f(self.resume(partitions))
+
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
+        f(self.offsetsForTimes(timestampsToSearch))
+      }
+
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
+        f(self.offsetsForTimes(timestampsToSearch, timeout))
+      }
+
+      def beginningOffsets(partitions: Nel[TopicPartition]) = f(self.beginningOffsets(partitions))
+
+      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+        f(self.beginningOffsets(partitions, timeout))
+      }
+
+      def endOffsets(partitions: Nel[TopicPartition]) = {
+        f(self.endOffsets(partitions))
+      }
+
+      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+        f(self.endOffsets(partitions, timeout))
+      }
+
+      def wakeup = f(self.wakeup)
     }
   }
 }

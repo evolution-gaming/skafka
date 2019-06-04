@@ -16,12 +16,10 @@ object Blocking {
 
   def apply[F[_] : Sync : ContextShift](executor: ExecutionContext): Blocking[F] = {
 
-    def blocking[A](fa: F[A]) = ContextShift[F].evalOn(executor)(fa)
-
     new Blocking[F] {
 
       def apply[A](a: => A) = {
-        blocking { Sync[F].delay(a) }
+        ContextShift[F].evalOn(executor) { Sync[F].delay { a } }
       }
     }
   }

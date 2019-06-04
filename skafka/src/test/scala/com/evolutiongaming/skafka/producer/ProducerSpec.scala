@@ -2,11 +2,12 @@ package com.evolutiongaming.skafka.producer
 
 import java.util.concurrent.{CompletableFuture, TimeUnit}
 
-import cats.effect.IO
+import cats.arrow.FunctionK
+import cats.effect.{Concurrent, IO}
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Bytes, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Blocking, Bytes, PartitionInfo, TopicPartition}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
@@ -87,21 +88,6 @@ class ProducerSpec extends WordSpec with Matchers {
         flushCalled shouldEqual true
       }
     }
-
-    "proxy close" in new Scope {
-      closeCalled shouldEqual false
-      verify(producer.close) { _ =>
-        closeCalled shouldEqual true
-      }
-    }
-
-    "proxy close with timeout" in new Scope {
-      closeTimeout shouldEqual None
-      val timeout = 3.seconds
-      verify(producer.close(timeout)) { _ =>
-        closeTimeout shouldEqual Some(timeout)
-      }
-    }
   }
 
 
@@ -136,10 +122,6 @@ class ProducerSpec extends WordSpec with Matchers {
 
     "partitions" in new Scope {
       empty.partitions(topic) should produce(List.empty[PartitionInfo])
-    }
-
-    "close" in {
-      verify(empty.close) { _ => }
     }
 
     "flush" in {
@@ -192,11 +174,15 @@ class ProducerSpec extends WordSpec with Matchers {
 
       def abortTransaction() = Scope.this.abortTransaction = true
     }
-    val ec = CurrentThreadExecutionContext
+    
     val producer: Producer[IO] = {
-      implicit val ec = CurrentThreadExecutionContext
-      implicit val cs = IO.contextShift(ec)
-      implicit val producer = Producer[IO](jProducer, ec)
+      implicit val executor = CurrentThreadExecutionContext
+      implicit val cs = IO.contextShift(executor)
+      implicit val concurrentIO: Concurrent[IO]     = IO.ioConcurrentEffect
+      implicit val timer = IO.timer(executor)
+      implicit val producer = Producer[IO](jProducer, Blocking(executor))
+        .withMetrics(Metrics.empty)
+        .mapK(FunctionK.id)
       Producer[IO]
     }
   }

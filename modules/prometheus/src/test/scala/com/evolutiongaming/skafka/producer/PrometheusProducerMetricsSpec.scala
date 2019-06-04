@@ -76,12 +76,6 @@ class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
       }
     }
 
-    "measure close" in new Scope {
-      verify(producer.close) { _ =>
-        callLatencyCount("close") shouldEqual Some(1.0)
-      }
-    }
-
     "measure flush" in new Scope {
       verify(producer.flush) { _ =>
         callLatencyCount("flush") shouldEqual Some(1.0)

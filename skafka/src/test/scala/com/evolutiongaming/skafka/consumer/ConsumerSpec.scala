@@ -218,18 +218,6 @@ class ConsumerSpec extends WordSpec with Matchers {
       consumer.endOffsets(partitions, 1.second) should produce(Map((topicPartition, offset)))
     }
 
-    "close" in new Scope {
-      verify(consumer.close) { _ =>
-        close shouldEqual true
-      }
-    }
-
-    "close with timeout" in new Scope {
-      verify(consumer.close(1.second)) { _ =>
-        closeTimeout shouldEqual Some(1.second)
-      }
-    }
-
     "wakeup" in new Scope {
       verify(consumer.wakeup) { _ =>
         wakeup shouldEqual true
@@ -440,7 +428,7 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     val consumer = {
       val metrics = Metrics.empty[IO]
-      val consumer = Consumer[IO, Bytes, Bytes](consumerJ, executor)
+      val consumer = Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
       Consumer[IO, Bytes, Bytes](consumer, metrics)
     }
   }

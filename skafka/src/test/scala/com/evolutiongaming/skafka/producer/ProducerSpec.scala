@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import java.util.concurrent.{CompletableFuture, TimeUnit}
+import java.util.concurrent.CompletableFuture
 
 import cats.arrow.FunctionK
 import cats.effect.{Concurrent, IO}
@@ -14,7 +14,6 @@ import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicParti
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.duration._
 
 class ProducerSpec extends WordSpec with Matchers {
 
@@ -161,7 +160,7 @@ class ProducerSpec extends WordSpec with Matchers {
 
       def close() = {}
 
-      def close(timeout: Long, unit: TimeUnit) = {}
+      def close(timeout: java.time.Duration) = {}
 
       def send(record: ProducerRecordJ[Bytes, Bytes]) = completableFuture
 

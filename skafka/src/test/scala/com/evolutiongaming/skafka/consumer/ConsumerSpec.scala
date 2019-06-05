@@ -335,6 +335,8 @@ class ConsumerSpec extends WordSpec with Matchers {
         Scope.this.seek = Some((partition, offset))
       }
 
+      def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadataJ) = {}
+      
       def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]) = {
         Scope.this.seekToBeginning = partitions.asScala.toList
       }

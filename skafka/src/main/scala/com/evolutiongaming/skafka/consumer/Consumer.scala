@@ -60,6 +60,9 @@ trait Consumer[F[_], K, V] {
 
   def seek(partition: TopicPartition, offset: Offset): F[Unit]
 
+  def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): F[Unit]
+  
+
   def seekToBeginning(partitions: Nel[TopicPartition]): F[Unit]
 
   def seekToEnd(partitions: Nel[TopicPartition]): F[Unit]
@@ -145,6 +148,8 @@ object Consumer {
       def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = empty
 
       def seek(partition: TopicPartition, offset: Offset) = empty
+
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = empty
 
       def seekToBeginning(partitions: Nel[TopicPartition]) = empty
 
@@ -335,6 +340,12 @@ object Consumer {
       def seek(partition: TopicPartition, offset: Offset) = {
         val partitionsJ = partition.asJava
         Sync[F].delay { consumer.seek(partitionsJ, offset) }
+      }
+
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
+        val partitionsJ = partition.asJava
+        val offsetAndMetadataJ = offsetAndMetadata.asJava
+        Sync[F].delay { consumer.seek(partitionsJ, offsetAndMetadataJ) }
       }
 
       def seekToBeginning(partitions: Nel[TopicPartition]) = {
@@ -649,8 +660,15 @@ object Consumer {
 
       def seek(partition: TopicPartition, offset: Offset) = {
         for {
-          _ <- count("seek", Set(partition.topic))
+          _ <- count("seek", List(partition.topic))
           r <- consumer.seek(partition, offset)
+        } yield r
+      }
+
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
+        for {
+          _ <- count("seek", List(partition.topic))
+          r <- consumer.seek(partition, offsetAndMetadata)
         } yield r
       }
 
@@ -823,6 +841,8 @@ object Consumer {
       def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = f(self.commitLater(offsets))
 
       def seek(partition: TopicPartition, offset: Offset) = f(self.seek(partition, offset))
+
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = f(self.seek(partition, offsetAndMetadata))
 
       def seekToBeginning(partitions: Nel[TopicPartition]) = f(self.seekToBeginning(partitions))
 

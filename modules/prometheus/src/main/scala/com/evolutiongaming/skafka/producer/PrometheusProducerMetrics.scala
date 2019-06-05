@@ -6,6 +6,7 @@ import com.evolutiongaming.skafka.{ClientId, Topic}
 import io.prometheus.client.{CollectorRegistry, Counter, Summary}
 
 object PrometheusProducerMetrics {
+
   type Prefix = String
 
   object Prefix {
@@ -15,7 +16,8 @@ object PrometheusProducerMetrics {
 
   def apply[F[_] : Sync](
     registry: CollectorRegistry,
-    prefix: Prefix = Prefix.Default): ClientId => Metrics[F] = {
+    prefix: Prefix = Prefix.Default
+  ): ClientId => Metrics[F] = {
 
     val latencySummary = Summary.build()
       .name(s"${ prefix }_latency")

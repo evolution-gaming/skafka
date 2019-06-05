@@ -13,10 +13,11 @@ object PrometheusConsumerMetrics {
     val Default: Prefix = "skafka_consumer"
   }
 
+
   def apply[F[_] : Sync, K, V](
     registry: CollectorRegistry,
-    prefix: Prefix = Prefix.Default):
-  ClientId => Metrics[F] = {
+    prefix: Prefix = Prefix.Default
+  ): ClientId => Metrics[F] = {
 
     val callsCounter = Counter.build()
       .name(s"${ prefix }_calls")

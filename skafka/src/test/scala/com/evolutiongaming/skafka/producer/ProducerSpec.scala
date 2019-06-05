@@ -4,6 +4,7 @@ import java.util.concurrent.CompletableFuture
 
 import cats.arrow.FunctionK
 import cats.effect.{Concurrent, IO}
+import cats.implicits._
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
@@ -56,22 +57,22 @@ class ProducerSpec extends WordSpec with Matchers {
 
     "proxy send" in new Scope {
       val record = ProducerRecord(topic = topic, value = "val", key = "key")
-      producer.send(record) should produce(metadata)
+      producer.send(record).flatten should produce(metadata)
     }
 
     "proxy sendNoVal" in new Scope {
       val record = ProducerRecord(topic = topic, key = Some("key"))
-      producer.sendNoVal(record) should produce(metadata)
+      producer.sendNoVal(record).flatten should produce(metadata)
     }
 
     "proxy sendNoKey" in new Scope {
       val record = ProducerRecord(topic = topic, value = Some("val"))
-      producer.sendNoKey(record) should produce(metadata)
+      producer.sendNoKey(record).flatten should produce(metadata)
     }
 
     "proxy sendEmpty" in new Scope {
       val record = ProducerRecord(topic = topic)
-      producer.sendEmpty(record) should produce(metadata)
+      producer.sendEmpty(record).flatten should produce(metadata)
     }
 
     "partitions" in new Scope {
@@ -116,7 +117,7 @@ class ProducerSpec extends WordSpec with Matchers {
 
     "send" in {
       val record = ProducerRecord(topic = topic, value = "val", key = "key")
-      empty.send(record) should produce(metadata)
+      empty.send(record).flatten should produce(metadata)
     }
 
     "partitions" in new Scope {

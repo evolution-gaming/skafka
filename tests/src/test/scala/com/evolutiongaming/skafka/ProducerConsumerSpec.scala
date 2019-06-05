@@ -87,7 +87,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     val topic = s"$idx-$acks"
     val name = s"[topic:$topic,acks:$acks]"
 
-    def produce(record: ProducerRecord[String, String]) = producer.send(record).unsafeRunSync()
+    def produce(record: ProducerRecord[String, String]) = producer.send(record).flatten.unsafeRunSync()
 
     lazy val (consumer, consumerRelease) = consumerOf()
 

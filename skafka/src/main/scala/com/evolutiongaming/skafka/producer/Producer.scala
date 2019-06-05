@@ -3,18 +3,20 @@ package producer
 
 import cats.effect._
 import cats.implicits._
-import cats.{Applicative, ~>}
+import cats.{Applicative, FlatMap, ~>}
 import com.evolutiongaming.catshelper.ClockHelper._
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{FromFuture, Log}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, ExecutionException}
+import scala.concurrent.{ExecutionContext, ExecutionException, Promise}
 import scala.util.control.NoStackTrace
 
-
+/**
+  * See [[org.apache.kafka.clients.producer.Producer]]
+  */
 trait Producer[F[_]] {
 
   def initTransactions: F[Unit]
@@ -27,18 +29,21 @@ trait Producer[F[_]] {
 
   def abortTransaction: F[Unit]
 
-  def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata]
+  /**
+    * @return Outer F[_] is about batching, inner F[_] is about sending
+    */
+  def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[F[RecordMetadata]]
 
 
-  final def sendNoKey[V: ToBytes](record: ProducerRecord[Nothing, V]): F[RecordMetadata] = {
+  final def sendNoKey[V: ToBytes](record: ProducerRecord[Nothing, V]): F[F[RecordMetadata]] = {
     send(record)(ToBytes.empty, ToBytes[V])
   }
 
-  final def sendNoVal[K: ToBytes](record: ProducerRecord[K, Nothing]): F[RecordMetadata] = {
+  final def sendNoVal[K: ToBytes](record: ProducerRecord[K, Nothing]): F[F[RecordMetadata]] = {
     send(record)(ToBytes[K], ToBytes.empty)
   }
 
-  final def sendEmpty(record: ProducerRecord[Nothing, Nothing]): F[RecordMetadata] = {
+  final def sendEmpty(record: ProducerRecord[Nothing, Nothing]): F[F[RecordMetadata]] = {
     send(record)(ToBytes.empty, ToBytes.empty)
   }
 
@@ -75,7 +80,7 @@ object Producer {
         val partition = record.partition getOrElse Partition.Min
         val topicPartition = TopicPartition(record.topic, partition)
         val metadata = RecordMetadata(topicPartition, record.timestamp)
-        metadata.pure[F]
+        metadata.pure[F].pure[F]
       }
 
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
@@ -85,7 +90,7 @@ object Producer {
   }
 
 
-  def of[F[_] : Async : ContextShift](
+  def of[F[_] : Sync : ContextShift : FromFuture](
     config: ProducerConfig,
     executorBlocking: ExecutionContext
   ): Resource[F, Producer[F]] = {
@@ -103,7 +108,7 @@ object Producer {
   }
   
 
-  def apply[F[_] : Async : ContextShift](
+  def apply[F[_] : Sync : FromFuture](
     producer: ProducerJ[Bytes, Bytes],
     blocking: Blocking[F]
   ): Producer[F] = {
@@ -134,32 +139,42 @@ object Producer {
 
       def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
 
-        def send(record: ProducerRecordJ[Bytes, Bytes]) = {
-          Async[F].asyncF[RecordMetadataJ] { f =>
-            val callback = new Callback {
-              def onCompletion(metadata: RecordMetadataJ, exception: Exception) = {
-                if (exception != null) {
-                  f(exception.asLeft)
-                } else if (metadata != null) {
-                  f(metadata.asRight)
-                } else {
-                  val exception = new RuntimeException("both metadata & exception are nulls") with NoStackTrace
-                  f(exception.asLeft)
-                }
+        def executionException[A]: PartialFunction[Throwable, F[A]] = {
+          case failure: ExecutionException => failure.getCause.raiseError[F, A]
+        }
+
+        def block(record: ProducerRecordJ[Bytes, Bytes]) = {
+
+          def callbackOf(promise: Promise[RecordMetadataJ]) = new Callback {
+            def onCompletion(metadata: RecordMetadataJ, exception: Exception) = {
+              if (exception != null) {
+                promise.failure(exception)
+              } else if (metadata != null) {
+                promise.success(metadata)
+              } else {
+                val exception = new RuntimeException("both metadata & exception are nulls") with NoStackTrace
+                promise.failure(exception)
               }
             }
+          }
 
-            blocking { producer.send(record, callback) }
-              .void
-              .recoverWith { case failure: ExecutionException => failure.getCause.raiseError[F, Unit] }
+          Sync[F].uncancelable {
+            for {
+              promise  <- Sync[F].delay { Promise[RecordMetadataJ]() }
+              callback  = callbackOf(promise)
+              _        <- blocking { producer.send(record, callback) }.recoverWith(executionException)
+            } yield {
+              FromFuture[F].apply(promise.future).recoverWith(executionException)
+            }
           }
         }
 
         for {
-          recordBytes <- Sync[F].delay { record.toBytes }
-          recordJ      = recordBytes.asJava
-          result      <- send(recordJ)
-          _           <- ContextShift[F].shift
+          bytes  <- Sync[F].delay { record.toBytes }
+          bytesJ  = bytes.asJava
+          result <- block(bytesJ)
+        } yield for {
+          result <- result
         } yield {
           result.asScala
         }
@@ -243,14 +258,24 @@ object Producer {
       }
 
       def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+        val topic = record.topic
         for {
           rl     <- latency { producer.send(record).attempt }
           (r, l)  = rl
-          _      <- r match {
-            case Right(r) => metrics.send(record.topic, l, r.valueSerializedSize getOrElse 0)
-            case Left(_)  => metrics.failure(record.topic, l)
+          _ <- metrics.block(topic, l)
+          _ <- r  match {
+            case Right(_) => ().pure[F]
+            case Left(_)  => metrics.failure(topic, l)
           }
-          r      <- r.raiseOrPure[F]
+          r <- r.raiseOrPure[F]
+        } yield for {
+          rl <- latency { r.attempt }
+          (r, l) = rl
+          _ <- r match {
+            case Right(r) => metrics.send(topic, l, r.valueSerializedSize getOrElse 0)
+            case Left(_)  => metrics.failure(topic, l)
+          }
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
@@ -285,7 +310,7 @@ object Producer {
       Producer(self, metrics)
     }
 
-    def mapK[G[_]](f: F ~> G): Producer[G] = new Producer[G] {
+    def mapK[G[_] : FlatMap](f: F ~> G): Producer[G] = new Producer[G] {
 
       def initTransactions = f(self.initTransactions)
 
@@ -299,7 +324,13 @@ object Producer {
 
       def abortTransaction = f(self.abortTransaction)
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = f(self.send(record))
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+        for {
+          a <- f(self.send(record))
+        } yield {
+          f(a)
+        }
+      }
 
       def partitions(topic: Topic) = f(self.partitions(topic))
 
@@ -310,17 +341,17 @@ object Producer {
 
   trait Send[F[_]] {
 
-    def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata]
+    def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[F[RecordMetadata]]
 
-    final def noKey[V: ToBytes](record: ProducerRecord[Nothing, V]): F[RecordMetadata] = {
+    final def noKey[V: ToBytes](record: ProducerRecord[Nothing, V]): F[F[RecordMetadata]] = {
       apply(record)(ToBytes.empty, ToBytes[V])
     }
 
-    final def noVal[K: ToBytes](record: ProducerRecord[K, Nothing]): F[RecordMetadata] = {
+    final def noVal[K: ToBytes](record: ProducerRecord[K, Nothing]): F[F[RecordMetadata]] = {
       apply(record)(ToBytes[K], ToBytes.empty)
     }
 
-    final def empty(record: ProducerRecord[Nothing, Nothing]): F[RecordMetadata] = {
+    final def empty(record: ProducerRecord[Nothing, Nothing]): F[F[RecordMetadata]] = {
       apply(record)(ToBytes.empty, ToBytes.empty)
     }
   }
@@ -330,6 +361,7 @@ object Producer {
     def empty[F[_] : Applicative]: Send[F] = apply(Producer.empty)
 
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {
+      
       def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
         producer.send(record)
       }

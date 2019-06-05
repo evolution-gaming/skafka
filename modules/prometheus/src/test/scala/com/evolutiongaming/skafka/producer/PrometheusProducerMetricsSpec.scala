@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.effect.IO
+import cats.implicits._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.IOSuite._
 import io.prometheus.client.CollectorRegistry
@@ -44,7 +45,7 @@ class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
     "measure send call" in new Scope {
 
       val record = ProducerRecord(topic = "topic", key = "key", value = "val")
-      private val io = producer.send(record)
+      private val io = producer.send(record).flatten
       verify(io) { _ =>
         def result(name: String) = Option {
           registry.getSampleValue(
@@ -67,6 +68,7 @@ class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
         bytes("sum") shouldEqual Some(0.0)
 
         latencyCount("send") shouldEqual Some(1.0)
+        latencyCount("block") shouldEqual Some(1.0)
       }
     }
 

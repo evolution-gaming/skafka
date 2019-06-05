@@ -102,6 +102,12 @@ object PrometheusProducerMetrics {
           observeLatency("abort_transaction", latency)
         }
 
+        def block(topic: Topic, latency: Long) = delay {
+          latencySummary
+            .labels(clientId, topic, "block")
+            .observe(latency.toSeconds)
+        }
+
         def send(topic: Topic, latency: Long, bytes: Int) = delay {
           sendMeasure(result = "success", topic = topic, latency = latency)
           bytesSummary

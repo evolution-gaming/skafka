@@ -26,12 +26,23 @@ object ProducerLogging {
 
       val abortTransaction = producer.abortTransaction
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[RecordMetadata] = {
-        producer.send(record).attempt.flatMap {
-          case Right(metadata) =>
-            log.debug(s"sent $record, metadata: $metadata").as(metadata)
-          case Left(failure)   =>
-            log.error(s"failed to send record $record: $failure") *> failure.raiseError[F, RecordMetadata]
+      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+        val a = for {
+          a <- producer.send(record)
+        } yield for {
+          a <- a.attempt
+          _ <- a match {
+            case Right(a) => log.debug(s"sent $record, metadata: $a")
+            case Left(e)  => log.error(s"failed to send record $record: $e")
+          }
+          a <- a.raiseOrPure[F]
+        } yield a
+
+        a.handleErrorWith { e =>
+          for {
+            _ <- log.error(s"failed to send record $record: $e")
+            a <- e.raiseError[F, F[RecordMetadata]]
+          } yield a
         }
       }
 

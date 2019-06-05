@@ -5,7 +5,7 @@ import com.evolutiongaming.skafka.{ToBytes, Topic}
 import play.api.libs.json.{JsValue, Json}
 
 trait JsonProducer[F[_]] {
-  def apply(record: ProducerRecord[String, JsValue]): F[RecordMetadata]
+  def apply(record: ProducerRecord[String, JsValue]): F[F[RecordMetadata]]
 }
 
 object JsonProducer {

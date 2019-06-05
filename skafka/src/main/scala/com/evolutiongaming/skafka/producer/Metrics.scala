@@ -19,6 +19,8 @@ trait Metrics[F[_]] {
 
   def send(topic: Topic, latency: Long, bytes: Int): F[Unit]
 
+  def block(topic: Topic, latency: Long): F[Unit]
+
   def failure(topic: Topic, latency: Long): F[Unit]
 
   def partitions(topic: Topic, latency: Latency): F[Unit]
@@ -30,26 +32,32 @@ object Metrics {
 
   type Latency = Long
 
-  def empty[F[_] : Applicative]: Metrics[F] = new Metrics[F] {
-    val empty: F[Unit] = ().pure[F]
+  def empty[F[_] : Applicative]: Metrics[F] = {
+    
+    val empty = ().pure[F]
 
-    def initTransactions(latency: Long): F[Unit] = empty
+    new Metrics[F] {
 
-    val beginTransaction: F[Unit] = empty
+      def initTransactions(latency: Long): F[Unit] = empty
 
-    def sendOffsetsToTransaction(latency: Long): F[Unit] = empty
+      val beginTransaction: F[Unit] = empty
 
-    def commitTransaction(latency: Long): F[Unit] = empty
+      def sendOffsetsToTransaction(latency: Long): F[Unit] = empty
 
-    def abortTransaction(latency: Long): F[Unit] = empty
+      def commitTransaction(latency: Long): F[Unit] = empty
 
-    def send(topic: Topic, latency: Long, bytes: Int): F[Unit] = empty
+      def abortTransaction(latency: Long): F[Unit] = empty
 
-    def failure(topic: Topic, latency: Long): F[Unit] = empty
+      def block(topic: Topic, latency: Latency) = empty
 
-    def partitions(topic: Topic, latency: Latency): F[Unit] = empty
+      def send(topic: Topic, latency: Long, bytes: Int): F[Unit] = empty
 
-    def flush(latency: Long): F[Unit] = empty
+      def failure(topic: Topic, latency: Long): F[Unit] = empty
+
+      def partitions(topic: Topic, latency: Latency): F[Unit] = empty
+
+      def flush(latency: Long): F[Unit] = empty
+    }
   }
 }
 

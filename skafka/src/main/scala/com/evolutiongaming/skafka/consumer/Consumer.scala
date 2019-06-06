@@ -214,7 +214,7 @@ object Consumer {
   ): Resource[F, Consumer[F, K, V]] = {
 
     val blocking = Blocking(executorBlocking)
-    val consumerJ = CreateConsumerJ(config, valueFromBytes, keyFromBytes)
+    val consumerJ = CreateConsumerJ(config, valueFromBytes, keyFromBytes, blocking)
 
     val result = for {
       consumerJ <- consumerJ

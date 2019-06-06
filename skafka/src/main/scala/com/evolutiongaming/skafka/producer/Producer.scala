@@ -98,7 +98,7 @@ object Producer {
     val blocking = Blocking(executorBlocking)
 
     val result = for {
-      producerJ <- CreateProducerJ(config)
+      producerJ <- CreateProducerJ(config, blocking)
       producer   = apply(producerJ, blocking)
       release    = blocking { producerJ.close() }
     } yield {

@@ -1,21 +1,20 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect.Sync
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.FromBytes
+import com.evolutiongaming.skafka.{Blocking, FromBytes}
 import org.apache.kafka.clients.consumer.KafkaConsumer
 
 object CreateConsumerJ {
 
-  def apply[F[_] : Sync, K, V](
+  def apply[F[_], K, V](
     config: ConsumerConfig,
     valueFromBytes: FromBytes[V],
-    keyFromBytes: FromBytes[K]
+    keyFromBytes: FromBytes[K],
+    blocking: Blocking[F]
   ): F[KafkaConsumer[K, V]] = {
 
     val valueDeserializer = valueFromBytes.asJava
     val keyDeserializer = keyFromBytes.asJava
-    val consumer = new KafkaConsumer(config.properties, keyDeserializer, valueDeserializer)
-    Sync[F].delay { consumer }
+    blocking { new KafkaConsumer(config.properties, keyDeserializer, valueDeserializer) }
   }
 }

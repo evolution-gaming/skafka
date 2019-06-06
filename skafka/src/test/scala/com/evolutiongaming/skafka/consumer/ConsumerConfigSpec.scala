@@ -64,7 +64,6 @@ class ConsumerConfigSpec extends FunSuite with Matchers {
       "fetch.min.bytes" -> "1",
       "metrics.sample.window.ms" -> "30000",
       "security.protocol" -> "PLAINTEXT",
-      "group.id" -> "",
       "bootstrap.servers" -> "localhost:9092,127.0.0.1:9092",
       "enable.auto.commit" -> "true",
       "fetch.max.bytes" -> "52428800",

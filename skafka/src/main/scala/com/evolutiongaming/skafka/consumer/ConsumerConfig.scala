@@ -32,8 +32,8 @@ final case class ConsumerConfig(
   isolationLevel: IsolationLevel = IsolationLevel.ReadUncommitted) {
 
   def bindings: Map[String, String] = {
-    val bindings = Map[String, String](
-      (C.GROUP_ID_CONFIG, groupId getOrElse ""),
+    val groupIdMap = groupId.fold(Map.empty[String, String]) { groupId => Map((C.GROUP_ID_CONFIG, groupId)) }
+    val bindings = groupIdMap ++ Map[String, String](
       (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
       (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
       (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),

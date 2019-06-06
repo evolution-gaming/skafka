@@ -11,7 +11,7 @@ It provides non-blocking and null-less apis:
 
 ```scala
 val producer = Producer.of[IO](config, ecBlocking)
-val metadata: IO[RecordMetadata] = Producer.of[IO](config, ecBlocking).use { producer =>
+val metadata: IO[RecordMetadata] = producer.use { producer =>
   val record = ProducerRecord(topic = "topic", key = "key", value = "value") 
   producer.send(record).flatten 
 }

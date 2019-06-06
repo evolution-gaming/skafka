@@ -179,7 +179,7 @@ class ProducerSpec extends WordSpec with Matchers {
       implicit val concurrentIO: Concurrent[IO]     = IO.ioConcurrentEffect
       implicit val timer = IO.timer(executor)
       implicit val producer = Producer[IO](jProducer, Blocking(executor))
-        .withMetrics(Metrics.empty)
+        .withMetrics(ProducerMetrics.empty)
         .mapK(FunctionK.id)
       Producer[IO]
     }

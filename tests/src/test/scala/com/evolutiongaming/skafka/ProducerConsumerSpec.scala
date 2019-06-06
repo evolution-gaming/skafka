@@ -70,7 +70,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     } yield {
       producer
         .withLogging(Log.empty)
-        .withMetrics(com.evolutiongaming.skafka.producer.Metrics.empty)
+        .withMetrics(com.evolutiongaming.skafka.producer.ProducerMetrics.empty)
     }
     List(producer.allocated.unsafeRunSync())
   }
@@ -103,7 +103,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         _        <- Resource.liftF(consumer.subscribe(Nel(topic), None))
       } yield {
         consumer
-          .withMetrics(com.evolutiongaming.skafka.consumer.Metrics.empty)
+          .withMetrics(com.evolutiongaming.skafka.consumer.ConsumerMetrics.empty)
           .mapK(FunctionK.id)
       }
       consumer.allocated.unsafeRunSync()

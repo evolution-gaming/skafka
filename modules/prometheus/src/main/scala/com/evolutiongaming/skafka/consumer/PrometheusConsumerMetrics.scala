@@ -17,7 +17,7 @@ object PrometheusConsumerMetrics {
   def apply[F[_] : Sync, K, V](
     registry: CollectorRegistry,
     prefix: Prefix = Prefix.Default
-  ): ClientId => Metrics[F] = {
+  ): ClientId => ConsumerMetrics[F] = {
 
     val callsCounter = Counter.build()
       .name(s"${ prefix }_calls")
@@ -74,7 +74,7 @@ object PrometheusConsumerMetrics {
     import sync.delay
 
     clientId: ClientId => {
-      new Metrics[F] {
+      new ConsumerMetrics[F] {
         def call(name: String, topic: Topic, latency: Long, success: Boolean) = delay {
           val result = if (success) "success" else "failure"
           latencySummary

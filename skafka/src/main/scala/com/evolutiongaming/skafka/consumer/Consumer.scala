@@ -507,7 +507,7 @@ object Consumer {
 
   def apply[F[_] : Sync : Clock, K, V](
     consumer: Consumer[F, K, V],
-    metrics: Metrics[F]
+    metrics: ConsumerMetrics[F]
   ): Consumer[F, K, V] = {
 
     implicit val monoidUnit = Applicative.monoid[F, Unit]
@@ -808,7 +808,7 @@ object Consumer {
 
   implicit class ConsumerOps[F[_], K, V](val self: Consumer[F, K, V]) extends AnyVal {
 
-    def withMetrics(metrics: Metrics[F])(implicit F: Sync[F], clock: Clock[F]): Consumer[F, K, V] = {
+    def withMetrics(metrics: ConsumerMetrics[F])(implicit F: Sync[F], clock: Clock[F]): Consumer[F, K, V] = {
       Consumer(self, metrics)
     }
 

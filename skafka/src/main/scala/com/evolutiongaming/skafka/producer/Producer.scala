@@ -198,7 +198,7 @@ object Producer {
 
   def apply[F[_] : Sync : Clock](
     producer: Producer[F],
-    metrics: Metrics[F]
+    metrics: ProducerMetrics[F]
   ): Producer[F] = {
     
     def latency[A](fa: F[A]) = {
@@ -306,7 +306,7 @@ object Producer {
       ProducerLogging(self, log)
     }
 
-    def withMetrics(metrics: Metrics[F])(implicit F: Sync[F], clock: Clock[F]): Producer[F] = {
+    def withMetrics(metrics: ProducerMetrics[F])(implicit F: Sync[F], clock: Clock[F]): Producer[F] = {
       Producer(self, metrics)
     }
 

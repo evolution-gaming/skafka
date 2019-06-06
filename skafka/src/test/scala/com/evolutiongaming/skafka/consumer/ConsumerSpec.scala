@@ -419,7 +419,7 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     val consumer = {
-      val metrics = Metrics.empty[IO]
+      val metrics = ConsumerMetrics.empty[IO]
       val consumer = Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
       Consumer[IO, Bytes, Bytes](consumer, metrics)
     }

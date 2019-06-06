@@ -17,7 +17,7 @@ object PrometheusProducerMetrics {
   def apply[F[_] : Sync](
     registry: CollectorRegistry,
     prefix: Prefix = Prefix.Default
-  ): ClientId => Metrics[F] = {
+  ): ClientId => ProducerMetrics[F] = {
 
     val latencySummary = Summary.build()
       .name(s"${ prefix }_latency")
@@ -78,7 +78,7 @@ object PrometheusProducerMetrics {
 
       import sync.delay
 
-      new Metrics[F] {
+      new ProducerMetrics[F] {
 
         def initTransactions(latency: Long) = delay {
           observeLatency("init_transactions", latency)

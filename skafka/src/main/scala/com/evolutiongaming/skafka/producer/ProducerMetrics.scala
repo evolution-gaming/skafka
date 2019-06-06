@@ -2,10 +2,10 @@ package com.evolutiongaming.skafka.producer
 
 import cats.Applicative
 import com.evolutiongaming.skafka.Topic
-import com.evolutiongaming.skafka.producer.Metrics.Latency
+import com.evolutiongaming.skafka.producer.ProducerMetrics.Latency
 import cats.implicits._
 
-trait Metrics[F[_]] {
+trait ProducerMetrics[F[_]] {
 
   def initTransactions(latency: Long): F[Unit]
 
@@ -28,15 +28,15 @@ trait Metrics[F[_]] {
   def flush(latency: Long): F[Unit]
 }
 
-object Metrics {
+object ProducerMetrics {
 
   type Latency = Long
 
-  def empty[F[_] : Applicative]: Metrics[F] = {
-    
+  def empty[F[_] : Applicative]: ProducerMetrics[F] = {
+
     val empty = ().pure[F]
 
-    new Metrics[F] {
+    new ProducerMetrics[F] {
 
       def initTransactions(latency: Long): F[Unit] = empty
 

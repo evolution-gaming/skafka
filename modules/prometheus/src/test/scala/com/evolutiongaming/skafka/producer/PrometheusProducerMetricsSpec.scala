@@ -87,7 +87,7 @@ class PrometheusProducerMetricsSpec extends WordSpec with Matchers {
 
   private trait Scope {
     val registry = new CollectorRegistry()
-    val metrics = PrometheusProducerMetrics[IO](registry).apply("")
+    val metrics = PrometheusProducerMetrics.of[IO](registry).unsafeRunSync().apply("")
     val producer = Producer[IO](Producer.empty[IO], metrics)
 
     def callLatencyCount(name: String) = Option {

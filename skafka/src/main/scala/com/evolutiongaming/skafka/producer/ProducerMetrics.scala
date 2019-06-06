@@ -1,9 +1,9 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.Applicative
+import cats.implicits._
 import com.evolutiongaming.skafka.Topic
 import com.evolutiongaming.skafka.producer.ProducerMetrics.Latency
-import cats.implicits._
 
 trait ProducerMetrics[F[_]] {
 
@@ -32,32 +32,29 @@ object ProducerMetrics {
 
   type Latency = Long
 
-  def empty[F[_] : Applicative]: ProducerMetrics[F] = {
+  def empty[F[_] : Applicative]: ProducerMetrics[F] = const(().pure[F])
 
-    val empty = ().pure[F]
+  def const[F[_]](unit: F[Unit]): ProducerMetrics[F] = new ProducerMetrics[F] {
 
-    new ProducerMetrics[F] {
+    def initTransactions(latency: Long): F[Unit] = unit
 
-      def initTransactions(latency: Long): F[Unit] = empty
+    val beginTransaction: F[Unit] = unit
 
-      val beginTransaction: F[Unit] = empty
+    def sendOffsetsToTransaction(latency: Long): F[Unit] = unit
 
-      def sendOffsetsToTransaction(latency: Long): F[Unit] = empty
+    def commitTransaction(latency: Long): F[Unit] = unit
 
-      def commitTransaction(latency: Long): F[Unit] = empty
+    def abortTransaction(latency: Long): F[Unit] = unit
 
-      def abortTransaction(latency: Long): F[Unit] = empty
+    def block(topic: Topic, latency: Latency) = unit
 
-      def block(topic: Topic, latency: Latency) = empty
+    def send(topic: Topic, latency: Long, bytes: Int): F[Unit] = unit
 
-      def send(topic: Topic, latency: Long, bytes: Int): F[Unit] = empty
+    def failure(topic: Topic, latency: Long): F[Unit] = unit
 
-      def failure(topic: Topic, latency: Long): F[Unit] = empty
+    def partitions(topic: Topic, latency: Latency): F[Unit] = unit
 
-      def partitions(topic: Topic, latency: Latency): F[Unit] = empty
-
-      def flush(latency: Long): F[Unit] = empty
-    }
+    def flush(latency: Long): F[Unit] = unit
   }
 }
 

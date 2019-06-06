@@ -1,8 +1,8 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.Applicative
-import com.evolutiongaming.skafka.{Topic, TopicPartition}
 import cats.implicits._
+import com.evolutiongaming.skafka.{Topic, TopicPartition}
 
 trait ConsumerMetrics[F[_]] {
 
@@ -19,21 +19,18 @@ trait ConsumerMetrics[F[_]] {
 
 object ConsumerMetrics {
 
-  def empty[F[_] : Applicative]: ConsumerMetrics[F] = {
-    
-    val empty = ().pure[F]
+  def empty[F[_] : Applicative]: ConsumerMetrics[F] = const(().pure[F])
 
-    new ConsumerMetrics[F] {
+  def const[F[_]](unit: F[Unit]): ConsumerMetrics[F] = new ConsumerMetrics[F] {
 
-      def call(name: String, topic: Topic, latency: Long, success: Boolean) = empty
+    def call(name: String, topic: Topic, latency: Long, success: Boolean) = unit
 
-      def poll(topic: Topic, bytes: Int, records: Int) = empty
+    def poll(topic: Topic, bytes: Int, records: Int) = unit
 
-      def count(name: String, topic: Topic) = empty
+    def count(name: String, topic: Topic) = unit
 
-      def rebalance(name: String, topicPartition: TopicPartition) = empty
+    def rebalance(name: String, topicPartition: TopicPartition) = unit
 
-      def listTopics(latency: Long) = empty
-    }
+    def listTopics(latency: Long) = unit
   }
 }

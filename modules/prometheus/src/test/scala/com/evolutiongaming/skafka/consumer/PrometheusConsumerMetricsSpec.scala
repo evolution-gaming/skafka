@@ -73,7 +73,7 @@ class PrometheusConsumerMetricsSpec extends WordSpec with Matchers {
 
   private trait Scope {
     val registry = new CollectorRegistry()
-    val metrics = PrometheusConsumerMetrics.of[IO, String, String](registry).unsafeRunSync().apply(clientId)
+    val metrics = PrometheusConsumerMetrics.of[IO](registry).unsafeRunSync().apply(clientId)
     val consumer = Consumer(Consumer.empty[IO, String, String], metrics)
   }
 

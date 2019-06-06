@@ -14,7 +14,7 @@ object PrometheusConsumerMetrics {
   }
 
 
-  def of[F[_] : Sync, K, V](
+  def of[F[_] : Sync](
     registry: CollectorRegistry,
     prefix: Prefix = Prefix.Default
   ): F[ClientId => ConsumerMetrics[F]] = {

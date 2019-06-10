@@ -2,9 +2,17 @@
 
 Scala wrapper for [kafka-clients v2.2.1](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/2.1.0)
 
-It provides non-blocking and null-less apis:
-* [Producer](skafka/src/main/scala/com/evolutiongaming/skafka/producer/Producer.scala) 
-* [Consumer](skafka/src/main/scala/com/evolutiongaming/skafka/consumer/Consumer.scala)  
+## Key features
+
+1. It provides null-less Scala apis for [Producer](skafka/src/main/scala/com/evolutiongaming/skafka/producer/Producer.scala) & [Consumer](skafka/src/main/scala/com/evolutiongaming/skafka/consumer/Consumer.scala)
+
+2. Makes it easy to use your effect monad with help of [cats-effect](https://typelevel.org/cats-effect/)
+
+3. Blocking calls are being executed on provided `ExecutionContext`.
+
+4. Simple `case class` based configuration
+
+5. Support of [typesafe config](https://github.com/lightbend/config)    
 
 
 ## Producer usage example

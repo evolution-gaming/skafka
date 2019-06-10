@@ -44,8 +44,6 @@ resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies += "com.evolutiongaming" %% "skafka" % "4.0.4"
 
-libraryDependencies += "com.evolutiongaming" %% "skafka-logging" % "4.0.4"
-
 libraryDependencies += "com.evolutiongaming" %% "skafka-prometheus" % "4.0.4"
 
 libraryDependencies += "com.evolutiongaming" %% "skafka-play-json" % "4.0.4"

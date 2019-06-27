@@ -310,9 +310,11 @@ object Producer {
       ProducerLogging(self, log)
     }
 
+
     def withMetrics(metrics: ProducerMetrics[F])(implicit F: Sync[F], clock: Clock[F]): Producer[F] = {
       Producer(self, metrics)
     }
+
 
     def mapK[G[_] : FlatMap](f: F ~> G): Producer[G] = new Producer[G] {
 
@@ -340,6 +342,9 @@ object Producer {
 
       def flush = f(self.flush)
     }
+
+
+    def toSend: Send[F] = Send(self)
   }
 
 

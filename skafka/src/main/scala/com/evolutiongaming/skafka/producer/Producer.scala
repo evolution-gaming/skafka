@@ -55,10 +55,10 @@ trait Producer[F[_]] {
 object Producer {
 
   def apply[F[_]](implicit F: Producer[F]): Producer[F] = F
-  
+
 
   def empty[F[_] : Applicative]: Producer[F] = {
-    
+
     val empty = ().pure[F]
 
     new Producer[F] {
@@ -110,13 +110,13 @@ object Producer {
     }
     Resource(result)
   }
-  
+
 
   def apply[F[_] : Sync : FromFuture](
     producer: ProducerJ[Bytes, Bytes],
     blocking: Blocking[F]
   ): Producer[F] = {
-    
+
     new Producer[F] {
 
       val initTransactions = {
@@ -204,7 +204,7 @@ object Producer {
     producer: Producer[F],
     metrics: ProducerMetrics[F]
   ): Producer[F] = {
-    
+
     def latency[A](fa: F[A]) = {
       for {
         start   <- Clock[F].millis
@@ -217,7 +217,7 @@ object Producer {
     }
 
     new Producer[F] {
-      
+
       val initTransactions = {
         for {
           rl     <- latency { producer.initTransactions.attempt }
@@ -361,13 +361,28 @@ object Producer {
   }
 
   object Send {
-    
+
     def empty[F[_] : Applicative]: Send[F] = apply(Producer.empty)
 
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {
-      
+
       def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
         producer.send(record)
+      }
+    }
+
+
+    implicit class SendOps[F[_]](val self: Send[F]) extends AnyVal {
+
+      def mapK[G[_] : FlatMap](f: F ~> G): Send[G] = new Send[G] {
+
+        def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+          for {
+            a <- f(self(record))
+          } yield {
+            f(a)
+          }
+        }
       }
     }
   }

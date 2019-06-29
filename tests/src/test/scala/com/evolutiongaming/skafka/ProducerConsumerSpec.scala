@@ -258,7 +258,7 @@ object ProducerConsumerSpec {
         if (attempts <= 0) Nil
         else {
           val future = self.poll(100.millis).unsafeToFuture()
-          val records = Await.result(future, timeout).values.values.flatten
+          val records = Await.result(future, timeout).values.values.flatMap(_.toList)
           if (records.isEmpty) consume(attempts - 1)
           else records.toList
         }

@@ -620,14 +620,11 @@ object Consumer {
 
       def poll(timeout: FiniteDuration) =
         for {
-          records <- call1("poll") {
-            consumer.poll(timeout)
-          }
-          topics <- Sync[F].delay { records.values.values.flatten.groupBy(_.topic) }
-          _ <- topics.toList.traverse {
-            case (topic, topicRecords) =>
-              val bytes = topicRecords.flatMap(_.value).map(_.serializedSize).sum
-              metrics.poll(topic, bytes = bytes, records = topicRecords.size)
+          records <- call1("poll") { consumer.poll(timeout) }
+          topics    = records.values.values.flatMap(_.toList).groupBy(_.topic)
+          _       <- topics.toList.traverse { case (topic, topicRecords) =>
+            val bytes = topicRecords.flatMap(_.value).map(_.serializedSize).sum
+            metrics.poll(topic, bytes = bytes, records = topicRecords.size)
           }
         } yield records
 

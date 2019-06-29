@@ -1,9 +1,10 @@
 package com.evolutiongaming.skafka.consumer
 
+import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka._
 
 
-final case class ConsumerRecord[K, V](
+final case class ConsumerRecord[K, +V](
   topicPartition: TopicPartition,
   offset: Offset,
   timestampAndType: Option[TimestampAndType],
@@ -17,7 +18,7 @@ final case class ConsumerRecord[K, V](
 }
 
 
-final case class ConsumerRecords[K, V](values: Map[TopicPartition, List[ConsumerRecord[K, V]]])
+final case class ConsumerRecords[K, +V](values: Map[TopicPartition, Nel[ConsumerRecord[K, V]]])
 
 object ConsumerRecords {
   private val _empty = ConsumerRecords(Map.empty)
@@ -26,4 +27,4 @@ object ConsumerRecords {
 }
 
 
-final case class WithSize[+T](value: T, serializedSize: Int = 0)
+final case class WithSize[+A](value: A, serializedSize: Int = 0)

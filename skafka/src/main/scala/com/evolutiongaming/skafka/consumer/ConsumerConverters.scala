@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
@@ -133,10 +134,11 @@ object ConsumerConverters {
       val partitions = self.partitions()
       val records = for {
         partitionJ <- partitions.asScala
+        recordsJ    = self.records(partitionJ)
+        partition   = partitionJ.asScala
+        records     = recordsJ.asScala.map(_.asScala).toList
+        records    <- Nel.opt(records)
       } yield {
-        val recordsJ = self.records(partitionJ)
-        val partition = partitionJ.asScala
-        val records = recordsJ.asScala.map(_.asScala).toList
         (partition, records)
       }
       ConsumerRecords(records.toMap)

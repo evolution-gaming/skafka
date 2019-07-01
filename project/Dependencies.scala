@@ -8,11 +8,11 @@ object Dependencies {
   val `metric-tools`       = "com.evolutiongaming"    %% "metric-tools"       % "1.1"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.5"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"     % "0.0.6"
-  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"        % "0.0.12"
-  val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.3"
+  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"        % "0.0.14"
+  val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.4"
   val `cats-effect`        = "org.typelevel"          %% "cats-effect"        % "1.3.1"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
-  val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.7"
+  val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.8"
   val prometheus           = "io.prometheus"           % "simpleclient"       % "0.6.0"
   
 

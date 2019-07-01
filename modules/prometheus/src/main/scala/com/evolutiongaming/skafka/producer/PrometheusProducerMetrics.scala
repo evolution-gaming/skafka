@@ -24,9 +24,7 @@ object PrometheusProducerMetrics {
         .name(s"${ prefix }_latency")
         .help("Latency in seconds")
         .labelNames("client", "topic", "type")
-        .quantile(0.5, 0.05)
         .quantile(0.9, 0.05)
-        .quantile(0.95, 0.01)
         .quantile(0.99, 0.005)
         .register(registry)
 
@@ -46,9 +44,7 @@ object PrometheusProducerMetrics {
         .name(s"${ prefix }_call_latency")
         .help("Call latency in seconds")
         .labelNames("client", "type")
-        .quantile(0.5, 0.05)
         .quantile(0.9, 0.05)
-        .quantile(0.95, 0.01)
         .quantile(0.99, 0.005)
         .register(registry)
 

@@ -37,9 +37,7 @@ object PrometheusConsumerMetrics {
         .name(s"${ prefix }_latency")
         .help("Topic call latency in seconds")
         .labelNames("client", "topic", "type")
-        .quantile(0.5, 0.05)
         .quantile(0.9, 0.05)
-        .quantile(0.95, 0.01)
         .quantile(0.99, 0.005)
         .register(registry)
 
@@ -65,9 +63,7 @@ object PrometheusConsumerMetrics {
         .name(s"${ prefix }_list_topics_latency")
         .help("List topics latency in seconds")
         .labelNames("client")
-        .quantile(0.5, 0.05)
         .quantile(0.9, 0.05)
-        .quantile(0.95, 0.01)
         .quantile(0.99, 0.005)
         .register(registry)
 

@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.producer
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
+import org.apache.kafka.clients.producer.internals.DefaultPartitioner
 import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.duration._
@@ -20,7 +21,7 @@ class ProducerConfigSpec extends FunSuite with Matchers {
     compressionType = CompressionType.Lz4,
     retries = 8,
     maxInFlightRequestsPerConnection = 7,
-    partitionerClass = "partitionerClass",
+    partitionerClass = Some(classOf[DefaultPartitioner]),
     interceptorClasses = List("interceptorClasses"),
     idempotence = true,
     transactionTimeout = 8.minute,
@@ -53,7 +54,6 @@ class ProducerConfigSpec extends FunSuite with Matchers {
       "compression.type" -> "none",
       "buffer.memory" -> "33554432",
       "connections.max.idle.ms" -> "540000",
-      "partitioner.class" -> "org.apache.kafka.clients.producer.internals.DefaultPartitioner",
       "max.request.size" -> "1048576",
       "metrics.sample.window.ms" -> "30000",
       "security.protocol" -> "PLAINTEXT",

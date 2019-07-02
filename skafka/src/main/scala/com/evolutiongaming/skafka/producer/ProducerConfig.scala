@@ -3,9 +3,10 @@ package com.evolutiongaming.skafka.producer
 import com.evolutiongaming.config.ConfigHelper._
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.producer.{ProducerConfig => C}
+import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 /**
   * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
@@ -22,14 +23,14 @@ final case class ProducerConfig(
   compressionType: CompressionType = CompressionType.None,
   retries: Int = Int.MaxValue,
   maxInFlightRequestsPerConnection: Int = 5,
-  partitionerClass: String = "org.apache.kafka.clients.producer.internals.DefaultPartitioner",
+  partitionerClass: Option[Class[_ <: Partitioner]] = None,
   interceptorClasses: List[String] = Nil,
   idempotence: Boolean = false,
   transactionTimeout: FiniteDuration = 1.minute,
   transactionalId: Option[String] = None) {
 
-  def bindings: Map[String, String] = {
-    val bindings = Map[String, String](
+  def bindings: Map[String, AnyRef] = {
+    val bindings1 = Map[String, String](
       (C.BATCH_SIZE_CONFIG, batchSize.toString),
       (C.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeout.toMillis.toString),
       (C.ACKS_CONFIG, acks.names.head.toString),
@@ -40,11 +41,13 @@ final case class ProducerConfig(
       (C.COMPRESSION_TYPE_CONFIG, compressionType.toString.toLowerCase),
       (C.RETRIES_CONFIG, retries.toString),
       (C.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
-      (C.PARTITIONER_CLASS_CONFIG, partitionerClass),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
-      (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString)) ++
+      (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString))
+
+    val bindings = bindings1 ++
       transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
+      partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
 
     bindings ++ common.bindings
   }
@@ -93,6 +96,32 @@ object ProducerConfig {
       value orElse get[Long](pathMs).map { _.millis }
     }
 
+    val partitionerClass = {
+
+      def classOf(name: String) = {
+
+        def classOfClassLoader = {
+          val thread = Thread.currentThread()
+          val classLoader = thread.getContextClassLoader
+          Try { classLoader.loadClass(name) }
+        }
+
+        def classOf = {
+          Try { Class.forName(name) }
+        }
+
+        for {
+          a <- classOfClassLoader orElse classOf
+          a <- Try { a.asInstanceOf[Class[Partitioner]] }
+        } yield a
+      }
+
+      for {
+        name             <- get[String]("partitioner-class", "partitioner.class")
+        partitionerClass <- classOf(name).toOption
+      } yield partitionerClass
+    }
+
     ProducerConfig(
       common = CommonConfig(config, default.common),
       acks = get[Acks]("acks") getOrElse default.acks,
@@ -121,9 +150,7 @@ object ProducerConfig {
       maxInFlightRequestsPerConnection = get[Int](
         "max-in-flight-requests-per-connection",
         "max.in.flight.requests.per.connection") getOrElse default.maxInFlightRequestsPerConnection,
-      partitionerClass = get[String](
-        "partitioner-class",
-        "partitioner.class") getOrElse default.partitionerClass,
+      partitionerClass = partitionerClass orElse default.partitionerClass,
       interceptorClasses = get[List[String]](
         "interceptor-classes",
         "interceptor.classes") getOrElse default.interceptorClasses,

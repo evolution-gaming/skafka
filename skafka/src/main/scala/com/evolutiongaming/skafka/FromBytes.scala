@@ -2,21 +2,43 @@ package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
 
-trait FromBytes[A] {
-  self =>
+import cats.implicits._
+import cats.{Applicative, Functor, ~>}
+import com.evolutiongaming.catshelper.FromTry
 
-  def apply(bytes: Bytes, topic: Topic): A
 
-  final def map[B](f: A => B): FromBytes[B] = (bytes: Bytes, topic: Topic) => f(self(bytes, topic))
+trait FromBytes[F[_], A] { self =>
+
+  def apply(bytes: Bytes, topic: Topic): F[A]
 }
 
 object FromBytes {
 
-  implicit val StringFromBytes: FromBytes[String] = (bytes: Bytes, _: Topic) => new String(bytes, UTF_8)
+  def apply[F[_], A](implicit F: FromBytes[F, A]): FromBytes[F, A] = F
 
-  implicit val BytesFromBytes: FromBytes[Bytes] = (bytes: Bytes, _: Topic) => bytes
 
-  def apply[A](implicit fromBytes: FromBytes[A]): FromBytes[A] = fromBytes
+  def const[F[_] : Applicative, A](a: A): FromBytes[F, A] = (_: Bytes, _: Topic) => a.pure[F]
 
-  def const[A](a: A): FromBytes[A] = (_: Bytes, _: Topic) => a
+
+  implicit def functorFromBytes[F[_] : Functor]: Functor[FromBytes[F, ?]] = new Functor[FromBytes[F, ?]] {
+
+    def map[A, B](fa: FromBytes[F, A])(f: A => B) = new FromBytes[F, B] {
+
+      def apply(bytes: Bytes, topic: Topic) = fa(bytes, topic).map(f)
+    }
+  }
+
+
+  implicit def stringFromBytes[F[_] : FromTry]: FromBytes[F, String] = {
+    (a: Bytes, _: Topic) => FromTry[F].unsafe { new String(a, UTF_8) }
+  }
+
+
+  implicit def bytesFromBytes[F[_] : Applicative]: FromBytes[F, Bytes] = (a: Bytes, _: Topic) => a.pure[F]
+
+
+  implicit class FromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
+
+    def mapK[G[_]](f: F ~> G): FromBytes[G, A] = (a: Bytes, topic: Topic) => f(self(a, topic))
+  }
 }

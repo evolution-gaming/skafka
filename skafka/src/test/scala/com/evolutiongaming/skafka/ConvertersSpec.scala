@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka
 
+import cats.Id
 import com.evolutiongaming.skafka.Converters._
 import org.apache.kafka.common.Node
 import org.scalatest.{Matchers, WordSpec}
@@ -28,15 +29,15 @@ class ConvertersSpec extends WordSpec with Matchers {
     }
 
     "convert ToBytes" in {
-      val serializer = ToBytes.BytesToBytes.asJava
+      val serializer = ToBytes.bytesToBytes.asJava
       serializer.serialize("topic", Bytes.empty) shouldEqual Bytes.empty
-      serializer.asScala.apply(Bytes.empty, "topic") shouldEqual Bytes.empty
+      serializer.asScala[Id].apply(Bytes.empty, "topic") shouldEqual Bytes.empty
     }
 
     "convert FromBytes" in {
-      val deserializer = FromBytes.BytesFromBytes.asJava
+      val deserializer = FromBytes.bytesFromBytes.asJava
       deserializer.deserialize("topic", Bytes.empty) shouldEqual Bytes.empty
-      deserializer.asScala.apply(Bytes.empty, "topic") shouldEqual Bytes.empty
+      deserializer.asScala[Id].apply(Bytes.empty, "topic") shouldEqual Bytes.empty
     }
   }
 }

@@ -1,5 +1,7 @@
 package com.evolutiongaming
 
+import cats.kernel.Monoid
+
 package object skafka {
 
   type ClientId = String
@@ -31,6 +33,15 @@ package object skafka {
   type Bytes = Array[Byte]
 
   object Bytes {
+
     val empty: Bytes = Array.empty
+
+
+    implicit val monoidBytes: Monoid[Bytes] = new Monoid[Bytes] {
+
+      def empty = Bytes.empty
+
+      def combine(x: Bytes, y: Bytes) = x ++ y
+    }
   }
 }

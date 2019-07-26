@@ -6,7 +6,7 @@ import java.util.{Map => MapJ}
 import cats.effect.concurrent.Deferred
 import cats.effect.{Concurrent, ContextShift, IO, Sync}
 import cats.implicits._
-import com.evolutiongaming.catshelper.{FromFuture, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.{FromFuture, FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Blocking, Bytes, TopicPartition}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
@@ -25,7 +25,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     blockAndSend[IO](executor).run()
   }
 
-  private def blockAndSend[F[_] : Concurrent : ToTry : ToFuture : FromFuture : ContextShift](
+  private def blockAndSend[F[_] : Concurrent : ToTry : FromTry : ToFuture : FromFuture : ContextShift](
     executor: ExecutionContext
   ) = {
 

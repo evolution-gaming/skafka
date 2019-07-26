@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.Applicative
+import com.evolutiongaming.catshelper.FromTry
 import com.evolutiongaming.skafka.{ToBytes, Topic}
 import play.api.libs.json.{JsValue, Json}
 
@@ -10,9 +11,11 @@ trait JsonProducer[F[_]] {
 
 object JsonProducer {
 
-  def empty[F[_] : Applicative]: JsonProducer[F] = apply(Producer.Send.empty[F])
+  def empty[F[_] : Applicative : FromTry]: JsonProducer[F] = apply(Producer.Send.empty[F])
 
-  implicit val JsValueToBytes: ToBytes[JsValue] = (value: JsValue, _: Topic) => Json.toBytes(value)
+  implicit def jsValueToBytes[F[_] : FromTry]: ToBytes[F, JsValue] = {
+    (value: JsValue, _: Topic) => FromTry[F].unsafe { Json.toBytes(value) }
+  }
 
-  def apply[F[_]](send: Producer.Send[F])(): JsonProducer[F] = (record: ProducerRecord[String, JsValue]) => send(record)
+  def apply[F[_] : FromTry](send: Producer.Send[F]): JsonProducer[F] = (record: ProducerRecord[String, JsValue]) => send(record)
 }

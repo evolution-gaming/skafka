@@ -26,7 +26,11 @@ object ProducerLogging {
 
       val abortTransaction = producer.abortTransaction
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+      def send[K, V](
+        record: ProducerRecord[K, V])(implicit
+        toBytesK: ToBytes[F, K],
+        toBytesV: ToBytes[F, V]
+      ) = {
         val a = for {
           a <- producer.send(record)
         } yield for {

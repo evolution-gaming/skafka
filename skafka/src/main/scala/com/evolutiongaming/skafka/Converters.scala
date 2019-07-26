@@ -3,6 +3,8 @@ package com.evolutiongaming.skafka
 import java.time.{Duration => DurationJ}
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import com.evolutiongaming.catshelper.{FromTry, ToTry}
+import com.evolutiongaming.catshelper.EffectHelper._
 import com.evolutiongaming.nel.Nel
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header => HeaderJ}
@@ -100,34 +102,38 @@ object Converters {
 
   implicit class SerializerOps[A](val self: Serializer[A]) extends AnyVal {
 
-    def asScala: ToBytes[A] = (a: A, topic: Topic) => self.serialize(topic, a)
+    def asScala[F[_] : FromTry]: ToBytes[F, A] = (a: A, topic: Topic) => {
+      FromTry[F].unsafe { self.serialize(topic, a) }
+    }
   }
 
 
   implicit class DeserializerOps[A](val self: Deserializer[A]) extends AnyVal {
 
-    def asScala: FromBytes[A] = (value: Bytes, topic: Topic) => self.deserialize(topic, value)
+    def asScala[F[_] : FromTry]: FromBytes[F, A] = (value: Bytes, topic: Topic) => {
+      FromTry[F].unsafe { self.deserialize(topic, value) }
+    }
   }
 
 
-  implicit class ToBytesOps[A](val self: ToBytes[A]) extends AnyVal {
+  implicit class ToBytesOps[F[_], A](val self: ToBytes[F, A]) extends AnyVal {
 
-    def asJava: Serializer[A] = new Serializer[A] {
+    def asJava(implicit toTry: ToTry[F]): Serializer[A] = new Serializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
 
-      def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic)
+      def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic).toTry.get
 
       def close() = {}
     }
   }
 
 
-  implicit class FromBytesOps[A](val self: FromBytes[A]) extends AnyVal {
+  implicit class FromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 
-    def asJava: Deserializer[A] = new Deserializer[A] {
+    def asJava(implicit toTry: ToTry[F]): Deserializer[A] = new Deserializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean) = {}
 
-      def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic)
+      def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic).toTry.get
 
       def close() = {}
     }

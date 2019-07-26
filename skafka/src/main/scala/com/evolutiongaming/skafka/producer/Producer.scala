@@ -12,7 +12,6 @@ import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, Produ
 
 import scala.collection.JavaConverters._
 import scala.concurrent.{ExecutionContext, ExecutionException, Promise}
-import scala.util.control.NoStackTrace
 
 /**
   * See [[org.apache.kafka.clients.producer.Producer]]
@@ -23,7 +22,10 @@ trait Producer[F[_]] {
 
   def beginTransaction: F[Unit]
 
-  def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String): F[Unit]
+  def sendOffsetsToTransaction(
+    offsets: Map[TopicPartition, OffsetAndMetadata],
+    consumerGroupId: String
+  ): F[Unit]
 
   def commitTransaction: F[Unit]
 
@@ -32,20 +34,11 @@ trait Producer[F[_]] {
   /**
     * @return Outer F[_] is about batching, inner F[_] is about sending
     */
-  def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[F[RecordMetadata]]
-
-
-  final def sendNoKey[V: ToBytes](record: ProducerRecord[Nothing, V]): F[F[RecordMetadata]] = {
-    send(record)(ToBytes.empty, ToBytes[V])
-  }
-
-  final def sendNoVal[K: ToBytes](record: ProducerRecord[K, Nothing]): F[F[RecordMetadata]] = {
-    send(record)(ToBytes[K], ToBytes.empty)
-  }
-
-  final def sendEmpty(record: ProducerRecord[Nothing, Nothing]): F[F[RecordMetadata]] = {
-    send(record)(ToBytes.empty, ToBytes.empty)
-  }
+  def send[K, V](
+    record: ProducerRecord[K, V])(implicit
+    toBytesK: ToBytes[F, K],
+    toBytesV: ToBytes[F, V]
+  ): F[F[RecordMetadata]]
 
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
@@ -76,7 +69,7 @@ object Producer {
 
       val abortTransaction = empty
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
         val partition = record.partition getOrElse Partition.Min
         val topicPartition = TopicPartition(record.topic, partition)
         val metadata = RecordMetadata(topicPartition, record.timestamp)
@@ -141,7 +134,11 @@ object Producer {
       }
 
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+      def send[K, V](
+        record: ProducerRecord[K, V])(implicit
+        toBytesK: ToBytes[F, K],
+        toBytesV: ToBytes[F, V]
+      ) = {
 
         def executionException[A]: PartialFunction[Throwable, F[A]] = {
           case failure: ExecutionException => failure.getCause.raiseError[F, A]
@@ -156,7 +153,7 @@ object Producer {
               } else if (metadata != null) {
                 promise.success(metadata)
               } else {
-                val exception = new RuntimeException("both metadata & exception are nulls") with NoStackTrace
+                val exception = SkafkaError("both metadata & exception are nulls")
                 promise.failure(exception)
               }
             }
@@ -173,8 +170,12 @@ object Producer {
           }
         }
 
+        def toBytesError(error: Throwable) = {
+          SkafkaError(s"toBytes failed for $record", error).raiseError[F, ProducerRecord[Bytes, Bytes]]
+        }
+
         for {
-          bytes  <- Sync[F].delay { record.toBytes }
+          bytes  <- record.toBytes.handleErrorWith(toBytesError)
           bytesJ  = bytes.asJava
           result <- block(bytesJ)
         } yield for {
@@ -261,7 +262,11 @@ object Producer {
         } yield r
       }
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+      def send[K, V](
+        record: ProducerRecord[K, V])(implicit
+        toBytesK: ToBytes[F, K],
+        toBytesV: ToBytes[F, V]
+      ) = {
         val topic = record.topic
         for {
           rl     <- latency { producer.send(record).attempt }
@@ -316,62 +321,89 @@ object Producer {
     }
 
 
-    def mapK[G[_] : FlatMap](f: F ~> G): Producer[G] = new Producer[G] {
+    def mapK[G[_] : FlatMap](fg: F ~> G, gf: G ~> F): Producer[G] = new Producer[G] {
 
-      def initTransactions = f(self.initTransactions)
+      def initTransactions = fg(self.initTransactions)
 
-      def beginTransaction = f(self.beginTransaction)
+      def beginTransaction = fg(self.beginTransaction)
 
       def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        f(self.sendOffsetsToTransaction(offsets, consumerGroupId))
+        fg(self.sendOffsetsToTransaction(offsets, consumerGroupId))
       }
 
-      def commitTransaction = f(self.commitTransaction)
+      def commitTransaction = fg(self.commitTransaction)
 
-      def abortTransaction = f(self.abortTransaction)
+      def abortTransaction = fg(self.abortTransaction)
 
-      def send[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+      def send[K, V](
+        record: ProducerRecord[K, V])(implicit
+        toBytesK: ToBytes[G, K],
+        toBytesV: ToBytes[G, V]
+      ) = {
         for {
-          a <- f(self.send(record))
+          a <- fg(self.send(record)(toBytesK.mapK(gf), toBytesV.mapK(gf)))
         } yield {
-          f(a)
+          fg(a)
         }
       }
 
-      def partitions(topic: Topic) = f(self.partitions(topic))
+      def partitions(topic: Topic) = fg(self.partitions(topic))
 
-      def flush = f(self.flush)
+      def flush = fg(self.flush)
     }
 
 
     def toSend: Send[F] = Send(self)
+
+
+    def sendNoKey[V](
+      record: ProducerRecord[Nothing, V])(implicit
+      F: Applicative[F],
+      toBytes: ToBytes[F, V]
+    ): F[F[RecordMetadata]] = {
+      self.send(record)(ToBytes.empty, toBytes)
+    }
+
+
+    def sendNoVal[K](
+      record: ProducerRecord[K, Nothing])(implicit
+      F: Applicative[F],
+      toBytes: ToBytes[F, K]
+    ): F[F[RecordMetadata]] = {
+      self.send(record)(toBytes, ToBytes.empty)
+    }
+
+
+    def sendEmpty(
+      record: ProducerRecord[Nothing, Nothing])(implicit
+      F: Applicative[F]
+    ): F[F[RecordMetadata]] = {
+      self.send(record)(ToBytes.empty, ToBytes.empty)
+    }
   }
 
 
   trait Send[F[_]] {
 
-    def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]): F[F[RecordMetadata]]
-
-    final def noKey[V: ToBytes](record: ProducerRecord[Nothing, V]): F[F[RecordMetadata]] = {
-      apply(record)(ToBytes.empty, ToBytes[V])
-    }
-
-    final def noVal[K: ToBytes](record: ProducerRecord[K, Nothing]): F[F[RecordMetadata]] = {
-      apply(record)(ToBytes[K], ToBytes.empty)
-    }
-
-    final def empty(record: ProducerRecord[Nothing, Nothing]): F[F[RecordMetadata]] = {
-      apply(record)(ToBytes.empty, ToBytes.empty)
-    }
+    def apply[K, V](
+      record: ProducerRecord[K, V])(implicit
+      toBytesK: ToBytes[F, K],
+      toBytesV: ToBytes[F, V]
+    ): F[F[RecordMetadata]]
   }
 
   object Send {
 
     def empty[F[_] : Applicative]: Send[F] = apply(Producer.empty)
 
+
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {
 
-      def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+      def apply[K, V](
+        record: ProducerRecord[K, V])(implicit
+        toBytesK: ToBytes[F, K],
+        toBytesV: ToBytes[F, V]
+      ) = {
         producer.send(record)
       }
     }
@@ -379,15 +411,44 @@ object Producer {
 
     implicit class SendOps[F[_]](val self: Send[F]) extends AnyVal {
 
-      def mapK[G[_] : FlatMap](f: F ~> G): Send[G] = new Send[G] {
+      def mapK[G[_] : FlatMap](fg: F ~> G, gf: G ~> F): Send[G] = new Send[G] {
 
-        def apply[K: ToBytes, V: ToBytes](record: ProducerRecord[K, V]) = {
+        def apply[K, V](
+          record: ProducerRecord[K, V])(implicit
+          toBytesK: ToBytes[G, K],
+          toBytesV: ToBytes[G, V]
+        ) = {
           for {
-            a <- f(self(record))
+            a <- fg(self(record)(toBytesK.mapK(gf), toBytesV.mapK(gf)))
           } yield {
-            f(a)
+            fg(a)
           }
         }
+      }
+
+
+      def noKey[V](record: ProducerRecord[Nothing, V])(implicit
+        F: Applicative[F],
+        toBytes: ToBytes[F, V]
+      ): F[F[RecordMetadata]] = {
+        self.apply(record)(ToBytes.empty, toBytes)
+      }
+
+
+      def noVal[K](
+        record: ProducerRecord[K, Nothing])(implicit
+        F: Applicative[F],
+        toBytes: ToBytes[F, K]
+      ): F[F[RecordMetadata]] = {
+        self.apply(record)(toBytes, ToBytes.empty)
+      }
+
+
+      def empty(
+        record: ProducerRecord[Nothing, Nothing])(implicit
+        F: Applicative[F]
+      ): F[F[RecordMetadata]] = {
+        self.apply(record)(ToBytes.empty, ToBytes.empty)
       }
     }
   }

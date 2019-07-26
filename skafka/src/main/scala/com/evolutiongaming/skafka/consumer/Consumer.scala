@@ -12,6 +12,7 @@ import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.catshelper.ClockHelper._
+import com.evolutiongaming.catshelper.ToTry
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ}
@@ -20,7 +21,6 @@ import scala.collection.JavaConverters._
 import scala.collection.immutable.Iterable
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.ExecutionContext
-import scala.util.control.NoStackTrace
 
 /**
   * See [[org.apache.kafka.clients.consumer.Consumer]]
@@ -206,11 +206,11 @@ object Consumer {
   }
 
 
-  def of[F[_] : Async : ContextShift, K, V](
+  def of[F[_] : Async : ContextShift : ToTry, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext)(implicit
-    valueFromBytes: FromBytes[V],
-    keyFromBytes: FromBytes[K]
+    valueFromBytes: FromBytes[F, V],
+    keyFromBytes: FromBytes[F, K]
   ): Resource[F, Consumer[F, K, V]] = {
 
     val blocking = Blocking(executorBlocking)
@@ -242,7 +242,7 @@ object Consumer {
             } else if (offsets != null) {
               f1(offsets.asRight)
             } else {
-              val failure = new RuntimeException("both offsets & exception are nulls") with NoStackTrace
+              val failure = SkafkaError("both offsets & exception are nulls")
               f1(failure.asLeft)
             }
           }

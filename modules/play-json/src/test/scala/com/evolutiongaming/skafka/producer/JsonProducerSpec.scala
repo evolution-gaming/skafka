@@ -13,10 +13,14 @@ class JsonProducerSpec extends FunSuite with Matchers {
     var actual = Option.empty[(Option[Bytes], Option[Bytes])]
     type Id[A] = A
     val send = new Producer.Send[Id] {
-      def apply[K, V](record: ProducerRecord[K, V])(implicit keyToBytes: ToBytes[K], valueToBytes: ToBytes[V]) = {
+      def apply[K, V](
+        record: ProducerRecord[K, V])(implicit
+        toBytesK: ToBytes[Id, K],
+        toBytesV: ToBytes[Id, V]
+      ) = {
         val topic = record.topic
-        val value = record.value.map(valueToBytes(_, topic))
-        val key = record.key.map(keyToBytes(_, topic))
+        val value = record.value.map(toBytesV(_, topic))
+        val key = record.key.map(toBytesK(_, topic))
         actual = Some((key, value))
         metadata
       }

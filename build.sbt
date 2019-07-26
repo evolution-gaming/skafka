@@ -12,7 +12,8 @@ lazy val commonSettings = Seq(
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
-  scalacOptions in(Compile, doc) += "-no-link-warnings")
+  scalacOptions in(Compile, doc) += "-no-link-warnings",
+  libraryDependencies += compilerPlugin("org.typelevel" % "kind-projector" % "0.10.3" cross CrossVersion.binary))
 
 
 lazy val root = (project
@@ -29,6 +30,10 @@ lazy val skafka = (project
     name := "skafka",
     scalacOptions -= "-Ywarn-unused:params",
     libraryDependencies ++= Seq(
+      Cats.core,
+      Cats.kernel,
+      Cats.macros,
+      Cats.effect,
       Akka.actor,
       Akka.stream,
       nel,

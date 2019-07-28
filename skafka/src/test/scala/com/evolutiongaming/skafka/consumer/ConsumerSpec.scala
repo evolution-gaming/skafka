@@ -23,9 +23,13 @@ import org.scalatest.{Matchers, WordSpec}
 import scala.collection.JavaConverters._
 import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
+import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
 
 class ConsumerSpec extends WordSpec with Matchers {
+
+  import ConsumerSpec._
+
   val topic = "topic"
   val partition = 1
   val offset = 2l
@@ -68,8 +72,8 @@ class ConsumerSpec extends WordSpec with Matchers {
     "subscribe topics" in new Scope {
       verify(consumer.subscribe(Nel(topic), Some(rebalanceListener))) { _ =>
         subscribeTopics shouldEqual List(topic)
-        assigned shouldEqual true
-        revoked shouldEqual true
+        assigned.future.await()
+        revoked.future.await()
       }
     }
 
@@ -77,8 +81,8 @@ class ConsumerSpec extends WordSpec with Matchers {
       val pattern = Pattern.compile(".")
       verify(consumer.subscribe(pattern, Some(rebalanceListener))) { _ =>
         subscribePattern shouldEqual Some(pattern)
-        assigned shouldEqual true
-        revoked shouldEqual true
+        assigned.future.await()
+        revoked.future.await()
       }
     }
 
@@ -257,14 +261,15 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     var seekToEnd = List.empty[TopicPartitionJ]
 
-    var revoked = false
+    val revoked = Promise[Unit]()
 
-    var assigned = false
+    val assigned = Promise[Unit]()
 
-    val rebalanceListener = new RebalanceListener {
-      def onPartitionsAssigned(partitions: immutable.Iterable[TopicPartition]) = assigned = true
+    val rebalanceListener = new RebalanceListener[IO] {
+      
+      def onPartitionsAssigned(partitions: immutable.Iterable[TopicPartition]) = IO { assigned.success(()) }
 
-      def onPartitionsRevoked(partitions: immutable.Iterable[TopicPartition]): Unit = revoked = true
+      def onPartitionsRevoked(partitions: immutable.Iterable[TopicPartition]) = IO { revoked.success(()) }
     }
 
     val consumerJ = new ConsumerJ[Bytes, Bytes] {
@@ -424,7 +429,13 @@ class ConsumerSpec extends WordSpec with Matchers {
       implicit val measureDuration = MeasureDuration.empty[IO]
       Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
         .withMetrics(ConsumerMetrics.empty)
-        .mapK(FunctionK.id)
+        .mapK(FunctionK.id, FunctionK.id)
     }
+  }
+}
+
+object ConsumerSpec {
+  implicit class FutureOps[A](val self: Future[A]) extends AnyVal {
+    def await(): A = Await.result(self, 1.minute)
   }
 }

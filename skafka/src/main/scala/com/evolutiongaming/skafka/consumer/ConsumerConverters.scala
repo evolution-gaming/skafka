@@ -3,6 +3,11 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import cats.effect.Concurrent
+import cats.effect.concurrent.Semaphore
+import cats.implicits._
+import com.evolutiongaming.catshelper.EffectHelper._
+import com.evolutiongaming.catshelper.ToFuture
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}
@@ -28,35 +33,26 @@ object ConsumerConverters {
   }
 
 
-  implicit class RebalanceListenerOps(val self: RebalanceListener) extends AnyVal {
+  implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
 
-    def asJava: RebalanceListenerJ = new RebalanceListenerJ {
+    def asJava(implicit F: Concurrent[F], toFuture: ToFuture[F]): F[RebalanceListenerJ] = {
+      for {
+        semaphore <- Semaphore[F](1)
+      } yield {
+        new RebalanceListenerJ {
 
-      def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
-        val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
-        self.onPartitionsAssigned(partitionsS)
-      }
+          def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
+            val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
+            semaphore.withPermit { self.onPartitionsAssigned(partitionsS) }.toFuture
+            ()
+          }
 
-      def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
-        val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
-        self.onPartitionsRevoked(partitionsS)
-      }
-    }
-  }
-
-
-  implicit class RebalanceListenerJOps(val self: RebalanceListenerJ) extends AnyVal {
-
-    def asScala: RebalanceListener = new RebalanceListener {
-
-      def onPartitionsAssigned(partitions: Iterable[TopicPartition]): Unit = {
-        val partitionsJ = partitions.map(_.asJava).asJavaCollection
-        self.onPartitionsAssigned(partitionsJ)
-      }
-
-      def onPartitionsRevoked(partitions: Iterable[TopicPartition]): Unit = {
-        val partitionsJ = partitions.map(_.asJava).asJavaCollection
-        self.onPartitionsRevoked(partitionsJ)
+          def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
+            val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
+            semaphore.withPermit { self.onPartitionsRevoked(partitionsS) }.toFuture
+            ()
+          }
+        }
       }
     }
   }

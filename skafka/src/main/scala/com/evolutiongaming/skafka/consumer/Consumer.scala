@@ -8,11 +8,12 @@ import java.util.{Map => MapJ}
 import cats.effect._
 import cats.implicits._
 import cats.{Applicative, MonadError, ~>}
-import com.evolutiongaming.catshelper.ToTry
+import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
+import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
@@ -31,9 +32,9 @@ trait Consumer[F[_], K, V] {
   def assignment: F[Set[TopicPartition]]
 
 
-  def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]): F[Unit]
+  def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
 
-  def subscribe(pattern: Pattern, listener: Option[RebalanceListener]): F[Unit]
+  def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]): F[Unit]
 
   def subscription: F[Set[Topic]]
 
@@ -124,9 +125,9 @@ object Consumer {
 
       val assignment = Set.empty[TopicPartition].pure[F]
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = empty
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = empty
 
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = empty
+      def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = empty
 
       val subscription: F[Set[Topic]] = Set.empty[Topic].pure[F]
 
@@ -205,7 +206,7 @@ object Consumer {
   }
 
 
-  def of[F[_] : Async : ContextShift : ToTry, K, V](
+  def of[F[_] : Concurrent : ContextShift : ToTry : ToFuture, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext)(implicit
     valueFromBytes: FromBytes[F, V],
@@ -226,7 +227,7 @@ object Consumer {
   }
 
 
-  def apply[F[_] : Async : ContextShift, K, V](
+  def apply[F[_] : Concurrent : ContextShift : ToFuture, K, V](
     consumer: ConsumerJ[K, V],
     blocking: Blocking[F]
   ): Consumer[F, K, V] = {
@@ -271,15 +272,19 @@ object Consumer {
         }
       }
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = {
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
         val topicsJ = topics.asJava
-        val listenerJ = (listener getOrElse RebalanceListener.empty).asJava
-        Sync[F].delay { consumer.subscribe(topicsJ, listenerJ) }
+        for {
+          l <- listener.traverse(_.asJava)
+          a <- Sync[F].delay { consumer.subscribe(topicsJ, l getOrElse new NoOpConsumerRebalanceListener) }
+        } yield a
       }
 
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = {
-        val listenerJ = (listener getOrElse RebalanceListener.empty).asJava
-        Sync[F].delay { consumer.subscribe(pattern, listenerJ) }
+      def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
+        for {
+          l <- listener.traverse(_.asJava)
+          a <- Sync[F].delay { consumer.subscribe(pattern, l getOrElse new NoOpConsumerRebalanceListener) }
+        } yield a
       }
 
       val subscription = {
@@ -550,25 +555,26 @@ object Consumer {
       } yield r
     }
 
-    def rebalanceListener(listener: RebalanceListener) = {
+    def rebalanceListener(listener: RebalanceListener[F]) = {
 
       def measure(name: String, partitions: Iterable[TopicPartition]) = {
-        // TODO
-        partitions.foreach { topicPartition =>
-          metrics.rebalance(name, topicPartition)
-        }
+        partitions.toList.foldMapM { topicPartition => metrics.rebalance(name, topicPartition) }
       }
 
-      new RebalanceListener {
+      new RebalanceListener[F] {
 
         def onPartitionsAssigned(partitions: Iterable[TopicPartition]) = {
-          measure("assigned", partitions)
-          listener.onPartitionsAssigned(partitions)
+          for {
+            _ <- measure("assigned", partitions)
+            a <- listener.onPartitionsAssigned(partitions)
+          } yield a
         }
 
         def onPartitionsRevoked(partitions: Iterable[TopicPartition]) = {
-          measure("revoked", partitions)
-          listener.onPartitionsRevoked(partitions)
+          for {
+            _ <- measure("revoked", partitions)
+            a <- listener.onPartitionsRevoked(partitions)
+          } yield a
         }
       }
     }
@@ -585,7 +591,7 @@ object Consumer {
 
       val assignment = consumer.assignment
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = {
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
         val listener1 = listener.map(rebalanceListener)
         for {
           _ <- count("subscribe", topics.to[List])
@@ -593,8 +599,7 @@ object Consumer {
         } yield r
       }
 
-
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = {
+      def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
         val listener1 = listener.map(rebalanceListener)
         for {
           _ <- count("subscribe", List("pattern"))
@@ -806,87 +811,93 @@ object Consumer {
     }
 
 
-    def mapK[G[_]](f: F ~> G): Consumer[G, K, V] = new Consumer[G, K, V] {
+    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new Consumer[G, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = f(self.assign(partitions))
+      def assign(partitions: Nel[TopicPartition]) = fg(self.assign(partitions))
 
-      def assignment = f(self.assignment)
+      def assignment = fg(self.assignment)
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener]) = f(self.subscribe(topics, listener))
+      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[G]]) = {
+        val listener1 = listener.map(_.mapK(gf))
+        fg(self.subscribe(topics, listener1))
+      }
 
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener]) = f(self.subscribe(pattern, listener))
+      def subscribe(pattern: Pattern, listener: Option[RebalanceListener[G]]) = {
+        val listener1 = listener.map(_.mapK(gf))
+        fg(self.subscribe(pattern, listener1))
+      }
 
-      def subscription = f(self.subscription)
+      def subscription = fg(self.subscription)
 
-      def unsubscribe = f(self.unsubscribe)
+      def unsubscribe = fg(self.unsubscribe)
 
-      def poll(timeout: FiniteDuration) = f(self.poll(timeout))
+      def poll(timeout: FiniteDuration) = fg(self.poll(timeout))
 
-      def commit = f(self.commit)
+      def commit = fg(self.commit)
 
-      def commit(timeout: FiniteDuration) = f(self.commit(timeout))
+      def commit(timeout: FiniteDuration) = fg(self.commit(timeout))
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = f(self.commit(offsets))
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = fg(self.commit(offsets))
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = f(self.commit(offsets, timeout))
+      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = fg(self.commit(offsets, timeout))
 
-      def commitLater = f(self.commitLater)
+      def commitLater = fg(self.commitLater)
 
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = f(self.commitLater(offsets))
+      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = fg(self.commitLater(offsets))
 
-      def seek(partition: TopicPartition, offset: Offset) = f(self.seek(partition, offset))
+      def seek(partition: TopicPartition, offset: Offset) = fg(self.seek(partition, offset))
 
-      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = f(self.seek(partition, offsetAndMetadata))
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = fg(self.seek(partition, offsetAndMetadata))
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = f(self.seekToBeginning(partitions))
+      def seekToBeginning(partitions: Nel[TopicPartition]) = fg(self.seekToBeginning(partitions))
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = f(self.seekToEnd(partitions))
+      def seekToEnd(partitions: Nel[TopicPartition]) = fg(self.seekToEnd(partitions))
 
-      def position(partition: TopicPartition) = f(self.position(partition))
+      def position(partition: TopicPartition) = fg(self.position(partition))
 
-      def position(partition: TopicPartition, timeout: FiniteDuration) = f(self.position(partition, timeout))
+      def position(partition: TopicPartition, timeout: FiniteDuration) = fg(self.position(partition, timeout))
 
-      def committed(partition: TopicPartition) = f(self.committed(partition))
+      def committed(partition: TopicPartition) = fg(self.committed(partition))
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = f(self.committed(partition, timeout))
+      def committed(partition: TopicPartition, timeout: FiniteDuration) = fg(self.committed(partition, timeout))
 
-      def partitions(topic: Topic) = f(self.partitions(topic))
+      def partitions(topic: Topic) = fg(self.partitions(topic))
 
-      def partitions(topic: Topic, timeout: FiniteDuration) = f(self.partitions(topic, timeout))
+      def partitions(topic: Topic, timeout: FiniteDuration) = fg(self.partitions(topic, timeout))
 
-      def listTopics = f(self.listTopics)
+      def listTopics = fg(self.listTopics)
 
-      def listTopics(timeout: FiniteDuration) = f(self.listTopics(timeout))
+      def listTopics(timeout: FiniteDuration) = fg(self.listTopics(timeout))
 
-      def pause(partitions: Nel[TopicPartition]) = f(self.pause(partitions))
+      def pause(partitions: Nel[TopicPartition]) = fg(self.pause(partitions))
 
-      def paused = f(self.paused)
+      def paused = fg(self.paused)
 
-      def resume(partitions: Nel[TopicPartition]) = f(self.resume(partitions))
+      def resume(partitions: Nel[TopicPartition]) = fg(self.resume(partitions))
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
-        f(self.offsetsForTimes(timestampsToSearch))
+        fg(self.offsetsForTimes(timestampsToSearch))
       }
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
-        f(self.offsetsForTimes(timestampsToSearch, timeout))
+        fg(self.offsetsForTimes(timestampsToSearch, timeout))
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = f(self.beginningOffsets(partitions))
+      def beginningOffsets(partitions: Nel[TopicPartition]) = fg(self.beginningOffsets(partitions))
 
       def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        f(self.beginningOffsets(partitions, timeout))
+        fg(self.beginningOffsets(partitions, timeout))
       }
 
       def endOffsets(partitions: Nel[TopicPartition]) = {
-        f(self.endOffsets(partitions))
+        fg(self.endOffsets(partitions))
       }
 
       def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        f(self.endOffsets(partitions, timeout))
+        fg(self.endOffsets(partitions, timeout))
       }
 
-      def wakeup = f(self.wakeup)
+      def wakeup = fg(self.wakeup)
     }
   }
 }

@@ -105,7 +105,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       } yield {
         consumer
           .withMetrics(ConsumerMetrics.empty)
-          .mapK(FunctionK.id)
+          .mapK(FunctionK.id, FunctionK.id)
       }
       consumer.allocated.unsafeRunSync()
     }

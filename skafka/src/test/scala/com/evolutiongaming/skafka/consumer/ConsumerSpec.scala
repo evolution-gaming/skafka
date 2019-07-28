@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import cats.arrow.FunctionK
 import cats.effect.IO
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
@@ -14,6 +15,7 @@ import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
+import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.{Matchers, WordSpec}
@@ -419,9 +421,10 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     val consumer = {
-      val metrics = ConsumerMetrics.empty[IO]
-      val consumer = Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
-      Consumer[IO, Bytes, Bytes](consumer, metrics)
+      implicit val measureDuration = MeasureDuration.empty[IO]
+      Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
+        .withMetrics(ConsumerMetrics.empty)
+        .mapK(FunctionK.id)
     }
   }
 }

@@ -2,25 +2,24 @@ package com.evolutiongaming.skafka
 package consumer
 
 import java.lang.{Long => LongJ}
-import java.util.{Map => MapJ}
 import java.util.regex.Pattern
+import java.util.{Map => MapJ}
 
-import cats.effect.{Async, Clock, ContextShift, Resource, Sync}
+import cats.effect._
 import cats.implicits._
-import cats.{Applicative, ~>}
+import cats.{Applicative, MonadError, ~>}
+import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.catshelper.ClockHelper._
-import com.evolutiongaming.catshelper.ToTry
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
+import com.evolutiongaming.smetrics.MeasureDuration
+import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
-import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ}
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable.Iterable
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.ExecutionContext
+import scala.concurrent.duration.FiniteDuration
 
 /**
   * See [[org.apache.kafka.clients.consumer.Consumer]]
@@ -505,24 +504,13 @@ object Consumer {
   }
   
 
-  def apply[F[_] : Sync : Clock, K, V](
+  def apply[F[_] : MeasureDuration, E, K, V](
     consumer: Consumer[F, K, V],
-    metrics: ConsumerMetrics[F]
+    metrics: ConsumerMetrics[F])(implicit
+    F: MonadError[F, E]
   ): Consumer[F, K, V] = {
 
     implicit val monoidUnit = Applicative.monoid[F, Unit]
-
-    def latency1[A](fa: F[A]) = {
-      for {
-        start   <- Clock[F].millis
-        result  <- fa
-        end     <- Clock[F].millis
-        latency  = end - start
-      } yield {
-        (result, latency)
-      }
-    }
-
 
     val topics = for {
       topicPartitions <- consumer.assignment
@@ -535,10 +523,11 @@ object Consumer {
 
     def call[A](name: String, topics: Iterable[Topic])(fa: F[A]): F[A] = {
       for {
-        rl     <- latency1 { fa.attempt }
-        (r, l)  = rl
-        _      <- topics.toList.foldMap { topic => metrics.call(name, topic, l, r.isRight) }
-        r      <- r.raiseOrPure[F]
+        d <- MeasureDuration[F].start
+        r <- fa.attempt
+        d <- d
+        _ <- topics.toList.foldMap { topic => metrics.call(name, topic, d, r.isRight) }
+        r <- r.raiseOrPure[F]
       } yield r
     }
 
@@ -564,6 +553,7 @@ object Consumer {
     def rebalanceListener(listener: RebalanceListener) = {
 
       def measure(name: String, partitions: Iterable[TopicPartition]) = {
+        // TODO
         partitions.foreach { topicPartition =>
           metrics.rebalance(name, topicPartition)
         }
@@ -729,19 +719,21 @@ object Consumer {
 
       val listTopics = {
         for {
-          rl     <- latency1 { consumer.listTopics.attempt }
-          (r, l)  = rl
-          _      <- metrics.listTopics(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- consumer.listTopics.attempt
+          d <- d
+          _ <- metrics.listTopics(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
       def listTopics(timeout: FiniteDuration) = {
         for {
-          rl     <- latency1 { consumer.listTopics(timeout).attempt }
-          (r, l)  = rl
-          _      <- metrics.listTopics(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- consumer.listTopics(timeout).attempt
+          d <- d
+          _ <- metrics.listTopics(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
@@ -805,9 +797,14 @@ object Consumer {
 
   implicit class ConsumerOps[F[_], K, V](val self: Consumer[F, K, V]) extends AnyVal {
 
-    def withMetrics(metrics: ConsumerMetrics[F])(implicit F: Sync[F], clock: Clock[F]): Consumer[F, K, V] = {
+    def withMetrics[E](
+      metrics: ConsumerMetrics[F])(implicit
+      F: MonadError[F, E],
+      measureDuration: MeasureDuration[F],
+    ): Consumer[F, K, V] = {
       Consumer(self, metrics)
     }
+
 
     def mapK[G[_]](f: F ~> G): Consumer[G, K, V] = new Consumer[G, K, V] {
 

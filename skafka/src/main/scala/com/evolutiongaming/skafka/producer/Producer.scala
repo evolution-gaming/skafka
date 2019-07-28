@@ -3,11 +3,11 @@ package producer
 
 import cats.effect._
 import cats.implicits._
-import cats.{Applicative, FlatMap, ~>}
-import com.evolutiongaming.catshelper.ClockHelper._
+import cats.{Applicative, FlatMap, MonadError, ~>}
 import com.evolutiongaming.catshelper.{FromFuture, Log}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
+import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.collection.JavaConverters._
@@ -201,64 +201,58 @@ object Producer {
   }
 
 
-  def apply[F[_] : Sync : Clock](
+  def apply[F[_] : MeasureDuration, E](
     producer: Producer[F],
-    metrics: ProducerMetrics[F]
+    metrics: ProducerMetrics[F])(implicit
+    F: MonadError[F, E],
   ): Producer[F] = {
-
-    def latency[A](fa: F[A]) = {
-      for {
-        start   <- Clock[F].millis
-        result  <- fa
-        end     <- Clock[F].millis
-        latency  = end - start
-      } yield {
-        (result, latency)
-      }
-    }
 
     new Producer[F] {
 
       val initTransactions = {
         for {
-          rl     <- latency { producer.initTransactions.attempt }
-          (r, l)  = rl
-          _      <- metrics.initTransactions(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- producer.initTransactions.attempt
+          d <- d
+          _ <- metrics.initTransactions(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
       val beginTransaction = {
         for {
-          r  <- producer.beginTransaction
-          _  <- metrics.beginTransaction
+          r <- producer.beginTransaction
+          _ <- metrics.beginTransaction
         } yield r
       }
 
       def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         for {
-          rl     <- latency { producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt }
-          (r, l)  = rl
-          _      <- metrics.sendOffsetsToTransaction(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt
+          d <- d
+          _ <- metrics.sendOffsetsToTransaction(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
       val commitTransaction = {
         for {
-          rl     <- latency { producer.commitTransaction.attempt }
-          (r, l)  = rl
-          _      <- metrics.commitTransaction(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- producer.commitTransaction.attempt
+          d <- d
+          _ <- metrics.commitTransaction(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
       val abortTransaction = {
         for {
-          rl     <- latency { producer.abortTransaction.attempt }
-          (r, l)  = rl
-          _      <- metrics.abortTransaction(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- producer.abortTransaction.attempt
+          d <- d
+          _ <- metrics.abortTransaction(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
@@ -269,20 +263,22 @@ object Producer {
       ) = {
         val topic = record.topic
         for {
-          rl     <- latency { producer.send(record).attempt }
-          (r, l)  = rl
-          _ <- metrics.block(topic, l)
-          _ <- r  match {
+          d <- MeasureDuration[F].start
+          r <- producer.send(record).attempt
+          d <- d
+          _ <- metrics.block(topic, d)
+          _ <- r match {
             case Right(_) => ().pure[F]
-            case Left(_)  => metrics.failure(topic, l)
+            case Left(_)  => metrics.failure(topic, d)
           }
           r <- r.raiseOrPure[F]
         } yield for {
-          rl <- latency { r.attempt }
-          (r, l) = rl
+          d <- MeasureDuration[F].start
+          r <- r.attempt
+          d <- d
           _ <- r match {
-            case Right(r) => metrics.send(topic, l, r.valueSerializedSize getOrElse 0)
-            case Left(_)  => metrics.failure(topic, l)
+            case Right(r) => metrics.send(topic, d, r.valueSerializedSize getOrElse 0)
+            case Left(_)  => metrics.failure(topic, d)
           }
           r <- r.raiseOrPure[F]
         } yield r
@@ -290,19 +286,21 @@ object Producer {
 
       def partitions(topic: Topic) = {
         for {
-          rl     <- latency { producer.partitions(topic).attempt }
-          (r, l)  = rl
-          _      <- metrics.partitions(topic, l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- producer.partitions(topic).attempt
+          d <- d
+          _ <- metrics.partitions(topic, d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
 
       val flush = {
         for {
-          rl     <- latency { producer.flush.attempt }
-          (r, l)  = rl
-          _      <- metrics.flush(l)
-          r      <- r.raiseOrPure[F]
+          d <- MeasureDuration[F].start
+          r <- producer.flush.attempt
+          d <- d
+          _ <- metrics.flush(d)
+          r <- r.raiseOrPure[F]
         } yield r
       }
     }
@@ -316,7 +314,11 @@ object Producer {
     }
 
 
-    def withMetrics(metrics: ProducerMetrics[F])(implicit F: Sync[F], clock: Clock[F]): Producer[F] = {
+    def withMetrics[E](
+      metrics: ProducerMetrics[F])(implicit
+      F: MonadError[F, E],
+      measureDuration: MeasureDuration[F]
+    ): Producer[F] = {
       Producer(self, metrics)
     }
 

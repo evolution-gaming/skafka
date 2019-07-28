@@ -13,8 +13,7 @@ object Dependencies {
   val `cats-effect`        = "org.typelevel"          %% "cats-effect"        % "1.3.1"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
   val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.8"
-  val prometheus           = "io.prometheus"           % "simpleclient"       % "0.6.0"
-  
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.4"
 
   object Kafka {
     private val version = "2.2.1"

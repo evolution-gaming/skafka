@@ -21,7 +21,7 @@ lazy val root = (project
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
-  aggregate(skafka, prometheus, `play-json`, tests))
+  aggregate(skafka, `play-json`, tests))
 
 lazy val skafka = (project
   in file("skafka")
@@ -42,15 +42,9 @@ lazy val skafka = (project
       `future-helper`,
       `cats-effect`,
       `cats-helper`,
+      smetrics,
       scalatest % Test,
       `scala-java8-compat`)))
-
-lazy val prometheus = (project
-  in file("modules/prometheus")
-  settings (name := "skafka-prometheus")
-  settings commonSettings
-  dependsOn skafka % "compile->compile;test->test"
-  settings (libraryDependencies ++= Seq(Dependencies.prometheus, `executor-tools`, scalatest % Test)))
 
 lazy val `play-json` = (project
   in file("modules/play-json")

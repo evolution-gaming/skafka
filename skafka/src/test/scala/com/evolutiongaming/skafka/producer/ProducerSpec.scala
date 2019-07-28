@@ -9,6 +9,7 @@ import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Blocking, Bytes, PartitionInfo, TopicPartition}
+import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
@@ -177,11 +178,10 @@ class ProducerSpec extends WordSpec with Matchers {
       implicit val executor = CurrentThreadExecutionContext
       implicit val cs = IO.contextShift(executor)
       implicit val concurrentIO: Concurrent[IO]     = IO.ioConcurrentEffect
-      implicit val timer = IO.timer(executor)
-      implicit val producer = Producer[IO](jProducer, Blocking(executor))
+      implicit val measureDuration = MeasureDuration.empty[IO]
+      Producer[IO](jProducer, Blocking(executor))
         .withMetrics(ProducerMetrics.empty)
         .mapK(FunctionK.id, FunctionK.id)
-      Producer[IO]
     }
   }
 }

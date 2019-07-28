@@ -16,6 +16,7 @@ import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.smetrics.CollectorRegistry
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 
 import scala.annotation.tailrec
@@ -67,11 +68,12 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     val config = ProducerConfig.Default.copy(acks = acks)
     val producerOf = ProducerOf(executor).mapK(FunctionK.id, FunctionK.id)
     val producer = for {
+      metrics  <- ProducerMetrics.of(CollectorRegistry.empty[IO])
       producer <- producerOf(config)
     } yield {
       producer
         .withLogging(Log.empty)
-        .withMetrics(ProducerMetrics.empty)
+        .withMetrics(metrics("clientId"))
     }
     List(producer.allocated.unsafeRunSync())
   }
@@ -102,10 +104,11 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
       val consumer = for {
+        metrics  <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
         consumer <- consumerOf[String, String](config)
         _        <- Resource.liftF(consumer.subscribe(Nel.of(topic), None))
       } yield {
-        consumer.withMetrics(ConsumerMetrics.empty)
+        consumer.withMetrics(metrics("clientId"))
       }
       consumer.allocated.unsafeRunSync()
     }

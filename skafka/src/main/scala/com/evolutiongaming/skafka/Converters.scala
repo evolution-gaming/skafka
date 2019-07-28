@@ -119,11 +119,11 @@ object Converters {
   implicit class ToBytesOps[F[_], A](val self: ToBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Serializer[A] = new Serializer[A] {
-      def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
+      override def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
 
       def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic).toTry.get
 
-      def close() = {}
+      override def close() = {}
     }
   }
 
@@ -131,11 +131,11 @@ object Converters {
   implicit class SkafkaFromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Deserializer[A] = new Deserializer[A] {
-      def configure(configs: MapJ[String, _], isKey: Boolean) = {}
+      override def configure(configs: MapJ[String, _], isKey: Boolean) = {}
 
       def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic).toTry.get
 
-      def close() = {}
+      override def close() = {}
     }
   }
 

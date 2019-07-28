@@ -15,7 +15,7 @@ object Dependencies {
   val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.4"
 
   object Kafka {
-    private val version = "2.2.1"
+    private val version = "2.3.0"
     val kafka           = "org.apache.kafka" %% "kafka"         % version
     val `kafka-clients` = "org.apache.kafka" %  "kafka-clients" % version
   }

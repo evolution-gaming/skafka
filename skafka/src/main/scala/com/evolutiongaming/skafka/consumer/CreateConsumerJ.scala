@@ -9,13 +9,13 @@ object CreateConsumerJ {
 
   def apply[F[_] : ToTry, K, V](
     config: ConsumerConfig,
-    valueFromBytes: FromBytes[F, V],
-    keyFromBytes: FromBytes[F, K],
+    FromBytesK: FromBytes[F, K],
+    fromBytesV: FromBytes[F, V],
     blocking: Blocking[F]
   ): F[KafkaConsumer[K, V]] = {
 
-    val valueDeserializer = valueFromBytes.asJava
-    val keyDeserializer = keyFromBytes.asJava
-    blocking { new KafkaConsumer(config.properties, keyDeserializer, valueDeserializer) }
+    val deserializerK = fromBytesV.asJava
+    val deserializerV = FromBytesK.asJava
+    blocking { new KafkaConsumer(config.properties, deserializerV, deserializerK) }
   }
 }

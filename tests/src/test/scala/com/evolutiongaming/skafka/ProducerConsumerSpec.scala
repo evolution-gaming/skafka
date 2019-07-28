@@ -65,13 +65,13 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
   def producers(acks: Acks) = {
     val config = ProducerConfig.Default.copy(acks = acks)
+    val producerOf = ProducerOf(executor).mapK(FunctionK.id, FunctionK.id)
     val producer = for {
-      producer <- Producer.of(config, executor)
+      producer <- producerOf(config)
     } yield {
       producer
         .withLogging(Log.empty)
         .withMetrics(ProducerMetrics.empty)
-        .mapK(FunctionK.id, FunctionK.id)
     }
     List(producer.allocated.unsafeRunSync())
   }
@@ -81,7 +81,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
   } yield (acks, producers(acks))
 
   for {
-    (acks, producers) <- combinations
+    (acks, producers)    <- combinations
     ((producer, _), idx) <- producers.zipWithIndex
   } yield {
 
@@ -93,6 +93,8 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     lazy val (consumer, consumerRelease) = consumerOf()
 
     def consumerOf(): (Consumer[IO, String, String], IO[Unit]) = {
+      val consumerOf = ConsumerOf[IO](executor).mapK(FunctionK.id, FunctionK.id)
+
       val config = ConsumerConfig.Default.copy(
         groupId = Some(s"group-$topic"),
         autoOffsetReset = AutoOffsetReset.Earliest,
@@ -100,12 +102,10 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
       val consumer = for {
-        consumer <- Consumer.of[IO, String, String](config, executor)
+        consumer <- consumerOf[String, String](config)
         _        <- Resource.liftF(consumer.subscribe(Nel.of(topic), None))
       } yield {
-        consumer
-          .withMetrics(ConsumerMetrics.empty)
-          .mapK(FunctionK.id, FunctionK.id)
+        consumer.withMetrics(ConsumerMetrics.empty)
       }
       consumer.allocated.unsafeRunSync()
     }

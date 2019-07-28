@@ -209,12 +209,12 @@ object Consumer {
   def of[F[_] : Concurrent : ContextShift : ToTry : ToFuture, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext)(implicit
-    valueFromBytes: FromBytes[F, V],
-    keyFromBytes: FromBytes[F, K]
+    fromBytesK: FromBytes[F, K],
+    fromBytesV: FromBytes[F, V]
   ): Resource[F, Consumer[F, K, V]] = {
 
     val blocking = Blocking(executorBlocking)
-    val consumerJ = CreateConsumerJ(config, valueFromBytes, keyFromBytes, blocking)
+    val consumerJ = CreateConsumerJ(config, fromBytesK, fromBytesV, blocking)
 
     val result = for {
       consumerJ <- consumerJ

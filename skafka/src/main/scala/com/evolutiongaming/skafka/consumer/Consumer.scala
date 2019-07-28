@@ -8,8 +8,8 @@ import java.util.{Map => MapJ}
 import cats.effect._
 import cats.implicits._
 import cats.{Applicative, MonadError, ~>}
+import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
-import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -582,7 +582,7 @@ object Consumer {
     new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).to[Set]
+        val topics = partitions.map(_.topic).toList.to[Set]
         for {
           _ <- count("assign", topics)
           r <- consumer.assign(partitions)
@@ -594,7 +594,7 @@ object Consumer {
       def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
         val listener1 = listener.map(rebalanceListener)
         for {
-          _ <- count("subscribe", topics.to[List])
+          _ <- count("subscribe", topics.toList)
           r <- consumer.subscribe(topics, listener1)
         } yield r
       }

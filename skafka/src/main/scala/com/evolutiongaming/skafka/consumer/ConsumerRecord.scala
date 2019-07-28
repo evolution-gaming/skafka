@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import com.evolutiongaming.nel.Nel
+import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka._
 
 

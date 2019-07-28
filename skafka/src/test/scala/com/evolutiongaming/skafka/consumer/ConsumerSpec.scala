@@ -8,8 +8,8 @@ import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.arrow.FunctionK
+import cats.data.{NonEmptyList => Nel}
 import cats.effect.IO
-import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka._
@@ -36,7 +36,7 @@ class ConsumerSpec extends WordSpec with Matchers {
   val topicPartition = TopicPartition(topic, partition)
   val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
   val offsets = Map((topicPartition, offsetAndMetadata))
-  val partitions = Nel(topicPartition)
+  val partitions = Nel.of(topicPartition)
   val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
   val consumerRecord = ConsumerRecord(
@@ -46,7 +46,7 @@ class ConsumerSpec extends WordSpec with Matchers {
     key = Some(WithSize(Bytes.empty, 1)),
     value = Some(WithSize(Bytes.empty, 1)),
     headers = List(Header("key", Bytes.empty)))
-  val consumerRecords = ConsumerRecords(Map((topicPartition, Nel(consumerRecord))))
+  val consumerRecords = ConsumerRecords(Map((topicPartition, Nel.of(consumerRecord))))
 
   val node = new Node(1, "host", 2)
 
@@ -70,7 +70,7 @@ class ConsumerSpec extends WordSpec with Matchers {
     }
 
     "subscribe topics" in new Scope {
-      verify(consumer.subscribe(Nel(topic), Some(rebalanceListener))) { _ =>
+      verify(consumer.subscribe(Nel.of(topic), Some(rebalanceListener))) { _ =>
         subscribeTopics shouldEqual List(topic)
         assigned.future.await()
         revoked.future.await()

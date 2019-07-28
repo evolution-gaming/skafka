@@ -3,9 +3,9 @@ package com.evolutiongaming.skafka
 import java.time.{Duration => DurationJ}
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.catshelper.{FromTry, ToTry}
 import com.evolutiongaming.catshelper.EffectHelper._
-import com.evolutiongaming.nel.Nel
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header => HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
@@ -128,7 +128,7 @@ object Converters {
   }
 
 
-  implicit class FromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
+  implicit class SkafkaFromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Deserializer[A] = new Deserializer[A] {
       def configure(configs: MapJ[String, _], isKey: Boolean) = {}
@@ -140,29 +140,29 @@ object Converters {
   }
 
 
-  implicit class NelSkafkaOps[A](val self: Nel[A]) extends AnyVal {
+  implicit class SkafkaNelOps[A](val self: Nel[A]) extends AnyVal {
     def asJava: CollectionJ[A] = self.toList.asJavaCollection
   }
 
 
-  implicit final class DurationJOps(val duration: DurationJ) extends AnyVal {
+  implicit final class SkafkaDurationJOps(val duration: DurationJ) extends AnyVal {
 
     def asScala: scala.concurrent.duration.FiniteDuration = DurationConverters.toScala(duration)
   }
 
 
-  implicit final class FiniteDurationOps(val duration: FiniteDuration) extends AnyVal {
+  implicit final class SkafkaFiniteDurationOps(val duration: FiniteDuration) extends AnyVal {
 
     def asJava: java.time.Duration = DurationConverters.toJava(duration)
   }
 
 
-  implicit class OffsetAndMetadataJOps(val self: OffsetAndMetadataJ) extends AnyVal {
+  implicit class SkafkaOffsetAndMetadataJOps(val self: OffsetAndMetadataJ) extends AnyVal {
     def asScala: OffsetAndMetadata = OffsetAndMetadata(self.offset(), self.metadata())
   }
 
 
-  implicit class OffsetAndMetadataOps(val self: OffsetAndMetadata) extends AnyVal {
+  implicit class SkafkaOffsetAndMetadataOps(val self: OffsetAndMetadata) extends AnyVal {
     def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset, self.metadata)
   }
 }

@@ -3,12 +3,12 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import cats.data.{NonEmptyList => Nel}
 import cats.effect.Concurrent
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import com.evolutiongaming.catshelper.EffectHelper._
 import com.evolutiongaming.catshelper.ToFuture
-import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
@@ -133,7 +133,7 @@ object ConsumerConverters {
         recordsJ    = self.records(partitionJ)
         partition   = partitionJ.asScala
         records     = recordsJ.asScala.map(_.asScala).toList
-        records    <- Nel.opt(records)
+        records    <- Nel.fromList(records)
       } yield {
         (partition, records)
       }

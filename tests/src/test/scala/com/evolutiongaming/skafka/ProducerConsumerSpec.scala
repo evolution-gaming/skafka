@@ -8,11 +8,11 @@ import java.util.UUID
 import akka.actor.ActorSystem
 import akka.testkit.{TestDuration, TestKit, TestKitExtension}
 import cats.arrow.FunctionK
+import cats.data.{NonEmptyList => Nel}
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.kafka.StartKafka
-import com.evolutiongaming.nel.Nel
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import com.evolutiongaming.skafka.IOSuite._
@@ -101,7 +101,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
       val consumer = for {
         consumer <- Consumer.of[IO, String, String](config, executor)
-        _        <- Resource.liftF(consumer.subscribe(Nel(topic), None))
+        _        <- Resource.liftF(consumer.subscribe(Nel.of(topic), None))
       } yield {
         consumer
           .withMetrics(ConsumerMetrics.empty)

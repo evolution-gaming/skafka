@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import com.evolutiongaming.nel.Nel
+import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner
@@ -45,7 +45,7 @@ class ProducerConfigSpec extends FunSuite with Matchers {
   test("bindings") {
     val configs = ProducerConfig(
       common = CommonConfig(
-        bootstrapServers = Nel("localhost:9092", "127.0.0.1:9092"),
+        bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"),
         clientId = Some("clientId")))
 
     configs.bindings shouldEqual Map(

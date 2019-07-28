@@ -36,7 +36,6 @@ lazy val skafka = (project
       Cats.effect,
       Akka.actor,
       Akka.stream,
-      nel,
       `config-tools`,
       Kafka.`kafka-clients`,
       `future-helper`,

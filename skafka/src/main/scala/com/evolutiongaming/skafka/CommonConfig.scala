@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
+import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.config.ConfigHelper._
-import com.evolutiongaming.nel.Nel
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.{CommonClientConfigs => C}
 
@@ -13,7 +13,7 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * @param clientId         An id string to pass to the server when making requests
   */
 final case class CommonConfig(
-  bootstrapServers: Nel[String] = Nel("localhost:9092"),
+  bootstrapServers: Nel[String] = Nel.of("localhost:9092"),
   clientId: Option[ClientId] = None,
   connectionsMaxIdle: FiniteDuration = 9.minutes,
   receiveBufferBytes: Int = 32768,
@@ -28,7 +28,7 @@ final case class CommonConfig(
 
   def bindings: Map[String, String] = {
     val bindings = Map[String, String](
-      (C.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers mkString ","),
+      (C.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.toList mkString ","),
       (C.CLIENT_ID_CONFIG, clientId getOrElse ""),
       (C.CONNECTIONS_MAX_IDLE_MS_CONFIG, connectionsMaxIdle.toMillis.toString),
       (C.RECEIVE_BUFFER_CONFIG, receiveBufferBytes.toString),
@@ -111,7 +111,7 @@ object CommonConfig {
   implicit def nelFromConf[T](implicit fromConf: FromConf[List[T]]): FromConf[Nel[T]] = {
     FromConf { case (config, path) =>
       val list = fromConf(config, path)
-      Nel.unsafe(list)
+      Nel.fromListUnsafe(list)
     }
   }
 }

@@ -66,14 +66,12 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
   def producers(acks: Acks) = {
     val config = ProducerConfig.Default.copy(acks = acks)
-    val producerOf = ProducerOf(executor).mapK(FunctionK.id, FunctionK.id)
     val producer = for {
-      metrics  <- ProducerMetrics.of(CollectorRegistry.empty[IO])
-      producer <- producerOf(config)
+      metrics    <- ProducerMetrics.of(CollectorRegistry.empty[IO])
+      producerOf  = ProducerOf(executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
+      producer   <- producerOf(config)
     } yield {
-      producer
-        .withLogging(Log.empty)
-        .withMetrics(metrics("clientId"))
+      producer.withLogging(Log.empty)
     }
     List(producer.allocated.unsafeRunSync())
   }
@@ -95,7 +93,6 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     lazy val (consumer, consumerRelease) = consumerOf()
 
     def consumerOf(): (Consumer[IO, String, String], IO[Unit]) = {
-      val consumerOf = ConsumerOf[IO](executor).mapK(FunctionK.id, FunctionK.id)
 
       val config = ConsumerConfig.Default.copy(
         groupId = Some(s"group-$topic"),
@@ -104,12 +101,11 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
         common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
 
       val consumer = for {
-        metrics  <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
-        consumer <- consumerOf[String, String](config)
-        _        <- Resource.liftF(consumer.subscribe(Nel.of(topic), None))
-      } yield {
-        consumer.withMetrics(metrics("clientId"))
-      }
+        metrics    <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
+        consumerOf  = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
+        consumer   <- consumerOf[String, String](config)
+        _          <- Resource.liftF(consumer.subscribe(Nel.of(topic), None))
+      } yield consumer
       consumer.allocated.unsafeRunSync()
     }
 

@@ -4,6 +4,7 @@ import cats.effect.{Bracket, Concurrent, ContextShift, Resource}
 import cats.{Applicative, Defer, ~>}
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.FromBytes
+import com.evolutiongaming.smetrics.MeasureDuration
 
 import scala.concurrent.ExecutionContext
 
@@ -18,8 +19,9 @@ trait ConsumerOf[F[_]] {
 
 object ConsumerOf {
 
-  def apply[F[_] : Concurrent : ContextShift : ToTry : ToFuture](
-    executorBlocking: ExecutionContext
+  def apply[F[_] : Concurrent : ContextShift : ToTry : ToFuture : MeasureDuration](
+    executorBlocking: ExecutionContext,
+    metrics: Option[ConsumerMetrics[F]] = None
   ): ConsumerOf[F] = new ConsumerOf[F] {
 
     def apply[K, V](
@@ -27,7 +29,11 @@ object ConsumerOf {
       fromBytesK: FromBytes[F, K],
       fromBytesV: FromBytes[F, V]
     ) = {
-      Consumer.of[F, K, V](config, executorBlocking)
+      for {
+        consumer <- Consumer.of[F, K, V](config, executorBlocking)
+      } yield {
+        metrics.fold(consumer)(consumer.withMetrics[Throwable])
+      }
     }
   }
 

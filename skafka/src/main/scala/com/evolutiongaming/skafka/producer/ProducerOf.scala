@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.producer
 import cats.effect.{Bracket, ContextShift, Resource, Sync}
 import cats.{Defer, Monad, ~>}
 import com.evolutiongaming.catshelper.FromFuture
+import com.evolutiongaming.smetrics.MeasureDuration
 
 import scala.concurrent.ExecutionContext
 
@@ -13,11 +14,17 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
-  def apply[F[_] : Sync : ContextShift : FromFuture](
-    executorBlocking: ExecutionContext
+  def apply[F[_] : Sync : ContextShift : FromFuture : MeasureDuration](
+    executorBlocking: ExecutionContext,
+    metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
+
     def apply(config: ProducerConfig) = {
-      Producer.of[F](config, executorBlocking)
+      for {
+        producer <- Producer.of[F](config, executorBlocking)
+      } yield {
+        metrics.fold(producer)(producer.withMetrics[Throwable])
+      }
     }
   }
 

@@ -7,7 +7,7 @@ import cats.{Applicative, Functor, ~>}
 import com.evolutiongaming.catshelper.FromTry
 
 
-trait FromBytes[F[_], A] { self =>
+trait FromBytes[F[_], A] {
 
   def apply(bytes: Bytes, topic: Topic): F[A]
 }

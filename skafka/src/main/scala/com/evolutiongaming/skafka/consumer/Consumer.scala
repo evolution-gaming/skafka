@@ -5,10 +5,13 @@ import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 import java.util.{Map => MapJ}
 
+import cats.arrow.FunctionK
+import cats.data.{NonEmptyList => Nel}
 import cats.effect._
+import cats.effect.concurrent.Semaphore
+import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, MonadError, ~>}
-import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
@@ -222,6 +225,27 @@ object Consumer {
       release    = blocking { consumerJ.close() }
     } yield {
       (consumer, release)
+    }
+    serial(Resource(result))
+  }
+
+
+  def serial[F[_] : Concurrent, K, V](consumer: Resource[F, Consumer[F, K, V]]): Resource[F, Consumer[F, K, V]] = {
+    val result = for {
+      semaphore <- Semaphore[F](1)
+      result <- consumer.allocated
+    } yield {
+      val (consumer, close0) = result
+
+      val serial = new (F ~> F) {
+        def apply[A](fa: F[A]) = semaphore.withPermit(fa.uncancelable)
+      }
+
+      val close = serial(close0)
+
+      val consumer1 = consumer.mapK(serial, FunctionK.id)
+
+      (consumer1, close)
     }
     Resource(result)
   }

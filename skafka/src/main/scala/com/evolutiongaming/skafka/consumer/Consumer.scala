@@ -238,7 +238,7 @@ object Consumer {
       val (consumer, close0) = result
 
       val serial = new (F ~> F) {
-        def apply[A](fa: F[A]) = semaphore.withPermit(fa.uncancelable)
+        def apply[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
       }
 
       val close = serial(close0)

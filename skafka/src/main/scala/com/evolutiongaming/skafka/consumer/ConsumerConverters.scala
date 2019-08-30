@@ -17,7 +17,6 @@ import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.Iterable
 
 object ConsumerConverters {
 
@@ -39,18 +38,22 @@ object ConsumerConverters {
       for {
         semaphore <- Semaphore[F](1)
       } yield {
+
+        def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]) = {
+          val partitionsS = partitions.asScala.map(_.asScala)
+          Nel.fromList(partitionsS.toList).foreach { partitions =>
+            semaphore.withPermit { f(partitions) }.toFuture
+          }
+        }
+
         new RebalanceListenerJ {
 
           def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
-            val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
-            semaphore.withPermit { self.onPartitionsAssigned(partitionsS) }.toFuture
-            ()
+            onPartitions(partitions)(self.onPartitionsAssigned)
           }
 
           def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
-            val partitionsS = partitions.asScala.map(_.asScala).to[Iterable]
-            semaphore.withPermit { self.onPartitionsRevoked(partitionsS) }.toFuture
-            ()
+            onPartitions(partitions)(self.onPartitionsRevoked)
           }
         }
       }

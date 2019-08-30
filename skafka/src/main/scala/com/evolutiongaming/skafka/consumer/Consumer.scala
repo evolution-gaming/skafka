@@ -21,7 +21,6 @@ import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => Cons
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable.Iterable
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
@@ -581,20 +580,20 @@ object Consumer {
 
     def rebalanceListener(listener: RebalanceListener[F]) = {
 
-      def measure(name: String, partitions: Iterable[TopicPartition]) = {
-        partitions.toList.foldMapM { topicPartition => metrics.rebalance(name, topicPartition) }
+      def measure(name: String, partitions: Nel[TopicPartition]) = {
+        partitions.foldMapM { metrics.rebalance(name, _) }
       }
 
       new RebalanceListener[F] {
 
-        def onPartitionsAssigned(partitions: Iterable[TopicPartition]) = {
+        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
           for {
             _ <- measure("assigned", partitions)
             a <- listener.onPartitionsAssigned(partitions)
           } yield a
         }
 
-        def onPartitionsRevoked(partitions: Iterable[TopicPartition]) = {
+        def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
           for {
             _ <- measure("revoked", partitions)
             a <- listener.onPartitionsRevoked(partitions)

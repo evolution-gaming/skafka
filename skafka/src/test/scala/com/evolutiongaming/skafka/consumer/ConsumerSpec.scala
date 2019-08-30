@@ -21,7 +21,6 @@ import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.collection.JavaConverters._
-import scala.collection.immutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
@@ -267,9 +266,9 @@ class ConsumerSpec extends WordSpec with Matchers {
 
     val rebalanceListener = new RebalanceListener[IO] {
       
-      def onPartitionsAssigned(partitions: immutable.Iterable[TopicPartition]) = IO { assigned.success(()) }
+      def onPartitionsAssigned(partitions: Nel[TopicPartition]) = IO { assigned.success(()) }
 
-      def onPartitionsRevoked(partitions: immutable.Iterable[TopicPartition]) = IO { revoked.success(()) }
+      def onPartitionsRevoked(partitions: Nel[TopicPartition]) = IO { revoked.success(()) }
     }
 
     val consumerJ = new ConsumerJ[Bytes, Bytes] {
@@ -282,8 +281,8 @@ class ConsumerSpec extends WordSpec with Matchers {
 
       def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListenerJ) = {
         subscribeTopics = topics.asScala.toList
-        callback.onPartitionsAssigned(List.empty.asJava)
-        callback.onPartitionsRevoked(List.empty.asJava)
+        callback.onPartitionsAssigned(List(topicPartition.asJava).asJava)
+        callback.onPartitionsRevoked(List(topicPartition.asJava).asJava)
       }
 
       def assign(partitions: CollectionJ[TopicPartitionJ]) = {
@@ -292,8 +291,8 @@ class ConsumerSpec extends WordSpec with Matchers {
 
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListenerJ) = {
         subscribePattern = Some(pattern)
-        callback.onPartitionsAssigned(List.empty.asJava)
-        callback.onPartitionsRevoked(List.empty.asJava)
+        callback.onPartitionsAssigned(List(topicPartition.asJava).asJava)
+        callback.onPartitionsRevoked(List(topicPartition.asJava).asJava)
       }
 
       def subscribe(pattern: Pattern) = {}

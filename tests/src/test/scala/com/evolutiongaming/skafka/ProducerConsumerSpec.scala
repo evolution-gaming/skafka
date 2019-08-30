@@ -5,8 +5,6 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-import akka.actor.ActorSystem
-import akka.testkit.{TestDuration, TestKit, TestKitExtension}
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel}
 import cats.effect.{IO, Resource}
@@ -26,13 +24,11 @@ import scala.concurrent.duration._
 class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
-  private implicit lazy val system: ActorSystem = ActorSystem(getClass.getSimpleName)
-
   private lazy val shutdown = StartKafka()
 
   private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
-  private val timeout = TestKitExtension(system).DefaultTimeout.duration.dilated
+  private val timeout = 1.minute
 
   override def beforeAll() = {
     super.beforeAll()
@@ -55,7 +51,6 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     }
 
     closeAll.unsafeRunTimed(timeout)
-    TestKit.shutdownActorSystem(system)
 
     shutdown()
     super.afterAll()

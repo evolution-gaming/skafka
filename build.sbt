@@ -8,12 +8,12 @@ lazy val commonSettings = Seq(
   organizationHomepage := Some(url("http://evolutiongaming.com")),
   bintrayOrganization := Some("evolutiongaming"),
   scalaVersion := crossScalaVersions.value.last,
-  crossScalaVersions := Seq("2.12.8"),
+  crossScalaVersions := Seq("2.12.9"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   scalacOptions in(Compile, doc) += "-no-link-warnings",
-  libraryDependencies += compilerPlugin("org.typelevel" % "kind-projector" % "0.10.3" cross CrossVersion.binary))
+  libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary))
 
 
 lazy val root = (project
@@ -34,12 +34,9 @@ lazy val skafka = (project
       Cats.kernel,
       Cats.macros,
       Cats.effect,
-      Akka.actor,
-      Akka.stream,
       `config-tools`,
       Kafka.`kafka-clients`,
       `future-helper`,
-      `cats-effect`,
       `cats-helper`,
       smetrics,
       scalatest % Test,
@@ -63,8 +60,6 @@ lazy val tests = (project in file("tests")
     settings (libraryDependencies ++= Seq(
       Kafka.kafka % Test,
       `kafka-launcher` % Test,
-      Akka.testkit % Test,
-      Akka.slf4j % Test,
       Slf4j.api % Test,
       Slf4j.`log4j-over-slf4j` % Test,
       Logback.core % Test,

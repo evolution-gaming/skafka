@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.Order
+import cats.implicits._
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka._
 
@@ -16,6 +17,10 @@ final case class ConsumerRecord[K, +V](
   def topic: Topic = topicPartition.topic
 
   def partition: Partition = topicPartition.partition
+}
+
+object ConsumerRecord {
+  implicit def orderConsumerRecord[K: Order, V]: Order[ConsumerRecord[K, V]] = Order.by { _.key }
 }
 
 

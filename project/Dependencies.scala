@@ -3,9 +3,9 @@ import sbt._
 object Dependencies {
 
   val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"     % "1.0.1"
-  val `config-tools`       = "com.evolutiongaming"    %% "config-tools"       % "1.0.3"
-  val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.5"
-  val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"     % "0.0.6"
+  val `config-tools`       = "com.evolutiongaming"    %% "config-tools"       % "1.0.4"
+  val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.6"
+  val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"     % "0.0.7"
   val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"        % "0.0.28"
   val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.4"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"

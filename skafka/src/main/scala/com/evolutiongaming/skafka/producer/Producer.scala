@@ -3,7 +3,7 @@ package producer
 
 import cats.effect._
 import cats.implicits._
-import cats.{Applicative, FlatMap, MonadError, ~>}
+import cats.{Applicative, Functor, MonadError, ~>}
 import com.evolutiongaming.catshelper.{FromFuture, Log}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
@@ -323,7 +323,7 @@ object Producer {
     }
 
 
-    def mapK[G[_] : FlatMap](fg: F ~> G, gf: G ~> F): Producer[G] = new Producer[G] {
+    def mapK[G[_] : Functor](fg: F ~> G, gf: G ~> F): Producer[G] = new Producer[G] {
 
       def initTransactions = fg(self.initTransactions)
 
@@ -413,7 +413,7 @@ object Producer {
 
     implicit class SendOps[F[_]](val self: Send[F]) extends AnyVal {
 
-      def mapK[G[_] : FlatMap](fg: F ~> G, gf: G ~> F): Send[G] = new Send[G] {
+      def mapK[G[_] : Functor](fg: F ~> G, gf: G ~> F): Send[G] = new Send[G] {
 
         def apply[K, V](
           record: ProducerRecord[K, V])(implicit

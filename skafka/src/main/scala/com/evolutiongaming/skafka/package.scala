@@ -16,7 +16,7 @@ package object skafka {
   type Offset = Long
 
   object Offset {
-    val Min: Offset = 0l
+    val Min: Offset = 0L
   }
 
 

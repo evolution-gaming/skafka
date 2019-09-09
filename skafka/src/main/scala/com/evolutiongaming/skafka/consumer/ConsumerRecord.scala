@@ -12,7 +12,8 @@ final case class ConsumerRecord[K, +V](
   timestampAndType: Option[TimestampAndType],
   key: Option[WithSize[K]] = None,
   value: Option[WithSize[V]] = None,
-  headers: List[Header] = Nil) {
+  headers: List[Header] = Nil
+) {
 
   def topic: Topic = topicPartition.topic
 
@@ -20,7 +21,10 @@ final case class ConsumerRecord[K, +V](
 }
 
 object ConsumerRecord {
-  implicit def orderConsumerRecord[K: Order, V]: Order[ConsumerRecord[K, V]] = Order.by { _.key }
+  
+  implicit def orderConsumerRecord[K: Order, V]: Order[ConsumerRecord[K, V]] = Order.whenEqual(
+    Order.by { a: ConsumerRecord[K, V] => a.topicPartition },
+    Order.by { a: ConsumerRecord[K, V] => a.key })
 }
 
 

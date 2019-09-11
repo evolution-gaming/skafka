@@ -10,7 +10,7 @@ object Dependencies {
   val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.4"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
   val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.8"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.4"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.5"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"     % "0.10.3"
 
   object Kafka {

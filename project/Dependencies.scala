@@ -2,15 +2,15 @@ import sbt._
 
 object Dependencies {
 
-  val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"     % "1.0.1"
+  val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"     % "1.0.2"
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"       % "1.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.6"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"     % "0.0.7"
-  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"        % "0.0.29"
+  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"        % "0.0.30"
   val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.4"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
   val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.8"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.5"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.6"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"     % "0.10.3"
 
   object Kafka {
@@ -20,7 +20,7 @@ object Dependencies {
   }
 
   object Akka {
-    private val version = "2.5.23"
+    private val version = "2.5.25"
     val actor   = "com.typesafe.akka" %% "akka-actor"   % version
     val stream  = "com.typesafe.akka" %% "akka-stream"  % version
     val testkit = "com.typesafe.akka" %% "akka-testkit" % version
@@ -40,10 +40,10 @@ object Dependencies {
   }
 
   object Cats {
-    private val version = "1.6.1"
+    private val version = "2.0.0"
     val core   = "org.typelevel" %% "cats-core"   % version
     val kernel = "org.typelevel" %% "cats-kernel" % version
     val macros = "org.typelevel" %% "cats-macros" % version
-    val effect = "org.typelevel" %% "cats-effect" % "1.4.0"
+    val effect = "org.typelevel" %% "cats-effect" % "2.0.0"
   }
 }

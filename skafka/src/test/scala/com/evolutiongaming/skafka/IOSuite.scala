@@ -18,7 +18,7 @@ object IOSuite {
   implicit val contextShiftIO: ContextShift[IO]     = IO.contextShift(executor)
   implicit val concurrentIO: Concurrent[IO]         = IO.ioConcurrentEffect
   implicit val timerIO: Timer[IO]                   = IO.timer(executor)
-  implicit val parallelIO: Parallel[IO, IO.Par]     = IO.ioParallel
+  implicit val parallelIO: Parallel[IO]             = IO.ioParallel
   implicit val fromFutureIO: FromFuture[IO]         = FromFuture.lift[IO]
   implicit val measureDuration: MeasureDuration[IO] = MeasureDuration.fromClock[IO](Clock[IO])
 

@@ -555,7 +555,7 @@ object Consumer {
         r <- fa.attempt
         d <- d
         _ <- topics.toList.foldMap { topic => metrics.call(name, topic, d, r.isRight) }
-        r <- r.raiseOrPure[F]
+        r <- r.liftTo[F]
       } yield r
     }
 
@@ -751,7 +751,7 @@ object Consumer {
           r <- consumer.listTopics.attempt
           d <- d
           _ <- metrics.listTopics(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -761,7 +761,7 @@ object Consumer {
           r <- consumer.listTopics(timeout).attempt
           d <- d
           _ <- metrics.listTopics(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 

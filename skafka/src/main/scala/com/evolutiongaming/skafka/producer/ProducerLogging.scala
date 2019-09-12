@@ -39,7 +39,7 @@ object ProducerLogging {
             case Right(a) => log.debug(s"sent $record, metadata: $a")
             case Left(e)  => log.error(s"failed to send record $record: $e")
           }
-          a <- a.raiseOrPure[F]
+          a <- a.liftTo[F]
         } yield a
 
         a.handleErrorWith { e =>

@@ -71,7 +71,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
                 case Left(a: Exception) => Sync[F].delay { callback.onCompletion(null, a) }
                 case Left(a)            => a.raiseError[F, Unit]
               }
-              a <- a.raiseOrPure[F]
+              a <- a.liftTo[F]
             } yield a
             ToFuture[F].apply { a }.toJava.toCompletableFuture
           }

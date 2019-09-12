@@ -215,7 +215,7 @@ object Producer {
           r <- producer.initTransactions.attempt
           d <- d
           _ <- metrics.initTransactions(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -232,7 +232,7 @@ object Producer {
           r <- producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt
           d <- d
           _ <- metrics.sendOffsetsToTransaction(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -242,7 +242,7 @@ object Producer {
           r <- producer.commitTransaction.attempt
           d <- d
           _ <- metrics.commitTransaction(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -252,7 +252,7 @@ object Producer {
           r <- producer.abortTransaction.attempt
           d <- d
           _ <- metrics.abortTransaction(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -271,7 +271,7 @@ object Producer {
             case Right(_) => ().pure[F]
             case Left(_)  => metrics.failure(topic, d)
           }
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield for {
           d <- MeasureDuration[F].start
           r <- r.attempt
@@ -280,7 +280,7 @@ object Producer {
             case Right(r) => metrics.send(topic, d, r.valueSerializedSize getOrElse 0)
             case Left(_)  => metrics.failure(topic, d)
           }
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -290,7 +290,7 @@ object Producer {
           r <- producer.partitions(topic).attempt
           d <- d
           _ <- metrics.partitions(topic, d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
 
@@ -300,7 +300,7 @@ object Producer {
           r <- producer.flush.attempt
           d <- d
           _ <- metrics.flush(d)
-          r <- r.raiseOrPure[F]
+          r <- r.liftTo[F]
         } yield r
       }
     }

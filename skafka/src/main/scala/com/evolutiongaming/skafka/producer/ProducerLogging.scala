@@ -1,14 +1,10 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.MonadError
 import cats.implicits._
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MonadThrowable}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 
 object ProducerLogging {
-
-  type MonadThrowable[F[_]] = MonadError[F, Throwable]
-  
 
   def apply[F[_] : MonadThrowable](producer: Producer[F], log: Log[F]): Producer[F] = {
 

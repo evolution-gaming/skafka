@@ -4,7 +4,7 @@ package producer
 import cats.effect._
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
-import com.evolutiongaming.catshelper.{FromFuture, Log}
+import com.evolutiongaming.catshelper.{FromFuture, Log, MonadThrowable}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -309,7 +309,7 @@ object Producer {
 
   implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
-    def withLogging(log: Log[F])(implicit F: ProducerLogging.MonadThrowable[F]): Producer[F] = {
+    def withLogging(log: Log[F])(implicit F: MonadThrowable[F]): Producer[F] = {
       ProducerLogging(self, log)
     }
 

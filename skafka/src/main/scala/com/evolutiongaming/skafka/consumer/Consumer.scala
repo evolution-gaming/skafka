@@ -5,7 +5,6 @@ import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 import java.util.{Map => MapJ}
 
-import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
@@ -232,7 +231,7 @@ object Consumer {
   def serial[F[_] : Concurrent, K, V](consumer: Resource[F, Consumer[F, K, V]]): Resource[F, Consumer[F, K, V]] = {
     val result = for {
       semaphore <- Semaphore[F](1)
-      result <- consumer.allocated
+      result    <- consumer.allocated
     } yield {
       val (consumer, close0) = result
 
@@ -242,7 +241,7 @@ object Consumer {
 
       val close = serial(close0)
 
-      val consumer1 = consumer.mapK(serial, FunctionK.id)
+      val consumer1 = consumer.mapK(serial, serial)
 
       (consumer1, close)
     }

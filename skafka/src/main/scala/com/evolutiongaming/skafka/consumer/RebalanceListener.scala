@@ -56,7 +56,7 @@ object RebalanceListener {
           d <- MeasureDuration[F].start
           a <- self.onPartitionsAssigned(partitions)
           d <- d
-          _ <- log.debug(s"onPartitionsAssigned ${ partitions.mkString_(", ") } in ${ d.toMillis }")
+          _ <- log.debug(s"onPartitionsAssigned ${ partitions.mkString_(", ") } in ${ d.toMillis }ms")
         } yield a
       }
 
@@ -65,7 +65,7 @@ object RebalanceListener {
           d <- MeasureDuration[F].start
           a <- self.onPartitionsRevoked(partitions)
           d <- d
-          _ <- log.debug(s"onPartitionsRevoked ${ partitions.mkString_(", ") } in ${ d.toMillis }")
+          _ <- log.debug(s"onPartitionsRevoked ${ partitions.mkString_(", ") } in ${ d.toMillis }ms")
         } yield a
       }
     }

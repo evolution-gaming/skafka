@@ -1,14 +1,14 @@
 package com.evolutiongaming.skafka
 
-import cats.Show
 import cats.data.{NonEmptyList => Nel}
+import cats.implicits._
 import org.scalatest.{FunSuite, Matchers}
 
 class TopicPartitionSpec extends FunSuite with Matchers {
 
   test("show") {
     val topicPartition = TopicPartition(topic = "topic", partition = Partition.Min)
-    Show[TopicPartition].show(topicPartition) shouldEqual "topic-0"
+    topicPartition.show shouldEqual "topic-0"
   }
 
   test("order") {

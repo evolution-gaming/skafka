@@ -11,8 +11,8 @@ import cats.effect._
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
 import cats.implicits._
-import cats.{Applicative, MonadError, ~>}
-import com.evolutiongaming.catshelper.{ToFuture, ToTry}
+import cats.{Applicative, Monad, MonadError, ~>}
+import com.evolutiongaming.catshelper.{Log, ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -831,6 +831,15 @@ object Consumer {
       measureDuration: MeasureDuration[F],
     ): Consumer[F, K, V] = {
       Consumer(self, metrics)
+    }
+
+
+    def withLogging(
+      log: Log[F])(implicit
+      F: Monad[F],
+      measureDuration: MeasureDuration[F]
+    ): Consumer[F, K, V] = {
+      ConsumerLogging(log, self)
     }
 
 

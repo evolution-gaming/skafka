@@ -32,7 +32,7 @@ object ProducerLogging {
         } yield for {
           a <- a.attempt
           _ <- a match {
-            case Right(a) => log.debug(s"sent $record, metadata: $a")
+            case Right(a) => log.debug(s"sent $record, result: $a")
             case Left(e)  => log.error(s"failed to send record $record: $e")
           }
           a <- a.liftTo[F]

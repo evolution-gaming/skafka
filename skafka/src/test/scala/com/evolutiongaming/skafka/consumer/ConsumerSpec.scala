@@ -10,6 +10,7 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel}
 import cats.effect.IO
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka._
@@ -31,7 +32,7 @@ class ConsumerSpec extends WordSpec with Matchers {
 
   val topic = "topic"
   val partition = 1
-  val offset = 2l
+  val offset = 2L
   val topicPartition = TopicPartition(topic, partition)
   val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
   val offsets = Map((topicPartition, offsetAndMetadata))
@@ -429,6 +430,7 @@ class ConsumerSpec extends WordSpec with Matchers {
       Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
         .withMetrics(ConsumerMetrics.empty)
         .mapK(FunctionK.id, FunctionK.id)
+        .withLogging(Log.empty)
     }
   }
 }

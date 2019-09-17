@@ -3,10 +3,15 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.data.{NonEmptyList => Nel}
 import cats.implicits._
-import cats.{Applicative, ~>}
+import cats.{Applicative, FlatMap, ~>}
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.TopicPartition
+import com.evolutiongaming.smetrics.MeasureDuration
 
 
+/**
+  * See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+  */
 trait RebalanceListener[F[_]] {
 
   def onPartitionsAssigned(partitions: Nel[TopicPartition]): F[Unit]
@@ -25,7 +30,7 @@ object RebalanceListener {
     def onPartitionsRevoked(partitions: Nel[TopicPartition]) = unit
   }
 
-  
+
   implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
 
     def mapK[G[_]](f: F ~> G): RebalanceListener[G] = new RebalanceListener[G] {
@@ -36,6 +41,32 @@ object RebalanceListener {
 
       def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
         f(self.onPartitionsRevoked(partitions))
+      }
+    }
+
+
+    def withLogging(
+      log: Log[F])(implicit
+      F: FlatMap[F],
+      measureDuration: MeasureDuration[F]
+    ): RebalanceListener[F] = new RebalanceListener[F] {
+
+      def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- self.onPartitionsAssigned(partitions)
+          d <- d
+          _ <- log.debug(s"onPartitionsAssigned ${ partitions.mkString_(", ") } in ${ d.toMillis }")
+        } yield a
+      }
+
+      def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- self.onPartitionsRevoked(partitions)
+          d <- d
+          _ <- log.debug(s"onPartitionsRevoked ${ partitions.mkString_(", ") } in ${ d.toMillis }")
+        } yield a
       }
     }
   }

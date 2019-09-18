@@ -4,7 +4,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.{Map => MapJ}
 
 import cats.effect.concurrent.Deferred
-import cats.effect.{Concurrent, ContextShift, IO, Sync}
+import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, IO, Sync}
 import cats.implicits._
 import com.evolutiongaming.catshelper.{FromFuture, FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
@@ -25,7 +25,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     blockAndSend[IO](executor).run()
   }
 
-  private def blockAndSend[F[_] : Concurrent : ToTry : FromTry : ToFuture : FromFuture : ContextShift](
+  private def blockAndSend[F[_] : ConcurrentEffect : ToTry : FromTry : ToFuture : FromFuture : ContextShift](
     executor: ExecutionContext
   ) = {
 

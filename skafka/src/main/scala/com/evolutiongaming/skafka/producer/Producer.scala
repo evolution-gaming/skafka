@@ -2,16 +2,17 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.effect._
+import cats.effect.concurrent.Deferred
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
-import com.evolutiongaming.catshelper.{FromFuture, Log, MonadThrowable}
+import com.evolutiongaming.catshelper.{Log, MonadThrowable}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.collection.JavaConverters._
-import scala.concurrent.{ExecutionContext, ExecutionException, Promise}
+import scala.concurrent.{ExecutionContext, ExecutionException}
 
 /**
   * See [[org.apache.kafka.clients.producer.Producer]]
@@ -83,7 +84,7 @@ object Producer {
   }
 
 
-  def of[F[_] : Sync : ContextShift : FromFuture](
+  def of[F[_] : Effect : ContextShift](
     config: ProducerConfig,
     executorBlocking: ExecutionContext
   ): Resource[F, Producer[F]] = {
@@ -105,7 +106,7 @@ object Producer {
   }
 
 
-  def apply[F[_] : Sync : FromFuture](
+  def apply[F[_] : Effect](
     producer: ProducerJ[Bytes, Bytes],
     blocking: Blocking[F]
   ): Producer[F] = {
@@ -146,26 +147,26 @@ object Producer {
 
         def block(record: ProducerRecordJ[Bytes, Bytes]) = {
 
-          def callbackOf(promise: Promise[RecordMetadataJ]) = new Callback {
-            def onCompletion(metadata: RecordMetadataJ, exception: Exception) = {
+          def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
+            (metadata: RecordMetadataJ, exception: Exception) =>
               if (exception != null) {
-                promise.failure(exception)
+                Effect[F].toIO(deferred.complete(exception.asLeft)).unsafeRunSync()
               } else if (metadata != null) {
-                promise.success(metadata)
+                Effect[F].toIO(deferred.complete(metadata.asRight)).unsafeRunSync()
               } else {
                 val exception = SkafkaError("both metadata & exception are nulls")
-                promise.failure(exception)
+                Effect[F].toIO(deferred.complete(exception.asLeft)).unsafeRunSync()
               }
-            }
           }
 
           Sync[F].uncancelable {
             for {
-              promise  <- Sync[F].delay { Promise[RecordMetadataJ]() }
-              callback  = callbackOf(promise)
+              deferred <- Deferred.uncancelable[F, Either[Throwable, RecordMetadataJ]]
+              callback  = callbackOf(deferred)
               _        <- blocking { producer.send(record, callback) }.recoverWith(executionException)
             } yield {
-              FromFuture[F].apply(promise.future).recoverWith(executionException)
+              val result = deferred.get.flatMap(Sync[F].fromEither)
+              result.recoverWith(executionException)
             }
           }
         }

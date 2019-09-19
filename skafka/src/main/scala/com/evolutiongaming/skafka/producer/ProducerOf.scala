@@ -1,8 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.effect.{Bracket, ContextShift, Resource, Sync}
+import cats.effect.{Bracket, ContextShift, Effect, Resource}
 import cats.{Defer, Monad, ~>}
-import com.evolutiongaming.catshelper.FromFuture
 import com.evolutiongaming.smetrics.MeasureDuration
 
 import scala.concurrent.ExecutionContext
@@ -14,7 +13,7 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
-  def apply[F[_] : Sync : ContextShift : FromFuture : MeasureDuration](
+  def apply[F[_] : Effect : ContextShift : MeasureDuration](
     executorBlocking: ExecutionContext,
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {

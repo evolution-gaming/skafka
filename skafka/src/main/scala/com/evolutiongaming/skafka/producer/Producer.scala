@@ -145,19 +145,19 @@ object Producer {
           case failure: ExecutionException => failure.getCause.raiseError[F, A]
         }
 
-        def runEffect[A](fa: F[A]): A = Effect[F].toIO(fa).unsafeRunSync()
+        def unsafeRunSync[A](fa: F[A]): A = Effect[F].toIO(fa).unsafeRunSync()
 
         def block(record: ProducerRecordJ[Bytes, Bytes]) = {
 
           def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
             (metadata: RecordMetadataJ, exception: Exception) =>
               if (exception != null) {
-                runEffect(deferred.complete(exception.asLeft))
+                unsafeRunSync(deferred.complete(exception.asLeft))
               } else if (metadata != null) {
-                runEffect(deferred.complete(metadata.asRight))
+                unsafeRunSync(deferred.complete(metadata.asRight))
               } else {
                 val exception = SkafkaError("both metadata & exception are nulls")
-                runEffect(deferred.complete(exception.asLeft))
+                unsafeRunSync(deferred.complete(exception.asLeft))
               }
           }
 

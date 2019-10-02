@@ -11,7 +11,7 @@ import org.apache.kafka.common.header.{Header => HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.compat.java8.DurationConverters
 import scala.concurrent.duration.FiniteDuration
 

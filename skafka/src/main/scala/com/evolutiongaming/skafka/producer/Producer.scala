@@ -11,7 +11,7 @@ import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, ExecutionException}
 
 /**

@@ -21,7 +21,7 @@ lazy val root = (project
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
-  aggregate(skafka, `play-json`, tests))
+  aggregate(skafka, `play-json`))
 
 lazy val skafka = (project
   in file("skafka")
@@ -40,7 +40,8 @@ lazy val skafka = (project
       `cats-helper`,
       smetrics,
       scalatest % Test,
-      `scala-java8-compat`)))
+      `scala-java8-compat`,
+      `collection-compat`)))
 
 lazy val `play-json` = (project
   in file("modules/play-json")

@@ -8,7 +8,7 @@ import org.apache.kafka.clients.producer.{ProducerRecord => ProducerRecordJ, Rec
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ProducerConverters {
 

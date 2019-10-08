@@ -95,11 +95,8 @@ object Producer {
       producerJ <- CreateProducerJ(config, blocking)
       producer   = apply(producerJ, blocking)
       close      = blocking { producerJ.close() }
+      release    = producer.flush.attempt *> close
     } yield {
-      val release = for {
-        _ <- producer.flush.attempt
-        a <- close
-      } yield a
       (producer, release)
     }
     Resource(result)

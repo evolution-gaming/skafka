@@ -44,3 +44,15 @@ resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
 libraryDependencies += "com.evolutiongaming" %% "skafka" % "7.1.0"
 ``` 
+
+## Testing
+
+Integration tests require kafka and zookeeper be available on localhost.
+
+Create testing environment with [docker-compose](https://docs.docker.com/compose/install/)
+before executing commands which run integration tests.
+```sh
+$ docker-compose up --detach
+$ sbt release
+$ docker-compose down
+```

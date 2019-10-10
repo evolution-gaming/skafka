@@ -16,7 +16,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ConsumerConverters {
 

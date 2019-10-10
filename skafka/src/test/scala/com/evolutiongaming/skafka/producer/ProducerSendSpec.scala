@@ -14,7 +14,7 @@ import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, Produ
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 import org.scalatest.{AsyncFunSuite, Matchers}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
 

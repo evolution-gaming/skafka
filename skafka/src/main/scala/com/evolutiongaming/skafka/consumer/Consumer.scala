@@ -19,7 +19,7 @@ import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 
@@ -604,7 +604,7 @@ object Consumer {
     new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
-        val topics = partitions.map(_.topic).toList.to[Set]
+        val topics = partitions.map(_.topic).toList.toSet
         for {
           _ <- count("assign", topics)
           r <- consumer.assign(partitions)

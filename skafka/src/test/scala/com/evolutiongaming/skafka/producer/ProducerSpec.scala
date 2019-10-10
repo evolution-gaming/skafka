@@ -15,7 +15,7 @@ import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, Produ
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 import org.scalatest.{Matchers, WordSpec}
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 class ProducerSpec extends WordSpec with Matchers {
 

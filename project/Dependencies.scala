@@ -2,15 +2,16 @@ import sbt._
 
 object Dependencies {
 
-  val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"     % "1.0.2"
-  val `config-tools`       = "com.evolutiongaming"    %% "config-tools"       % "1.0.4"
-  val `future-helper`      = "com.evolutiongaming"    %% "future-helper"      % "1.0.6"
-  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"        % "1.0.0"
-  val `play-json`          = "com.typesafe.play"      %% "play-json"          % "2.7.4"
-  val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat" % "0.9.0"
-  val scalatest            = "org.scalatest"          %% "scalatest"          % "3.0.8"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"           % "0.0.6"
-  val `kind-projector`     = "org.typelevel"           % "kind-projector"     % "0.10.3"
+  val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"          % "1.0.2"
+  val `config-tools`       = "com.evolutiongaming"    %% "config-tools"            % "1.0.4"
+  val `future-helper`      = "com.evolutiongaming"    %% "future-helper"           % "1.0.6"
+  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "1.0.0"
+  val `play-json`          = "com.typesafe.play"      %% "play-json"               % "2.7.4"
+  val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.0"
+  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.2"
+  val scalatest            = "org.scalatest"          %% "scalatest"               % "3.0.8"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.0.6"
+  val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.10.3"
 
   object Kafka {
     private val version = "2.3.0"

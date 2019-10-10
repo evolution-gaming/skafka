@@ -127,7 +127,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val key = "key2"
       val record = ProducerRecord(topic, value = "value2", key = key)
       val metadata = produce(record)
-      val offset = if (acks == Acks.None) None else Some(1l)
+      val offset = if (acks == Acks.None) None else Some(1L)
       metadata.offset shouldEqual offset
 
       val keyAndValues = consumer.consume(timeout).map { record => (record.key.map(_.value), record.value.map(_.value)) }
@@ -147,7 +147,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val expected = Record(
         record = ConsumerRecord[String, String](
           topicPartition = deleteMetadata.topicPartition,
-          offset = 2l,
+          offset = 2L,
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           key = Some(WithSize(key, 4)),
           headers = Nil),
@@ -170,7 +170,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val expected = Record(
         record = ConsumerRecord[String, String](
           topicPartition = metadata.topicPartition,
-          offset = 3l,
+          offset = 3L,
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
@@ -202,7 +202,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
       val expected = Record(
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
-          offset = 4l,
+          offset = 4L,
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           key = Some(WithSize(key, 4)),
           value = Some(WithSize(value, 6)),

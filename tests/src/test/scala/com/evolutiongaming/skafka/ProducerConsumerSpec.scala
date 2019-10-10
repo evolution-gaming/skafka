@@ -10,7 +10,6 @@ import cats.data.{NonEmptyList => Nel}
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import com.evolutiongaming.skafka.IOSuite._
@@ -24,17 +23,9 @@ import scala.concurrent.duration._
 class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
-  private lazy val shutdown = StartKafka()
-
   private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
   private val timeout = 1.minute
-
-  override def beforeAll() = {
-    super.beforeAll()
-    shutdown
-    ()
-  }
 
   override def afterAll() = {
 
@@ -52,7 +43,6 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
 
     closeAll.unsafeRunTimed(timeout)
 
-    shutdown()
     super.afterAll()
   }
 
@@ -80,7 +70,7 @@ class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers
     ((producer, _), idx) <- producers.zipWithIndex
   } yield {
 
-    val topic = s"$idx-$acks"
+    val topic = s"${instant.toEpochMilli}-$idx-$acks"
     val name = s"[topic:$topic,acks:$acks]"
 
     def produce(record: ProducerRecord[String, String]) = producer.send(record).flatten.unsafeRunSync()

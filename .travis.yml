@@ -19,7 +19,7 @@ before_install:
   - sudo mv docker-compose /usr/local/bin
 
 scala:
-  #  - 2.13.0
+  - 2.13.0
   - 2.12.10
 
 script:

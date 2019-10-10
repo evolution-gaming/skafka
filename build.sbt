@@ -8,7 +8,7 @@ lazy val commonSettings = Seq(
   organizationHomepage := Some(url("http://evolutiongaming.com")),
   bintrayOrganization := Some("evolutiongaming"),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq(/*"2.13.0", */"2.12.10"),
+  crossScalaVersions := Seq("2.13.0", "2.12.10"),
   resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
@@ -40,7 +40,8 @@ lazy val skafka = (project
       `cats-helper`,
       smetrics,
       scalatest % Test,
-      `scala-java8-compat`)))
+      `scala-java8-compat`,
+      `collection-compat`)))
 
 lazy val `play-json` = (project
   in file("modules/play-json")

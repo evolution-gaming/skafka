@@ -42,5 +42,5 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "6.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "7.1.0"
 ``` 

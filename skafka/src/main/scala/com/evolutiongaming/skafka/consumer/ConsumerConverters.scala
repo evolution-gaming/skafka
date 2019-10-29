@@ -7,7 +7,7 @@ import cats.data.{NonEmptyList => Nel}
 import cats.effect.Concurrent
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
-import com.evolutiongaming.catshelper.EffectHelper._
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToFuture
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}

@@ -5,7 +5,7 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.catshelper.{FromTry, ToTry}
-import com.evolutiongaming.catshelper.EffectHelper._
+import com.evolutiongaming.catshelper.CatsHelper._
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header => HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}

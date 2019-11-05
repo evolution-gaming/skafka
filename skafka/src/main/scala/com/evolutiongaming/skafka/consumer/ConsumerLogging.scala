@@ -243,7 +243,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.topics
           d <- d
-          _ <- log.debug(s"listTopics in ${ d.toMillis }ms, result: ${ a.mkString(", ") }")
+          _ <- log.debug(s"topics in ${ d.toMillis }ms, result: ${ a.mkString(", ") }")
         } yield a
       }
 
@@ -252,7 +252,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.topics(timeout)
           d <- d
-          _ <- log.debug(s"listTopics timeout: $timeout in ${ d.toMillis }ms, result: ${ a.mkString(", ") }")
+          _ <- log.debug(s"topics timeout: $timeout in ${ d.toMillis }ms, result: ${ a.mkString(", ") }")
         } yield a
       }
 

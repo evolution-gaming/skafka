@@ -755,7 +755,7 @@ object Consumer {
           d <- MeasureDuration[F].start
           r <- consumer.topics.attempt
           d <- d
-          _ <- metrics.listTopics(d)
+          _ <- metrics.topics(d)
           r <- r.liftTo[F]
         } yield r
       }
@@ -765,7 +765,7 @@ object Consumer {
           d <- MeasureDuration[F].start
           r <- consumer.topics(timeout).attempt
           d <- d
-          _ <- metrics.listTopics(d)
+          _ <- metrics.topics(d)
           r <- r.liftTo[F]
         } yield r
       }

@@ -19,7 +19,10 @@ trait ConsumerMetrics[F[_]] {
 
   def rebalance(name: String, topicPartition: TopicPartition): F[Unit]
 
-  def listTopics(latency: FiniteDuration): F[Unit]
+  def topics(latency: FiniteDuration): F[Unit]
+
+  @deprecated("use topics instead", "7.2.0")
+  final def listTopics(latency: FiniteDuration): F[Unit] = topics(latency)
 }
 
 object ConsumerMetrics {
@@ -44,7 +47,7 @@ object ConsumerMetrics {
 
     def rebalance(name: String, topicPartition: TopicPartition) = unit
 
-    def listTopics(latency: FiniteDuration) = unit
+    def topics(latency: FiniteDuration) = unit
   }
 
 
@@ -88,8 +91,8 @@ object ConsumerMetrics {
       help = "Number of rebalances",
       labels = LabelNames("client", "topic", "partition", "type"))
 
-    val listTopicsLatency = registry.summary(
-      name = s"${ prefix }_list_topics_latency",
+    val topicsLatency = registry.summary(
+      name = s"${ prefix }_topics_latency",
       help = "List topics latency in seconds",
       quantiles = Quantiles(
         Quantile(value = 0.9, error = 0.05),
@@ -103,7 +106,7 @@ object ConsumerMetrics {
       recordsSummary    <- recordsSummary
       bytesSummary      <- bytesSummary
       rebalancesCounter <- rebalancesCounter
-      listTopicsLatency <- listTopicsLatency
+      topicsLatency     <- topicsLatency
     } yield {
       clientId: ClientId =>
         new ConsumerMetrics[F] {
@@ -135,8 +138,8 @@ object ConsumerMetrics {
               .inc()
           }
 
-          def listTopics(latency: FiniteDuration) = {
-            listTopicsLatency
+          def topics(latency: FiniteDuration) = {
+            topicsLatency
               .labels(clientId)
               .observe(latency.toNanos.nanosToSeconds)
           }

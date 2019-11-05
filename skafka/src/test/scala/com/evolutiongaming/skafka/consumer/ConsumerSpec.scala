@@ -177,12 +177,12 @@ class ConsumerSpec extends WordSpec with Matchers {
       consumer.partitions(topic, 1.second) should produce(List(partitionInfo))
     }
 
-    "listTopics" in new Scope {
-      consumer.listTopics should produce(Map((topic, List(partitionInfo))))
+    "topics" in new Scope {
+      consumer.topics should produce(Map((topic, List(partitionInfo))))
     }
 
-    "listTopics with timeout" in new Scope {
-      consumer.listTopics(1.second) should produce(Map((topic, List(partitionInfo))))
+    "topics with timeout" in new Scope {
+      consumer.topics(1.second) should produce(Map((topic, List(partitionInfo))))
     }
 
     "pause" in new Scope {

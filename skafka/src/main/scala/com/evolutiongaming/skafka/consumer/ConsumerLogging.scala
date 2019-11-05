@@ -238,19 +238,19 @@ object ConsumerLogging {
         } yield a
       }
 
-      val listTopics = {
+      val topics = {
         for {
           d <- MeasureDuration[F].start
-          a <- consumer.listTopics
+          a <- consumer.topics
           d <- d
           _ <- log.debug(s"listTopics in ${ d.toMillis }ms, result: ${ a.mkString(", ") }")
         } yield a
       }
 
-      def listTopics(timeout: FiniteDuration) = {
+      def topics(timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
-          a <- consumer.listTopics(timeout)
+          a <- consumer.topics(timeout)
           d <- d
           _ <- log.debug(s"listTopics timeout: $timeout in ${ d.toMillis }ms, result: ${ a.mkString(", ") }")
         } yield a

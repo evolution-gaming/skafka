@@ -84,9 +84,15 @@ trait Consumer[F[_], K, V] {
   def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]]
 
 
-  def listTopics: F[Map[Topic, List[PartitionInfo]]]
+  def topics: F[Map[Topic, List[PartitionInfo]]]
 
-  def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
+  def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
+
+  @deprecated("use topics instead", "7.2.0")
+  final def listTopics: F[Map[Topic, List[PartitionInfo]]] = topics
+
+  @deprecated("use topics instead", "7.2.0")
+  final def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = topics(timeout)
 
 
   def pause(partitions: Nel[TopicPartition]): F[Unit]
@@ -119,7 +125,7 @@ object Consumer {
   def empty[F[_] : Applicative, K, V]: Consumer[F, K, V] = {
 
     val empty = ().pure[F]
-    
+
     new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = empty
@@ -168,9 +174,9 @@ object Consumer {
 
       def partitions(topic: Topic, timeout: FiniteDuration) = List.empty[PartitionInfo].pure[F]
 
-      val listTopics = Map.empty[Topic, List[PartitionInfo]].pure[F]
+      val topics = Map.empty[Topic, List[PartitionInfo]].pure[F]
 
-      def listTopics(timeout: FiniteDuration) = Map.empty[Topic, List[PartitionInfo]].pure[F]
+      def topics(timeout: FiniteDuration) = Map.empty[Topic, List[PartitionInfo]].pure[F]
 
       def pause(partitions: Nel[TopicPartition]) = empty
 
@@ -432,7 +438,7 @@ object Consumer {
         }
       }
 
-      val listTopics = {
+      val topics = {
         for {
           result <- blocking { consumer.listTopics() }
         } yield {
@@ -440,7 +446,7 @@ object Consumer {
         }
       }
 
-      def listTopics(timeout: FiniteDuration) = {
+      def topics(timeout: FiniteDuration) = {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.listTopics(timeoutJ) }
@@ -523,13 +529,13 @@ object Consumer {
           result.asScalaMap(_.asScala, v => v)
         }
       }
-      
+
       val wakeup = {
         blocking { consumer.wakeup() }
       }
     }
   }
-  
+
 
   def apply[F[_] : MeasureDuration, E, K, V](
     consumer: Consumer[F, K, V],
@@ -744,20 +750,20 @@ object Consumer {
         } yield r
       }
 
-      val listTopics = {
+      val topics = {
         for {
           d <- MeasureDuration[F].start
-          r <- consumer.listTopics.attempt
+          r <- consumer.topics.attempt
           d <- d
           _ <- metrics.listTopics(d)
           r <- r.liftTo[F]
         } yield r
       }
 
-      def listTopics(timeout: FiniteDuration) = {
+      def topics(timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
-          r <- consumer.listTopics(timeout).attempt
+          r <- consumer.topics(timeout).attempt
           d <- d
           _ <- metrics.listTopics(d)
           r <- r.liftTo[F]
@@ -896,9 +902,9 @@ object Consumer {
 
       def partitions(topic: Topic, timeout: FiniteDuration) = fg(self.partitions(topic, timeout))
 
-      def listTopics = fg(self.listTopics)
+      def topics = fg(self.topics)
 
-      def listTopics(timeout: FiniteDuration) = fg(self.listTopics(timeout))
+      def topics(timeout: FiniteDuration) = fg(self.topics(timeout))
 
       def pause(partitions: Nel[TopicPartition]) = fg(self.pause(partitions))
 

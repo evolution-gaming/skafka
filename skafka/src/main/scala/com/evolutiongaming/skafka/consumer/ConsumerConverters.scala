@@ -41,9 +41,12 @@ object ConsumerConverters {
 
         def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]) = {
           val partitionsS = partitions.asScala.map(_.asScala)
-          Nel.fromList(partitionsS.toList).foreach { partitions =>
-            semaphore.withPermit { f(partitions) }.toFuture
-          }
+          partitionsS
+            .toList
+            .toNel
+            .foreach { partitions =>
+              semaphore.withPermit { f(partitions.sorted) }.toFuture
+            }
         }
 
         new RebalanceListenerJ {

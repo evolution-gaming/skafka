@@ -4,11 +4,12 @@ import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
 import org.apache.kafka.clients.producer.internals.DefaultPartitioner
-import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.duration._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ProducerConfigSpec extends FunSuite with Matchers {
+class ProducerConfigSpec extends AnyFunSuite with Matchers {
 
   val custom = ProducerConfig(
     batchSize = 1,

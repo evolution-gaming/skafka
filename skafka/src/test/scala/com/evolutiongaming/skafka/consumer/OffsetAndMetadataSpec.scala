@@ -1,9 +1,10 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.skafka.OffsetAndMetadata
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class OffsetAndMetadataSpec extends FunSuite with Matchers {
+class OffsetAndMetadataSpec extends AnyFunSuite with Matchers {
 
   for {
     (value, expected) <- List(

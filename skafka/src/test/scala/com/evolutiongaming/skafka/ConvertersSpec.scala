@@ -3,10 +3,11 @@ package com.evolutiongaming.skafka
 import cats.Id
 import com.evolutiongaming.skafka.Converters._
 import org.apache.kafka.common.Node
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 
-class ConvertersSpec extends WordSpec with Matchers {
+class ConvertersSpec extends AnyWordSpec with Matchers {
 
   "Converters" should {
 

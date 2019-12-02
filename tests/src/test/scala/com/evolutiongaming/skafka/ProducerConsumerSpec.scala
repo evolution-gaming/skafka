@@ -14,13 +14,15 @@ import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.smetrics.CollectorRegistry
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
+import org.scalatest.BeforeAndAfterAll
 
 import scala.annotation.tailrec
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ProducerConsumerSpec extends FunSuite with BeforeAndAfterAll with Matchers {
+class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
   private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)

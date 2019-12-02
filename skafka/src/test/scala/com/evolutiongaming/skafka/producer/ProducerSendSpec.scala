@@ -12,11 +12,12 @@ import com.evolutiongaming.skafka.{Blocking, Bytes, TopicPartition}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
-import org.scalatest.{AsyncFunSuite, Matchers}
 
 import scala.jdk.CollectionConverters._
 import scala.compat.java8.FutureConverters._
 import scala.concurrent.ExecutionContext
+import org.scalatest.funsuite.AsyncFunSuite
+import org.scalatest.matchers.should.Matchers
 
 class ProducerSendSpec extends AsyncFunSuite with Matchers {
 

@@ -3,9 +3,10 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptyList => Nel}
 import cats.implicits._
 import com.evolutiongaming.skafka.{Offset, Partition, Topic, TopicPartition}
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ConsumerRecordsTest extends FunSuite with Matchers {
+class ConsumerRecordsTest extends AnyFunSuite with Matchers {
 
   test("summaryShow") {
     def consumerRecord(topic: Topic, partition: Partition, offset: Offset, key: Int) = {

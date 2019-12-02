@@ -6,10 +6,11 @@ import java.time.temporal.ChronoUnit
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
 
-class ConsumerConvertersSpec extends WordSpec with Matchers {
+class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
 
   val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 

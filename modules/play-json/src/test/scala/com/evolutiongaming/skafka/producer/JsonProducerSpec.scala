@@ -3,10 +3,11 @@ package com.evolutiongaming.skafka.producer
 import java.nio.charset.StandardCharsets.UTF_8
 
 import com.evolutiongaming.skafka.{Bytes, ToBytes, TopicPartition}
-import org.scalatest.{FunSuite, Matchers}
 import play.api.libs.json.{JsString, Json}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class JsonProducerSpec extends FunSuite with Matchers {
+class JsonProducerSpec extends AnyFunSuite with Matchers {
 
   test("apply") {
     val metadata = RecordMetadata(TopicPartition("topic", 0))

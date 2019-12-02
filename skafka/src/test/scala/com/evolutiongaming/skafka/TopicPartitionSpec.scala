@@ -2,9 +2,10 @@ package com.evolutiongaming.skafka
 
 import cats.data.{NonEmptyList => Nel}
 import cats.implicits._
-import org.scalatest.{FunSuite, Matchers}
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class TopicPartitionSpec extends FunSuite with Matchers {
+class TopicPartitionSpec extends AnyFunSuite with Matchers {
 
   test("show") {
     val topicPartition = TopicPartition(topic = "topic", partition = Partition.Min)

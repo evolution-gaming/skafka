@@ -5,9 +5,10 @@ import java.time.temporal.ChronoUnit
 
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Header, TopicPartition}
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ProducerConvertersSpec extends WordSpec with Matchers {
+class ProducerConvertersSpec extends AnyWordSpec with Matchers {
 
   "ProducerConverters" should {
 

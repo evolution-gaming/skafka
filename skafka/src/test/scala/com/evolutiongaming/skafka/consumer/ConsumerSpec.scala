@@ -19,15 +19,16 @@ import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
-import org.scalatest.{Matchers, WordSpec}
 
 import scala.jdk.CollectionConverters._
 import scala.collection.compat._
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Await, Future, Promise}
 import scala.concurrent.duration._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ConsumerSpec extends WordSpec with Matchers {
+class ConsumerSpec extends AnyWordSpec with Matchers {
 
   import ConsumerSpec._
 

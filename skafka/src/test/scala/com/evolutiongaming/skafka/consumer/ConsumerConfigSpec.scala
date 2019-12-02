@@ -3,11 +3,12 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{FunSuite, Matchers}
 
 import scala.concurrent.duration._
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
-class ConsumerConfigSpec extends FunSuite with Matchers {
+class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
   val custom = ConsumerConfig(
     groupId = Some("groupId"),

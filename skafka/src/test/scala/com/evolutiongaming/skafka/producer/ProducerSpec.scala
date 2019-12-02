@@ -13,11 +13,12 @@ import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
-import org.scalatest.{Matchers, WordSpec}
 
 import scala.jdk.CollectionConverters._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class ProducerSpec extends WordSpec with Matchers {
+class ProducerSpec extends AnyWordSpec with Matchers {
 
   val topic = "topic"
   val topicPartition = TopicPartition(topic = topic, partition = 0)

@@ -8,9 +8,9 @@ import cats.effect.Concurrent
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.ToFuture
+import com.evolutiongaming.catshelper.{ApplicativeThrowable, ToFuture}
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.{OffsetAndMetadata, TimestampAndType, TimestampType, TopicPartition}
+import com.evolutiongaming.skafka._
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
@@ -39,14 +39,20 @@ object ConsumerConverters {
         semaphore <- Semaphore[F](1)
       } yield {
 
-        def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]) = {
-          val partitionsS = partitions.asScala.map(_.asScala)
-          partitionsS
+        def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]): Unit = {
+          partitions
+            .asScala
             .toList
-            .toNel
-            .foreach { partitions =>
-              semaphore.withPermit { f(partitions.sorted) }.toFuture
+            .traverse { _.asScala[F] }
+            .flatMap { partitions =>
+              partitions
+                .toNel
+                .traverse { partitions =>
+                  semaphore.withPermit { f(partitions.sorted) }
+                }
             }
+            .toFuture
+          ()
         }
 
         new RebalanceListenerJ {
@@ -66,7 +72,7 @@ object ConsumerConverters {
 
   implicit class ConsumerRecordJOps[K, V](val self: ConsumerRecordJ[K, V]) extends AnyVal {
 
-    def asScala: ConsumerRecord[K, V] = {
+    def asScala[F[_] : ApplicativeThrowable]: F[ConsumerRecord[K, V]] = {
 
       val headers = self.headers().asScala.map(_.asScala).toList
 
@@ -88,13 +94,17 @@ object ConsumerConverters {
         } yield WithSize(value, size)
       }
 
-      ConsumerRecord(
-        topicPartition = TopicPartition(self.topic(), self.partition()),
-        offset = self.offset(),
-        timestampAndType = timestampAndType,
-        key = withSize(self.key(), self.serializedKeySize),
-        value = withSize(self.value(), self.serializedValueSize()),
-        headers = headers)
+      for {
+        partition <- Partition.of[F](self.partition())
+      } yield {
+        ConsumerRecord(
+          topicPartition = TopicPartition(self.topic(), partition),
+          offset = self.offset(),
+          timestampAndType = timestampAndType,
+          key = withSize(self.key(), self.serializedKeySize),
+          value = withSize(self.value(), self.serializedValueSize()),
+          headers = headers)
+      }
     }
   }
 
@@ -116,7 +126,7 @@ object ConsumerConverters {
 
       new ConsumerRecordJ[K, V](
         self.topicPartition.topic,
-        self.topicPartition.partition,
+        self.topicPartition.partition.value,
         self.offset,
         timestamp,
         timestampType,
@@ -132,18 +142,18 @@ object ConsumerConverters {
 
   implicit class ConsumerRecordsJOps[K, V](val self: ConsumerRecordsJ[K, V]) extends AnyVal {
 
-    def asScala: ConsumerRecords[K, V] = {
-      val partitions = self.partitions()
-      val records = for {
-        partitionJ <- partitions.asScala
-        recordsJ    = self.records(partitionJ)
-        partition   = partitionJ.asScala
-        records     = recordsJ.asScala.map(_.asScala).toList
-        records    <- Nel.fromList(records)
-      } yield {
-        (partition, records)
-      }
-      ConsumerRecords(records.toMap)
+    def asScala[F[_] : ApplicativeThrowable]: F[ConsumerRecords[K, V]] = {
+      self
+        .iterator()
+        .asScala
+        .toList
+        .traverse { _.asScala[F] }
+        .map { records =>
+          Nel
+            .fromList(records)
+            .map { records => ConsumerRecords(records.groupBy { _.topicPartition }) }
+            .getOrElse(ConsumerRecords.empty)
+        }
     }
   }
 

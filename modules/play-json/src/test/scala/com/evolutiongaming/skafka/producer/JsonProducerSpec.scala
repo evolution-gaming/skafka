@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import java.nio.charset.StandardCharsets.UTF_8
 
-import com.evolutiongaming.skafka.{Bytes, ToBytes, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, Partition, ToBytes, TopicPartition}
 import play.api.libs.json.{JsString, Json}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -10,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 class JsonProducerSpec extends AnyFunSuite with Matchers {
 
   test("apply") {
-    val metadata = RecordMetadata(TopicPartition("topic", 0))
+    val metadata = RecordMetadata(TopicPartition("topic", Partition.min))
     var actual = Option.empty[(Option[Bytes], Option[Bytes])]
     type Id[A] = A
     val send = new Producer.Send[Id] {

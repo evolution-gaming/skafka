@@ -9,6 +9,7 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel}
+import cats.implicits._
 import cats.effect.IO
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.Converters._
@@ -28,12 +29,14 @@ import scala.concurrent.duration._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.util.Try
+
 class ConsumerSpec extends AnyWordSpec with Matchers {
 
   import ConsumerSpec._
 
   val topic = "topic"
-  val partition = 1
+  val partition = Partition.min
   val offset = 2L
   val topicPartition = TopicPartition(topic, partition)
   val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
@@ -322,11 +325,11 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]) = {
-        Scope.this.commitSync = Some((offsets.asScalaMap(_.asScala, _.asScala), None))
+        Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala.pure[Try]).get, None).some
       }
 
       def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ) = {
-        Scope.this.commitSync = Some((offsets.asScalaMap(_.asScala, _.asScala), Some(timeout.asScala)))
+        Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala.pure[Try]).get, Some(timeout.asScala)).some
       }
 
       def commitAsync() = {}
@@ -336,7 +339,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallbackJ) = {
-        commitLater = offsets.asScalaMap(_.asScala, _.asScala)
+        commitLater = offsets.asScalaMap(_.asScala[Try], _.asScala.pure[Try]).get
         callback.onComplete(offsets, null)
       }
 

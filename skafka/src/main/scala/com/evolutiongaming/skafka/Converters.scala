@@ -3,17 +3,19 @@ package com.evolutiongaming.skafka
 import java.time.{Duration => DurationJ}
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
+import cats.Monad
 import cats.data.{NonEmptyList => Nel}
-import com.evolutiongaming.catshelper.{FromTry, ToTry}
+import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, ToTry}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header => HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
-import scala.jdk.CollectionConverters._
 import scala.compat.java8.DurationConverters
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 object Converters {
 
@@ -38,24 +40,35 @@ object Converters {
 
 
   implicit class TopicPartitionOps(val self: TopicPartition) extends AnyVal {
-    def asJava: TopicPartitionJ = new TopicPartitionJ(self.topic, self.partition)
+    def asJava: TopicPartitionJ = new TopicPartitionJ(self.topic, self.partition.value)
   }
 
 
   implicit class TopicPartitionJOps(val self: TopicPartitionJ) extends AnyVal {
-    def asScala: TopicPartition = TopicPartition(self.topic(), self.partition())
+
+    def asScala[F[_] : ApplicativeThrowable]: F[TopicPartition] = {
+      for {
+        partition <- Partition.of[F](self.partition())
+      } yield {
+        TopicPartition(self.topic(), partition)
+      }
+    }
   }
 
 
   implicit class PartitionInfoJOps(val self: PartitionInfoJ) extends AnyVal {
 
-    def asScala: PartitionInfo = {
-      PartitionInfo(
-        topicPartition = TopicPartition(self.topic, self.partition),
-        leader = self.leader,
-        replicas = self.replicas.toList,
-        inSyncReplicas = self.inSyncReplicas.toList,
-        offlineReplicas = self.offlineReplicas.toList)
+    def asScala[F[_] : ApplicativeThrowable]: F[PartitionInfo] = {
+      for {
+        partition <- Partition.of[F](self.partition())
+      } yield {
+        PartitionInfo(
+          topicPartition = TopicPartition(self.topic, partition),
+          leader = self.leader,
+          replicas = self.replicas.toList,
+          inSyncReplicas = self.inSyncReplicas.toList,
+          offlineReplicas = self.offlineReplicas.toList)
+      }
     }
   }
 
@@ -64,7 +77,7 @@ object Converters {
     def asJava: PartitionInfoJ = {
       new PartitionInfoJ(
         self.topic,
-        self.partition,
+        self.partition.value,
         self.leader,
         self.replicas.toArray,
         self.inSyncReplicas.toArray,
@@ -75,13 +88,17 @@ object Converters {
 
   implicit class MapJOps[K, V](val self: MapJ[K, V]) extends AnyVal {
 
-    def asScalaMap[KK, VV](kf: K => KK, vf: V => VV): Map[KK, VV] = {
-      val zero = Map.empty[KK, VV]
-      self.asScala.foldLeft(zero) { case (map, (k, v)) =>
-        val kk = kf(k)
-        val vv = vf(v)
-        map.updated(kk, vv)
-      }
+    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
+      self
+        .asScala
+        .toList
+        .traverse { case (k, v) =>
+          for {
+            a <- ka(k)
+            b <- vb(v)
+          } yield (a, b)
+        }
+        .map { _.toMap }
     }
   }
 

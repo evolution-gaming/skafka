@@ -3,11 +3,14 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
+import cats.implicits._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import scala.util.Try
 
 
 class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
@@ -17,12 +20,12 @@ class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
   "ConsumerConverters" should {
 
     "convert OffsetAndMetadata" in {
-      val value = OffsetAndMetadata(1, "metadata")
+      val value = OffsetAndMetadata(1L, "metadata")
       value shouldEqual value.asJava.asScala
     }
 
     "convert OffsetAndTimestamp" in {
-      val value = OffsetAndTimestamp(1, instant)
+      val value = OffsetAndTimestamp(1L, instant)
       value shouldEqual value.asJava.asScala
     }
 
@@ -36,13 +39,13 @@ class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
     } {
       s"convert ConsumerRecord, key: $key, value: $value, timestampAndType: $timestampAndType" in {
         val consumerRecord = ConsumerRecord(
-          topicPartition = TopicPartition("topic", 1),
+          topicPartition = TopicPartition("topic", Partition.min),
           offset = 100,
           timestampAndType = timestampAndType,
           key = key,
           value = value,
           headers = List(Header("key", Bytes.empty)))
-        consumerRecord shouldEqual consumerRecord.asJava.asScala
+        consumerRecord.pure[Try] shouldEqual consumerRecord.asJava.asScala[Try]
       }
     }
   }

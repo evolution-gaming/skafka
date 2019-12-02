@@ -6,12 +6,6 @@ package object skafka {
 
   type ClientId = String
 
-  type Partition = Int
-
-  object Partition {
-    val Min: Partition = 0
-  }
-
 
   type Offset = Long
 

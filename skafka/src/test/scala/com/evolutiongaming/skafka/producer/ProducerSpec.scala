@@ -8,7 +8,7 @@ import cats.implicits._
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Blocking, Bytes, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Blocking, Bytes, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
@@ -21,7 +21,7 @@ import org.scalatest.wordspec.AnyWordSpec
 class ProducerSpec extends AnyWordSpec with Matchers {
 
   val topic = "topic"
-  val topicPartition = TopicPartition(topic = topic, partition = 0)
+  val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
   val metadata = RecordMetadata(topicPartition)
 
   "CreateProducer" should {

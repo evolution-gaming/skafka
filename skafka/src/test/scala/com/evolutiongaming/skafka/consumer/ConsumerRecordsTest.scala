@@ -9,9 +9,9 @@ import org.scalatest.matchers.should.Matchers
 class ConsumerRecordsTest extends AnyFunSuite with Matchers {
 
   test("summaryShow") {
-    def consumerRecord(topic: Topic, partition: Partition, offset: Offset, key: Int) = {
+    def consumerRecord(topic: Topic, partition: Int, offset: Offset, key: Int) = {
       ConsumerRecord(
-        topicPartition = TopicPartition(topic, partition),
+        topicPartition = TopicPartition(topic, Partition.unsafe(partition)),
         offset = offset,
         timestampAndType = none,
         key = Some(WithSize(key)),

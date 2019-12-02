@@ -10,9 +10,9 @@ class ConsumerRecordSpec extends AnyFunSuite with Matchers {
 
   test("order") {
 
-    def consumerRecord(topic: Topic, partition: Partition, offset: Offset, key: Int) = {
+    def consumerRecord(topic: Topic, partition: Int, offset: Offset, key: Int) = {
       ConsumerRecord(
-        topicPartition = TopicPartition(topic, partition),
+        topicPartition = TopicPartition(topic, Partition.unsafe(partition)),
         offset = offset,
         timestampAndType = none,
         key = Some(WithSize(key)),

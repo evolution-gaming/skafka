@@ -295,8 +295,9 @@ object Consumer {
       val assignment = {
         for {
           result <- Sync[F].delay { consumer.assignment() }
+          result <- result.asScala.toList.traverse { _.asScala[F] }
         } yield {
-          result.asScala.map(_.asScala).toSet
+          result.toSet
         }
       }
 
@@ -331,9 +332,8 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.poll(timeoutJ) }
-        } yield {
-          result.asScala
-        }
+          result <- result.asScala[F]
+        } yield result
       }
 
       val commit = {
@@ -359,9 +359,8 @@ object Consumer {
       val commitLater = {
         for {
           result <- commitLater1 { callback => consumer.commitAsync(callback) }
-        } yield {
-          result.asScalaMap(_.asScala, _.asScala)
-        }
+          result <- result.asScalaMap(_.asScala[F], _.asScala.pure[F])
+        } yield result
       }
 
       def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
@@ -424,35 +423,31 @@ object Consumer {
       def partitions(topic: Topic) = {
         for {
           result <- blocking { consumer.partitionsFor(topic) }
-        } yield {
-          result.asScala.map(_.asScala).toList
-        }
+          result <- result.asScala.toList.traverse { _.asScala[F] }
+        } yield result
       }
 
       def partitions(topic: Topic, timeout: FiniteDuration) = {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.partitionsFor(topic, timeoutJ) }
-        } yield {
-          result.asScala.map(_.asScala).toList
-        }
+          result <- result.asScala.toList.traverse { _.asScala[F] }
+        } yield result
       }
 
       val topics = {
         for {
           result <- blocking { consumer.listTopics() }
-        } yield {
-          result.asScalaMap(k => k, _.asScala.map(_.asScala).toList)
-        }
+          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
+        } yield result
       }
 
       def topics(timeout: FiniteDuration) = {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.listTopics(timeoutJ) }
-        } yield {
-          result.asScalaMap(k => k, _.asScala.map(_.asScala).toList)
-        }
+          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
+        } yield result
       }
 
       def pause(partitions: Nel[TopicPartition]) = {
@@ -462,9 +457,10 @@ object Consumer {
 
       val paused = {
         for {
-          partitionsJ <- Sync[F].delay { consumer.paused() }
+          result <- Sync[F].delay { consumer.paused() }
+          result <- result.asScala.toList.traverse { _.asScala[F] }
         } yield {
-          partitionsJ.asScala.map(_.asScala).toSet
+          result.toSet
         }
       }
 
@@ -477,9 +473,8 @@ object Consumer {
         val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, LongJ.valueOf)
         for {
           result <- blocking { consumer.offsetsForTimes(timestampsToSearchJ) }
-        } yield {
-          result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
-        }
+          result <- result.asScalaMap(_.asScala[F], v => Option(v).map(_.asScala).pure[F])
+        } yield result
       }
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = {
@@ -487,18 +482,16 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.offsetsForTimes(timestampsToSearchJ, timeoutJ) }
-        } yield {
-          result.asScalaMap(_.asScala, v => Option(v).map(_.asScala))
-        }
+          result <- result.asScalaMap(_.asScala[F], v => Option(v).map(_.asScala).pure[F])
+        } yield result
       }
 
       def beginningOffsets(partitions: Nel[TopicPartition]) = {
         val partitionsJ = partitions.map(_.asJava).asJava
         for {
           result <- blocking { consumer.beginningOffsets(partitionsJ) }
-        } yield {
-          result.asScalaMap(_.asScala, v => v)
-        }
+          result <- result.asScalaMap(_.asScala[F], a => (a: Offset).pure[F])
+        } yield result
       }
 
       def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
@@ -506,18 +499,16 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.beginningOffsets(partitionsJ, timeoutJ) }
-        } yield {
-          result.asScalaMap(_.asScala, v => v)
-        }
+          result <- result.asScalaMap(_.asScala[F], v => (v: Offset).pure[F])
+        } yield result
       }
 
       def endOffsets(partitions: Nel[TopicPartition]) = {
         val partitionsJ = partitions.map(_.asJava).asJava
         for {
           result <- blocking { consumer.endOffsets(partitionsJ) }
-        } yield {
-          result.asScalaMap(_.asScala, v => v)
-        }
+          result <- result.asScalaMap(_.asScala[F], v => (v: Offset).pure[F])
+        } yield result
       }
 
       def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
@@ -525,9 +516,8 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.endOffsets(partitionsJ, timeoutJ) }
-        } yield {
-          result.asScalaMap(_.asScala, v => v)
-        }
+          result <- result.asScalaMap(_.asScala[F], v => (v: Offset).pure[F])
+        } yield result
       }
 
       val wakeup = {

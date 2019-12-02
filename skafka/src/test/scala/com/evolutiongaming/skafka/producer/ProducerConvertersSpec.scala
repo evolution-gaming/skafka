@@ -3,10 +3,13 @@ package com.evolutiongaming.skafka.producer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
+import cats.implicits._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Header, TopicPartition}
+import com.evolutiongaming.skafka.{Header, Partition, TopicPartition}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import scala.util.Try
 
 class ProducerConvertersSpec extends AnyWordSpec with Matchers {
 
@@ -16,25 +19,25 @@ class ProducerConvertersSpec extends AnyWordSpec with Matchers {
 
     "convert Producer.Record" in {
       val record1 = ProducerRecord[Int, String](topic = "topic", value = Some("value"))
-      record1.asJava.asScala shouldEqual record1
+      record1.asJava.asScala[Try] shouldEqual record1.pure[Try]
 
       val record2 = ProducerRecord[Int, String](
         topic = "topic",
         value = Some("value"),
         key = Some(1),
-        partition = Some(2),
+        partition = Some(Partition.min),
         timestamp = Some(instant),
         headers = List(Header("key", Array[Byte](1, 2, 3))))
-      record2.asJava.asScala shouldEqual record2
+      record2.asJava.asScala[Try] shouldEqual record2.pure[Try]
     }
 
     "convert RecordMetadata" in {
-      val topicPartition = TopicPartition("topic", 1)
+      val topicPartition = TopicPartition("topic", Partition.min)
       val metadata1 = RecordMetadata(topicPartition)
-      metadata1 shouldEqual metadata1.asJava.asScala
+      metadata1.pure[Try] shouldEqual metadata1.asJava.asScala[Try]
 
-      val metadata2 = RecordMetadata(topicPartition, Some(instant), Some(1), Some(10), Some(100))
-      metadata2 shouldEqual metadata2.asJava.asScala
+      val metadata2 = RecordMetadata(topicPartition, Some(instant), 1L.some, 10.some, 100.some)
+      metadata2.pure[Try] shouldEqual metadata2.asJava.asScala[Try]
     }
   }
 }

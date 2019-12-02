@@ -10,7 +10,7 @@ final case class TopicPartition(topic: Topic, partition: Partition) {
 
 object TopicPartition {
 
-  val empty: TopicPartition = TopicPartition("", Partition.Min)
+  val empty: TopicPartition = TopicPartition("", Partition.min)
 
   implicit val orderTopicPartition: Order[TopicPartition] = Order.whenEqual(
     Order.by { a: TopicPartition => a.topic },

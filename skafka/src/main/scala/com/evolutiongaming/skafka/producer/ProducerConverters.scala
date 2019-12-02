@@ -2,8 +2,10 @@ package com.evolutiongaming.skafka.producer
 
 import java.time.Instant
 
+import cats.implicits._
+import com.evolutiongaming.catshelper.ApplicativeThrowable
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.TopicPartition
+import com.evolutiongaming.skafka.{Partition, TopicPartition}
 import org.apache.kafka.clients.producer.{ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
@@ -17,7 +19,7 @@ object ProducerConverters {
     def asJava: ProducerRecordJ[K, V] = {
       new ProducerRecordJ[K, V](
         self.topic,
-        self.partition.fold[java.lang.Integer](null) { java.lang.Integer.valueOf },
+        self.partition.fold[java.lang.Integer](null) { a => java.lang.Integer.valueOf(a.value) },
         self.timestamp.fold[java.lang.Long](null) { timestamp => timestamp.toEpochMilli },
         self.key.getOrElse(null.asInstanceOf[K]),
         self.value.getOrElse(null.asInstanceOf[V]),
@@ -28,28 +30,37 @@ object ProducerConverters {
 
   implicit class JProducerRecordOps[K, V](val self: ProducerRecordJ[K, V]) extends AnyVal {
 
-    def asScala: ProducerRecord[K, V] = {
-      ProducerRecord(
-        topic = self.topic,
-        value = Option(self.value),
-        key = Option(self.key),
-        partition = Option(self.partition) map { _.intValue() },
-        timestamp = Option(self.timestamp) map { Instant.ofEpochMilli(_) },
-        headers = self.headers.asScala.map { _.asScala }.toList
-      )
+    def asScala[F[_] : ApplicativeThrowable]: F[ProducerRecord[K, V]] = {
+
+      Option(self.partition)
+        .traverse { partition => Partition.of[F](partition.intValue()) }
+        .map { partition =>
+          ProducerRecord(
+            topic = self.topic,
+            value = Option(self.value),
+            key = Option(self.key),
+            partition = partition,
+            timestamp = Option(self.timestamp) map { Instant.ofEpochMilli(_) },
+            headers = self.headers.asScala.map { _.asScala }.toList)
+        }
     }
   }
 
 
   implicit class JRecordMetadataOps(val self: RecordMetadataJ) extends AnyVal {
 
-    def asScala: RecordMetadata = RecordMetadata(
-      topicPartition = TopicPartition(self.topic, self.partition()),
-      timestamp = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
-      offset = self.offset noneIf ProduceResponse.INVALID_OFFSET,
-      keySerializedSize = self.serializedKeySize noneIf -1,
-      valueSerializedSize = self.serializedValueSize noneIf -1
-    )
+    def asScala[F[_] : ApplicativeThrowable]: F[RecordMetadata] = {
+      for {
+        partition <- Partition.of[F](self.partition())
+      } yield {
+        RecordMetadata(
+          topicPartition = TopicPartition(self.topic, partition),
+          timestamp = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
+          offset = self.offset noneIf ProduceResponse.INVALID_OFFSET,
+          keySerializedSize = self.serializedKeySize noneIf -1,
+          valueSerializedSize = self.serializedValueSize noneIf -1)
+      }
+    }
   }
 
 

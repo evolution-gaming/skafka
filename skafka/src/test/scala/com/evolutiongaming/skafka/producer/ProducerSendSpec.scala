@@ -8,7 +8,7 @@ import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, IO, Sync}
 import cats.implicits._
 import com.evolutiongaming.catshelper.{FromFuture, FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Blocking, Bytes, TopicPartition}
+import com.evolutiongaming.skafka.{Blocking, Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
@@ -31,7 +31,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
   ) = {
 
     val topic = "topic"
-    val topicPartition = TopicPartition(topic = topic, partition = 0)
+    val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
     val metadata = RecordMetadata(topicPartition)
     val record = ProducerRecord(topic = topic, value = "val", key = "key")
 

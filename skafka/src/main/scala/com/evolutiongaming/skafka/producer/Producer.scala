@@ -71,7 +71,7 @@ object Producer {
       val abortTransaction = empty
 
       def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
-        val partition = record.partition getOrElse Partition.Min
+        val partition = record.partition getOrElse Partition.min
         val topicPartition = TopicPartition(record.topic, partition)
         val metadata = RecordMetadata(topicPartition, record.timestamp)
         metadata.pure[F].pure[F]
@@ -180,18 +180,16 @@ object Producer {
           result <- block(bytesJ)
         } yield for {
           result <- result
-        } yield {
-          result.asScala
-        }
+          result <- result.asScala[F]
+        } yield result
       }
 
 
       def partitions(topic: Topic) = {
         for {
           result <- blocking { producer.partitionsFor(topic) }
-        } yield {
-          result.asScala.map(_.asScala).toList
-        }
+          result <- result.asScala.toList.traverse { _.asScala[F] }
+        } yield result
       }
 
       val flush = {

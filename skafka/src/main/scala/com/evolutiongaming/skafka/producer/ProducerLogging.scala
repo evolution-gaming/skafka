@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
+import cats.data.{NonEmptyMap => Nem}
 import cats.implicits._
 import com.evolutiongaming.catshelper.{Log, MonadThrowable}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
@@ -14,7 +15,7 @@ object ProducerLogging {
 
       val beginTransaction = producer.beginTransaction
 
-      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         producer.sendOffsetsToTransaction(offsets, consumerGroupId)
       }
 

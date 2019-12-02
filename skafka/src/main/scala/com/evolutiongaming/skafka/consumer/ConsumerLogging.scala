@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import java.util.regex.Pattern
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
@@ -112,21 +112,21 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit(offsets)
           d <- d
-          _ <- log.debug(s"commit offsets: ${ offsets.mkString(", ") } in ${ d.toMillis }ms")
+          _ <- log.debug(s"commit offsets: ${ offsets.mkString_(", ") } in ${ d.toMillis }ms")
         } yield a
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit(offsets, timeout)
           d <- d
-          _ <- log.debug(s"commit offsets: ${ offsets.mkString(", ") }, timeout: $timeout in ${ d.toMillis }ms")
+          _ <- log.debug(s"commit offsets: ${ offsets.mkString_(", ") }, timeout: $timeout in ${ d.toMillis }ms")
         } yield a
       }
 
@@ -139,12 +139,12 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
+      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commitLater(offsets)
           d <- d
-          _ <- log.debug(s"commitLater offsets: ${ offsets.mkString(", ") } in ${ d.toMillis }ms")
+          _ <- log.debug(s"commitLater offsets: ${ offsets.mkString_(", ") } in ${ d.toMillis }ms")
         } yield a
       }
 

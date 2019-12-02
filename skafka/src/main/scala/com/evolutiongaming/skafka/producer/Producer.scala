@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka
 package producer
 
+import cats.data.{NonEmptyMap => Nem}
 import cats.effect._
 import cats.effect.concurrent.Deferred
 import cats.implicits._
@@ -24,7 +25,7 @@ trait Producer[F[_]] {
   def beginTransaction: F[Unit]
 
   def sendOffsetsToTransaction(
-    offsets: Map[TopicPartition, OffsetAndMetadata],
+    offsets: Nem[TopicPartition, OffsetAndMetadata],
     consumerGroupId: String
   ): F[Unit]
 
@@ -62,7 +63,7 @@ object Producer {
       val beginTransaction = empty
 
       def sendOffsetsToTransaction(
-        offsets: Map[TopicPartition, OffsetAndMetadata],
+        offsets: Nem[TopicPartition, OffsetAndMetadata],
         consumerGroupId: String
       ) = empty
 
@@ -118,8 +119,10 @@ object Producer {
         Sync[F].delay { producer.beginTransaction() }
       }
 
-      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
+      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+        val offsetsJ = offsets
+          .toSortedMap
+          .asJavaMap(_.asJava, _.asJava)
         blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
       }
 
@@ -224,7 +227,7 @@ object Producer {
         } yield r
       }
 
-      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt
@@ -327,7 +330,7 @@ object Producer {
 
       def beginTransaction = fg(self.beginTransaction)
 
-      def sendOffsetsToTransaction(offsets: Map[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         fg(self.sendOffsetsToTransaction(offsets, consumerGroupId))
       }
 

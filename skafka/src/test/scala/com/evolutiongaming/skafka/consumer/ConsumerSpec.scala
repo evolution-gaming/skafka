@@ -8,7 +8,7 @@ import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
 import cats.implicits._
 import cats.effect.IO
 import com.evolutiongaming.catshelper.Log
@@ -40,7 +40,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
   val offset = Offset.min
   val topicPartition = TopicPartition(topic, partition)
   val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
-  val offsets = Map((topicPartition, offsetAndMetadata))
+  val offsets = Nem.of((topicPartition, offsetAndMetadata))
   val partitions = Nel.of(topicPartition)
   val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
@@ -130,7 +130,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "commitLater" in new Scope {
-      consumer.commitLater should produce(offsets)
+      consumer.commitLater should produce(offsets.toSortedMap.toMap)
     }
 
     "commitLater offsets" in new Scope {
@@ -335,7 +335,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def commitAsync() = {}
 
       def commitAsync(callback: OffsetCommitCallbackJ) = {
-        callback.onComplete(offsets.asJavaMap(_.asJava, _.asJava), null)
+        callback.onComplete(offsets.toSortedMap.asJavaMap(_.asJava, _.asJava), null)
       }
 
       def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallbackJ) = {

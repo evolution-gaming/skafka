@@ -5,7 +5,7 @@ import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 import java.util.{Map => MapJ}
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
@@ -49,14 +49,14 @@ trait Consumer[F[_], K, V] {
 
   def commit(timeout: FiniteDuration): F[Unit]
 
-  def commit(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit]
+  def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]): F[Unit]
 
-  def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit]
+  def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit]
 
 
   def commitLater: F[Map[TopicPartition, OffsetAndMetadata]]
 
-  def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]): F[Unit]
+  def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]): F[Unit]
 
 
   def seek(partition: TopicPartition, offset: Offset): F[Unit]
@@ -146,13 +146,13 @@ object Consumer {
 
       def commit(timeout: FiniteDuration) = empty
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = empty
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = empty
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = empty
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = empty
 
       val commitLater = Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
 
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = empty
+      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = empty
 
       def seek(partition: TopicPartition, offset: Offset) = empty
 
@@ -345,13 +345,17 @@ object Consumer {
         blocking { consumer.commitSync(timeoutJ) }
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+        val offsetsJ = offsets
+          .toSortedMap
+          .asJavaMap(_.asJava, _.asJava)
         blocking { consumer.commitSync(offsetsJ) }
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-        val offsetsJ = offsets.asJavaMap(_.asJava, _.asJava)
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
+        val offsetsJ = offsets
+          .toSortedMap
+          .asJavaMap(_.asJava, _.asJava)
         val timeoutJ = timeout.asJava
         blocking { consumer.commitSync(offsetsJ, timeoutJ) }
       }
@@ -363,8 +367,8 @@ object Consumer {
         } yield result
       }
 
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        val offsetsJ = offsets.deepAsJava
+      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+        val offsetsJ = offsets.toSortedMap.deepAsJava
         commitLater1 { callback => consumer.commitAsync(offsetsJ, callback) }.void
       }
 
@@ -653,13 +657,19 @@ object Consumer {
         call1("commit") { consumer.commit(timeout) }
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        val topics = offsets.keySet.map(_.topic)
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+        val topics = offsets
+          .keys
+          .toList
+          .map { _.topic }
         call("commit", topics) { consumer.commit(offsets) }
       }
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-        val topics = offsets.keySet.map(_.topic)
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
+        val topics = offsets
+          .keys
+          .toList
+          .map(_.topic)
         call("commit", topics) { consumer.commit(offsets, timeout) }
       }
 
@@ -667,8 +677,11 @@ object Consumer {
         consumer.commitLater
       }
 
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = {
-        val topics = offsets.keySet.map(_.topic)
+      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+        val topics = offsets
+          .keys
+          .toList
+          .map(_.topic)
         call("commit_later", topics) { consumer.commitLater(offsets) }
       }
 
@@ -868,13 +881,13 @@ object Consumer {
 
       def commit(timeout: FiniteDuration) = fg(self.commit(timeout))
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata]) = fg(self.commit(offsets))
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = fg(self.commit(offsets))
 
-      def commit(offsets: Map[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = fg(self.commit(offsets, timeout))
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = fg(self.commit(offsets, timeout))
 
       def commitLater = fg(self.commitLater)
 
-      def commitLater(offsets: Map[TopicPartition, OffsetAndMetadata]) = fg(self.commitLater(offsets))
+      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = fg(self.commitLater(offsets))
 
       def seek(partition: TopicPartition, offset: Offset) = fg(self.seek(partition, offset))
 

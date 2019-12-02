@@ -3,12 +3,13 @@ package com.evolutiongaming.skafka.producer
 import java.util.concurrent.CompletableFuture
 
 import cats.arrow.FunctionK
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
 import cats.effect.{Concurrent, IO}
 import cats.implicits._
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Blocking, Bytes, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Blocking, Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
@@ -40,7 +41,8 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
     "proxy sendOffsetsToTransaction" in new Scope {
       val consumerGroupId = "consumerGroupId"
-      verify(producer.sendOffsetsToTransaction(Map.empty, consumerGroupId)) { _ =>
+      val offsets = Nem.of((topicPartition, OffsetAndMetadata.empty))
+      verify(producer.sendOffsetsToTransaction(offsets, consumerGroupId)) { _ =>
         sendOffsetsToTransaction shouldEqual consumerGroupId
       }
     }
@@ -106,7 +108,8 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     }
 
     "sendOffsetsToTransaction" in new Scope {
-      verify(empty.sendOffsetsToTransaction(Map.empty, "consumerGroupId")) { _ => }
+      val offsets = Nem.of((topicPartition, OffsetAndMetadata.empty))
+      verify(empty.sendOffsetsToTransaction(offsets, "consumerGroupId")) { _ => }
     }
 
     "commitTransaction" in new Scope {

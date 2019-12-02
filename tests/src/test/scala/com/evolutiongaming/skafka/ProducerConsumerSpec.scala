@@ -129,7 +129,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       val key = "key2"
       val record = ProducerRecord(topic, value = "value2", key = key)
       val metadata = produce(record)
-      val offset = if (acks == Acks.None) None else Some(1L)
+      val offset = if (acks == Acks.None) none[Offset] else Offset.unsafe(1L).some
       metadata.offset shouldEqual offset
 
       val keyAndValues = consumer.consume(timeout).map { record => (record.key.map(_.value), record.value.map(_.value)) }
@@ -206,8 +206,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           topicPartition = metadata.topicPartition,
           offset = Offset.unsafe(4L),
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
-          key = Some(WithSize(key, 4)),
-          value = Some(WithSize(value, 6)),
+          key = WithSize(key, 4).some,
+          value = WithSize(value, 6).some,
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
 

@@ -15,18 +15,18 @@ import scala.util.Try
 
 class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
 
-  val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  val instant: Instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
   "ConsumerConverters" should {
 
     "convert OffsetAndMetadata" in {
-      val value = OffsetAndMetadata(1L, "metadata")
-      value shouldEqual value.asJava.asScala
+      val value = OffsetAndMetadata(Offset.min, "metadata")
+      value.pure[Try] shouldEqual value.asJava.asScala[Try]
     }
 
     "convert OffsetAndTimestamp" in {
-      val value = OffsetAndTimestamp(1L, instant)
-      value shouldEqual value.asJava.asScala
+      val value = OffsetAndTimestamp(Offset.min, instant)
+      value.pure[Try] shouldEqual value.asJava.asScala[Try]
     }
 
     for {
@@ -40,7 +40,7 @@ class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
       s"convert ConsumerRecord, key: $key, value: $value, timestampAndType: $timestampAndType" in {
         val consumerRecord = ConsumerRecord(
           topicPartition = TopicPartition("topic", Partition.min),
-          offset = 100,
+          offset = Offset.min,
           timestampAndType = timestampAndType,
           key = key,
           value = value,

@@ -175,11 +175,19 @@ object Converters {
 
 
   implicit class SkafkaOffsetAndMetadataJOps(val self: OffsetAndMetadataJ) extends AnyVal {
-    def asScala: OffsetAndMetadata = OffsetAndMetadata(self.offset(), self.metadata())
+
+    def asScala[F[_] : ApplicativeThrowable]: F[OffsetAndMetadata] = {
+      for {
+        offset <- Offset.of[F](self.offset())
+      } yield {
+        OffsetAndMetadata(offset, self.metadata())
+      }
+    }
   }
 
 
   implicit class SkafkaOffsetAndMetadataOps(val self: OffsetAndMetadata) extends AnyVal {
-    def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset, self.metadata)
+
+    def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset.value, self.metadata)
   }
 }

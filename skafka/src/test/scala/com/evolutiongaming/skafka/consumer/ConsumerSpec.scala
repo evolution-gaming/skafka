@@ -37,7 +37,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
   val topic = "topic"
   val partition = Partition.min
-  val offset = 2L
+  val offset = Offset.min
   val topicPartition = TopicPartition(topic, partition)
   val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
   val offsets = Map((topicPartition, offsetAndMetadata))
@@ -141,7 +141,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     "seek" in new Scope {
       verify(consumer.seek(topicPartition, offset)) { _ =>
-        seek shouldEqual Some((topicPartition.asJava, offset))
+        seek shouldEqual Some((topicPartition.asJava, offset.value))
       }
     }
 
@@ -260,7 +260,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     var wakeup = false
 
-    var seek = Option.empty[(TopicPartitionJ, Offset)]
+    var seek = Option.empty[(TopicPartitionJ, Long)]
 
     var seekToBeginning = List.empty[TopicPartitionJ]
 
@@ -325,11 +325,11 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]) = {
-        Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala.pure[Try]).get, None).some
+        Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala[Try]).get, None).some
       }
 
       def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ) = {
-        Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala.pure[Try]).get, Some(timeout.asScala)).some
+        Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala[Try]).get, Some(timeout.asScala)).some
       }
 
       def commitAsync() = {}
@@ -339,7 +339,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallbackJ) = {
-        commitLater = offsets.asScalaMap(_.asScala[Try], _.asScala.pure[Try]).get
+        commitLater = offsets.asScalaMap(_.asScala[Try], _.asScala[Try]).get
         callback.onComplete(offsets, null)
       }
 
@@ -357,7 +357,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         Scope.this.seekToEnd = partitions.asScala.toList
       }
 
-      def position(partition: TopicPartitionJ) = offset
+      def position(partition: TopicPartitionJ) = offset.value
 
       def position(partition: TopicPartitionJ, timeout: DurationJ) = position(partition)
 
@@ -404,7 +404,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]) = {
-        Map((topicPartition, offset)).asJavaMap(_.asJava, l => l)
+        Map((topicPartition, offset)).asJavaMap(_.asJava, _.value)
       }
 
       def beginningOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ) = {
@@ -412,7 +412,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def endOffsets(partitions: CollectionJ[TopicPartitionJ]) = {
-        Map((topicPartition, offset)).asJavaMap(_.asJava, l => l)
+        Map((topicPartition, offset)).asJavaMap(_.asJava, _.value)
       }
 
       def endOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ) = {

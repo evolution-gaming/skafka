@@ -107,7 +107,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         timestamp = Some(timestamp),
         headers = headers)
       val metadata = produce(record)
-      val offset = if (acks == Acks.None) None else Some(Offset.Min)
+      val offset = if (acks == Acks.None) None else Some(Offset.min)
       metadata.offset shouldEqual offset
 
       val records = consumer.consume(timeout).map(Record(_))
@@ -115,7 +115,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       val expected = Record(
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
-          offset = Offset.Min,
+          offset = Offset.min,
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           key = Some(WithSize(key, 4)),
           value = Some(WithSize(value, 6)),
@@ -149,7 +149,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       val expected = Record(
         record = ConsumerRecord[String, String](
           topicPartition = deleteMetadata.topicPartition,
-          offset = 2L,
+          offset = Offset.unsafe(2),
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           key = Some(WithSize(key, 4)),
           headers = Nil),
@@ -172,7 +172,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       val expected = Record(
         record = ConsumerRecord[String, String](
           topicPartition = metadata.topicPartition,
-          offset = 3L,
+          offset = Offset.unsafe(3),
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
@@ -204,7 +204,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       val expected = Record(
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
-          offset = 4L,
+          offset = Offset.unsafe(4L),
           timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
           key = Some(WithSize(key, 4)),
           value = Some(WithSize(value, 6)),

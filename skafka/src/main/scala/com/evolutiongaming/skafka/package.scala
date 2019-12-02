@@ -7,13 +7,6 @@ package object skafka {
   type ClientId = String
 
 
-  type Offset = Long
-
-  object Offset {
-    val Min: Offset = 0L
-  }
-
-
   type Topic = String
 
 

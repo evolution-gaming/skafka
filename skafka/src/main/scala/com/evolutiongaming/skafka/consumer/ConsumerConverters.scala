@@ -8,7 +8,7 @@ import cats.effect.Concurrent
 import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{ApplicativeThrowable, ToFuture}
+import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable, ToFuture}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
@@ -21,14 +21,22 @@ import scala.jdk.CollectionConverters._
 object ConsumerConverters {
 
   implicit class OffsetAndTimestampJOps(val self: OffsetAndTimestampJ) extends AnyVal {
-    def asScala: OffsetAndTimestamp = OffsetAndTimestamp(
-      offset = self.offset(),
-      timestamp = Instant.ofEpochMilli(self.timestamp()))
+
+    def asScala[F[_] : ApplicativeThrowable]: F[OffsetAndTimestamp] = {
+      for {
+        offset <- Offset.of[F](self.offset())
+      } yield {
+        OffsetAndTimestamp(
+          offset = offset,
+          timestamp = Instant.ofEpochMilli(self.timestamp()))
+      }
+    }
   }
 
 
   implicit class OffsetAndTimestampOps(val self: OffsetAndTimestamp) extends AnyVal {
-    def asJava: OffsetAndTimestampJ = new OffsetAndTimestampJ(self.offset, self.timestamp.toEpochMilli)
+
+    def asJava: OffsetAndTimestampJ = new OffsetAndTimestampJ(self.offset.value, self.timestamp.toEpochMilli)
   }
 
 
@@ -72,7 +80,7 @@ object ConsumerConverters {
 
   implicit class ConsumerRecordJOps[K, V](val self: ConsumerRecordJ[K, V]) extends AnyVal {
 
-    def asScala[F[_] : ApplicativeThrowable]: F[ConsumerRecord[K, V]] = {
+    def asScala[F[_] : MonadThrowable]: F[ConsumerRecord[K, V]] = {
 
       val headers = self.headers().asScala.map(_.asScala).toList
 
@@ -96,10 +104,11 @@ object ConsumerConverters {
 
       for {
         partition <- Partition.of[F](self.partition())
+        offset    <- Offset.of[F](self.offset())
       } yield {
         ConsumerRecord(
           topicPartition = TopicPartition(self.topic(), partition),
-          offset = self.offset(),
+          offset = offset,
           timestampAndType = timestampAndType,
           key = withSize(self.key(), self.serializedKeySize),
           value = withSize(self.value(), self.serializedValueSize()),
@@ -127,7 +136,7 @@ object ConsumerConverters {
       new ConsumerRecordJ[K, V](
         self.topicPartition.topic,
         self.topicPartition.partition.value,
-        self.offset,
+        self.offset.value,
         timestamp,
         timestampType,
         null,
@@ -142,7 +151,7 @@ object ConsumerConverters {
 
   implicit class ConsumerRecordsJOps[K, V](val self: ConsumerRecordsJ[K, V]) extends AnyVal {
 
-    def asScala[F[_] : ApplicativeThrowable]: F[ConsumerRecords[K, V]] = {
+    def asScala[F[_] : MonadThrowable]: F[ConsumerRecords[K, V]] = {
       self
         .iterator()
         .asScala

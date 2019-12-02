@@ -5,7 +5,7 @@ import java.time.temporal.ChronoUnit
 
 import cats.implicits._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Header, Partition, TopicPartition}
+import com.evolutiongaming.skafka.{Header, Offset, Partition, TopicPartition}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -36,7 +36,7 @@ class ProducerConvertersSpec extends AnyWordSpec with Matchers {
       val metadata1 = RecordMetadata(topicPartition)
       metadata1.pure[Try] shouldEqual metadata1.asJava.asScala[Try]
 
-      val metadata2 = RecordMetadata(topicPartition, Some(instant), 1L.some, 10.some, 100.some)
+      val metadata2 = RecordMetadata(topicPartition, Some(instant), Offset.min.some, 10.some, 100.some)
       metadata2.pure[Try] shouldEqual metadata2.asJava.asScala[Try]
     }
   }

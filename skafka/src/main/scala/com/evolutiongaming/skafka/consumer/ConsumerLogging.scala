@@ -283,7 +283,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.offsetsForTimes(timestampsToSearch)
@@ -292,7 +292,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.offsetsForTimes(timestampsToSearch, timeout)

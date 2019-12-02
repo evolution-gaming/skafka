@@ -102,9 +102,9 @@ trait Consumer[F[_], K, V] {
   def resume(partitions: Nel[TopicPartition]): F[Unit]
 
 
-  def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
+  def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
 
-  def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
+  def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
 
 
   def beginningOffsets(partitions: Nel[TopicPartition]): F[Map[TopicPartition, Offset]]
@@ -162,9 +162,9 @@ object Consumer {
 
       def seekToEnd(partitions: Nel[TopicPartition]) = empty
 
-      def position(partition: TopicPartition) = Offset.Min.pure[F]
+      def position(partition: TopicPartition) = Offset.min.pure[F]
 
-      def position(partition: TopicPartition, timeout: FiniteDuration) = Offset.Min.pure[F]
+      def position(partition: TopicPartition, timeout: FiniteDuration) = Offset.min.pure[F]
 
       def committed(partition: TopicPartition) = OffsetAndMetadata.empty.pure[F]
 
@@ -359,7 +359,7 @@ object Consumer {
       val commitLater = {
         for {
           result <- commitLater1 { callback => consumer.commitAsync(callback) }
-          result <- result.asScalaMap(_.asScala[F], _.asScala.pure[F])
+          result <- result.asScalaMap(_.asScala[F], _.asScala[F])
         } yield result
       }
 
@@ -370,7 +370,7 @@ object Consumer {
 
       def seek(partition: TopicPartition, offset: Offset) = {
         val partitionsJ = partition.asJava
-        Sync[F].delay { consumer.seek(partitionsJ, offset) }
+        Sync[F].delay { consumer.seek(partitionsJ, offset.value) }
       }
 
       def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
@@ -391,23 +391,28 @@ object Consumer {
 
       def position(partition: TopicPartition) = {
         val partitionsJ = partition.asJava
-        blocking { consumer.position(partitionsJ) }
+        for {
+          offset <- blocking { consumer.position(partitionsJ) }
+          offset <- Offset.of[F](offset)
+        } yield offset
       }
 
 
       def position(partition: TopicPartition, timeout: FiniteDuration) = {
         val partitionJ = partition.asJava
         val timeoutJ = timeout.asJava
-        blocking { consumer.position(partitionJ, timeoutJ) }
+        for {
+          offset <- blocking { consumer.position(partitionJ, timeoutJ) }
+          offset <- Offset.of[F](offset)
+        } yield offset
       }
 
       def committed(partition: TopicPartition) = {
         val partitionJ = partition.asJava
         for {
           result <- blocking { consumer.committed(partitionJ) }
-        } yield {
-          result.asScala
-        }
+          result <- result.asScala[F]
+        } yield result
       }
 
       def committed(partition: TopicPartition, timeout: FiniteDuration) = {
@@ -415,9 +420,8 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.committed(partitionJ, timeoutJ) }
-        } yield {
-          result.asScala
-        }
+          result <- result.asScala[F]
+        } yield result
       }
 
       def partitions(topic: Topic) = {
@@ -469,20 +473,20 @@ object Consumer {
         Sync[F].delay { consumer.resume(partitionsJ) }
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = {
-        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, LongJ.valueOf)
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
+        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
         for {
           result <- blocking { consumer.offsetsForTimes(timestampsToSearchJ) }
-          result <- result.asScalaMap(_.asScala[F], v => Option(v).map(_.asScala).pure[F])
+          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
         } yield result
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = {
-        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, LongJ.valueOf)
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
+        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.offsetsForTimes(timestampsToSearchJ, timeoutJ) }
-          result <- result.asScalaMap(_.asScala[F], v => Option(v).map(_.asScala).pure[F])
+          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
         } yield result
       }
 
@@ -490,7 +494,7 @@ object Consumer {
         val partitionsJ = partitions.map(_.asJava).asJava
         for {
           result <- blocking { consumer.beginningOffsets(partitionsJ) }
-          result <- result.asScalaMap(_.asScala[F], a => (a: Offset).pure[F])
+          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
         } yield result
       }
 
@@ -499,7 +503,7 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.beginningOffsets(partitionsJ, timeoutJ) }
-          result <- result.asScalaMap(_.asScala[F], v => (v: Offset).pure[F])
+          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
         } yield result
       }
 
@@ -507,7 +511,7 @@ object Consumer {
         val partitionsJ = partitions.map(_.asJava).asJava
         for {
           result <- blocking { consumer.endOffsets(partitionsJ) }
-          result <- result.asScalaMap(_.asScala[F], v => (v: Offset).pure[F])
+          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
         } yield result
       }
 
@@ -516,7 +520,7 @@ object Consumer {
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.endOffsets(partitionsJ, timeoutJ) }
-          result <- result.asScalaMap(_.asScala[F], v => (v: Offset).pure[F])
+          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
         } yield result
       }
 
@@ -778,12 +782,12 @@ object Consumer {
         } yield r
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long]) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
         val topics = timestampsToSearch.keySet.map(_.topic)
         call("offsets_for_times", topics) { consumer.offsetsForTimes(timestampsToSearch) }
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Long], timeout: FiniteDuration) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
         val topics = timestampsToSearch.keySet.map(_.topic)
         call("offsets_for_times", topics) { consumer.offsetsForTimes(timestampsToSearch, timeout) }
       }

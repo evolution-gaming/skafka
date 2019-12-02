@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 final case class OffsetAndMetadata(
-  offset: Offset = Offset.Min,
+  offset: Offset = Offset.min,
   metadata: Metadata = Metadata.empty) {
 
   override def toString = {

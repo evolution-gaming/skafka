@@ -288,7 +288,7 @@ object Consumer {
     new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.toList.map(_.asJava).asJavaCollection
+        val partitionsJ = partitions.toList.map { _.asJava }.asJavaCollection
         Sync[F].delay { consumer.assign(partitionsJ) }
       }
 
@@ -304,14 +304,14 @@ object Consumer {
       def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
         val topicsJ = topics.asJava
         for {
-          l <- listener.traverse(_.asJava)
+          l <- listener.traverse { _.asJava }
           a <- Sync[F].delay { consumer.subscribe(topicsJ, l getOrElse new NoOpConsumerRebalanceListener) }
         } yield a
       }
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
         for {
-          l <- listener.traverse(_.asJava)
+          l <- listener.traverse { _.asJava }
           a <- Sync[F].delay { consumer.subscribe(pattern, l getOrElse new NoOpConsumerRebalanceListener) }
         } yield a
       }
@@ -384,12 +384,12 @@ object Consumer {
       }
 
       def seekToBeginning(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         Sync[F].delay { consumer.seekToBeginning(partitionsJ) }
       }
 
       def seekToEnd(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         Sync[F].delay { consumer.seekToEnd(partitionsJ) }
       }
 
@@ -459,7 +459,7 @@ object Consumer {
       }
 
       def pause(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         Sync[F].delay { consumer.pause(partitionsJ) }
       }
 
@@ -473,7 +473,7 @@ object Consumer {
       }
 
       def resume(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         Sync[F].delay { consumer.resume(partitionsJ) }
       }
 
@@ -495,7 +495,7 @@ object Consumer {
       }
 
       def beginningOffsets(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         for {
           result <- blocking { consumer.beginningOffsets(partitionsJ) }
           result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
@@ -503,7 +503,7 @@ object Consumer {
       }
 
       def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.beginningOffsets(partitionsJ, timeoutJ) }
@@ -512,7 +512,7 @@ object Consumer {
       }
 
       def endOffsets(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         for {
           result <- blocking { consumer.endOffsets(partitionsJ) }
           result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
@@ -520,7 +520,7 @@ object Consumer {
       }
 
       def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        val partitionsJ = partitions.map(_.asJava).asJava
+        val partitionsJ = partitions.map { _.asJava }.asJava
         val timeoutJ = timeout.asJava
         for {
           result <- blocking { consumer.endOffsets(partitionsJ, timeoutJ) }

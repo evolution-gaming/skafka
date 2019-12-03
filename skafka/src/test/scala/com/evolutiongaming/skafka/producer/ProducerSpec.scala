@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.producer
 import java.util.concurrent.CompletableFuture
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
+import cats.data.{NonEmptyMap => Nem}
 import cats.effect.{Concurrent, IO}
 import cats.implicits._
 import com.evolutiongaming.concurrent.CurrentThreadExecutionContext

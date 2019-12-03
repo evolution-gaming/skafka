@@ -227,7 +227,7 @@ object Consumer {
       consumerJ <- consumerJ
       rebalance <- Semaphore[F](1)
       consumer   = apply(consumerJ, blocking, rebalance)
-      release    = blocking { consumerJ.close() }
+      release    = blocking { consumerJ.close() } *> rebalance.withPermit(().pure[F])
     } yield {
       (consumer, release)
     }

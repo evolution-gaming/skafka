@@ -8,20 +8,20 @@ import java.util.UUID
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel}
 import cats.effect.concurrent.Deferred
-import cats.effect.{Fiber, IO, Resource}
+import cats.effect.{IO, Resource}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
-import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.smetrics.CollectorRegistry
 import org.scalatest.BeforeAndAfterAll
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.matchers.should.Matchers
 
 import scala.annotation.tailrec
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.matchers.should.Matchers
 
 class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
@@ -52,22 +52,82 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
-  def producers(acks: Acks) = {
+  def consumerOf(
+    topic: Topic,
+    listener: Option[RebalanceListener[IO]]
+  ): Resource[IO, Consumer[IO, String, String]] = {
+
+    val config = ConsumerConfig.Default.copy(
+      groupId = Some(s"group-$topic"),
+      autoOffsetReset = AutoOffsetReset.Earliest,
+      autoCommit = false,
+      common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
+
+    for {
+      metrics    <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
+      consumerOf  = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
+      consumer   <- consumerOf[String, String](config)
+      _          <- Resource.liftF(consumer.subscribe(Nel.of(topic), listener))
+    } yield consumer
+  }
+
+  def producerOf(acks: Acks): Resource[IO, Producer[IO]] = {
     val config = ProducerConfig.Default.copy(acks = acks)
-    val producer = for {
+    for {
       metrics    <- ProducerMetrics.of(CollectorRegistry.empty[IO])
       producerOf  = ProducerOf(executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
       producer   <- producerOf(config)
     } yield {
       producer.withLogging(Log.empty)
     }
-    List(producer.allocated.unsafeRunSync())
+  }
+
+  test("rebalance") {
+    val topic = s"${instant.toEpochMilli}-rebalance"
+
+    def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener[IO] = {
+      new RebalanceListener[IO] {
+
+        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
+          assigned
+            .complete(())
+            .handleError { _ => () }
+        }
+
+        def onPartitionsRevoked(partitions: Nel[TopicPartition]) = ().pure[IO]
+      }
+    }
+
+    val result = for {
+      assigned <- Deferred[IO, Unit]
+      done     <- Deferred[IO, Unit]
+      listener  = listenerOf(assigned)
+      consumer  = consumerOf(topic, listener.some)
+      _        <- consumer.use { consumer =>
+        val poll = consumer
+          .poll(10.millis)
+          .foreverM[Unit]
+          .guarantee(done.complete(()))
+        Resource
+          .make(poll.start) { _.cancel }
+          .use { _ =>
+            for {
+              _ <- assigned.get.timeout(1.minute)
+              _ <- done.get
+            } yield {}
+          }
+      }
+    } yield consumer
+    result.run()
   }
 
   lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {
     acks <- List(Acks.One, Acks.None)
-  } yield (acks, producers(acks))
-
+  } yield {
+    val producer = producerOf(acks)
+    (acks, List(producer.allocated.unsafeRunSync()))
+  }
+  
   for {
     (acks, producers)    <- combinations
     ((producer, _), idx) <- producers.zipWithIndex
@@ -78,59 +138,10 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     def produce(record: ProducerRecord[String, String]) = producer.send(record).flatten.unsafeRunSync()
 
-    def consumerOf(listener: Option[RebalanceListener[IO]]): Resource[IO, Consumer[IO, String, String]] = {
-
-      val config = ConsumerConfig.Default.copy(
-        groupId = Some(s"group-$topic"),
-        autoOffsetReset = AutoOffsetReset.Earliest,
-        autoCommit = false,
-        common = CommonConfig(clientId = Some(UUID.randomUUID().toString)))
-
-      for {
-        metrics    <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
-        consumerOf  = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
-        consumer   <- consumerOf[String, String](config)
-        _          <- Resource.liftF(consumer.subscribe(Nel.of(topic), listener))
-      } yield consumer
-    }
-
-    lazy val (consumer, consumerRelease) = {
-
-      def listenerOf(revoked: Deferred[IO, Unit], assigned: Deferred[IO, Unit]): RebalanceListener[IO] = {
-        new RebalanceListener[IO] {
-
-          def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
-            assigned
-              .complete(())
-              .handleError { _ => ()}
-          }
-
-          def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
-            revoked
-              .complete(())
-              .handleError { _ => ()}
-          }
-        }
-      }
-
-      def run[A](fa: IO[A]): Resource[IO, Fiber[IO, A]] = {
-        Resource.make { fa.start } { _.cancel }
-      }
-
-      val result = for {
-        revoked    <- Resource.liftF(Deferred[IO, Unit])
-        assigned   <- Resource.liftF(Deferred[IO, Unit])
-        done       <- Resource.liftF(Deferred[IO, Unit])
-        listener    = listenerOf(assigned = assigned, revoked = revoked)
-        consumer   <- consumerOf(listener.some)
-        fiber      <- run(consumer.poll(10.millis).foreverM[Unit].guarantee(done.complete(())))
-        _          <- Resource.liftF(revoked.get.timeout(1.minute))
-        _          <- Resource.liftF(assigned.get.timeout(1.minute))
-        _          <- Resource.liftF(fiber.cancel)
-        _          <- Resource.liftF(done.get)
-      } yield consumer
-      result.allocated.timeout(1.minute).unsafeRunSync()
-    }
+    lazy val (consumer, consumerRelease) = consumerOf(topic, none)
+      .allocated
+      .timeout(1.minute)
+      .unsafeRunSync()
 
     test(s"$name produce and consume record") {
       val key = "key1"
@@ -233,7 +244,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
       val metadata = produce(record)
 
-      val (consumer2, consumer2Release) = consumerOf(none).allocated.unsafeRunSync()
+      val (consumer2, consumer2Release) = consumerOf(topic, none).allocated.unsafeRunSync()
 
       val records = consumer2.consume(timeout).map(Record(_))
 

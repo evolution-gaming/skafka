@@ -11,6 +11,7 @@ import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
 import cats.implicits._
 import cats.effect.IO
+import cats.effect.concurrent.Semaphore
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._
@@ -432,7 +433,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     val consumer = {
       implicit val measureDuration = MeasureDuration.empty[IO]
-      Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
+      val rebalance = Semaphore[IO](1).unsafeRunSync()
+      Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor), rebalance)
         .withMetrics(ConsumerMetrics.empty)
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)

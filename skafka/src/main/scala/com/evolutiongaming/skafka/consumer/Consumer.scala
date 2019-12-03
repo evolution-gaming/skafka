@@ -225,7 +225,8 @@ object Consumer {
 
     val result = for {
       consumerJ <- consumerJ
-      consumer   = apply(consumerJ, blocking)
+      rebalance <- Semaphore[F](1)
+      consumer   = apply(consumerJ, blocking, rebalance)
       release    = blocking { consumerJ.close() }
     } yield {
       (consumer, release)
@@ -257,7 +258,8 @@ object Consumer {
 
   def apply[F[_] : Concurrent : ContextShift : ToFuture, K, V](
     consumer: ConsumerJ[K, V],
-    blocking: Blocking[F]
+    blocking: Blocking[F],
+    rebalance: Semaphore[F]
   ): Consumer[F, K, V] = {
 
     def commitLater1(f: OffsetCommitCallback => Unit) = {
@@ -285,6 +287,14 @@ object Consumer {
       } yield result
     }
 
+    val rebalanceDone = rebalance.withPermit(().pure[F])
+
+    def listenerOf(listener: Option[RebalanceListener[F]]) = {
+      listener
+        .map { _.asJava(rebalance) }
+        .getOrElse(new NoOpConsumerRebalanceListener)
+    }
+
     new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
@@ -303,17 +313,11 @@ object Consumer {
 
       def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
         val topicsJ = topics.asJava
-        for {
-          l <- listener.traverse { _.asJava }
-          a <- Sync[F].delay { consumer.subscribe(topicsJ, l getOrElse new NoOpConsumerRebalanceListener) }
-        } yield a
+        Sync[F].delay { consumer.subscribe(topicsJ, listenerOf(listener)) }
       }
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
-        for {
-          l <- listener.traverse { _.asJava }
-          a <- Sync[F].delay { consumer.subscribe(pattern, l getOrElse new NoOpConsumerRebalanceListener) }
-        } yield a
+        Sync[F].delay { consumer.subscribe(pattern, listenerOf(listener)) }
       }
 
       val subscription = {
@@ -333,6 +337,7 @@ object Consumer {
         for {
           result <- blocking { consumer.poll(timeoutJ) }
           result <- result.asScala[F]
+          _      <- rebalanceDone
         } yield result
       }
 

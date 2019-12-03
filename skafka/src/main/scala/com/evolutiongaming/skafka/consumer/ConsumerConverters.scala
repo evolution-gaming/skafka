@@ -42,36 +42,32 @@ object ConsumerConverters {
 
   implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
 
-    def asJava(implicit F: Concurrent[F], toFuture: ToFuture[F]): F[RebalanceListenerJ] = {
-      for {
-        semaphore <- Semaphore[F](1)
-      } yield {
+    def asJava(semaphore: Semaphore[F])(implicit F: Concurrent[F], toFuture: ToFuture[F]): RebalanceListenerJ = {
+      
+      def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]): Unit = {
+        partitions
+          .asScala
+          .toList
+          .traverse { _.asScala[F] }
+          .flatMap { partitions =>
+            partitions
+              .toNel
+              .traverse { partitions =>
+                semaphore.withPermit { f(partitions.sorted) }
+              }
+          }
+          .toFuture
+        ()
+      }
 
-        def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]): Unit = {
-          partitions
-            .asScala
-            .toList
-            .traverse { _.asScala[F] }
-            .flatMap { partitions =>
-              partitions
-                .toNel
-                .traverse { partitions =>
-                  semaphore.withPermit { f(partitions.sorted) }
-                }
-            }
-            .toFuture
-          ()
+      new RebalanceListenerJ {
+
+        def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions)(self.onPartitionsAssigned)
         }
 
-        new RebalanceListenerJ {
-
-          def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
-            onPartitions(partitions)(self.onPartitionsAssigned)
-          }
-
-          def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
-            onPartitions(partitions)(self.onPartitionsRevoked)
-          }
+        def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions)(self.onPartitionsRevoked)
         }
       }
     }

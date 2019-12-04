@@ -11,7 +11,6 @@ import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
 import cats.implicits._
 import cats.effect.IO
-import cats.effect.concurrent.Semaphore
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._

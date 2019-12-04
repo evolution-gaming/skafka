@@ -433,8 +433,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     val consumer = {
       implicit val measureDuration = MeasureDuration.empty[IO]
-      val rebalance = Semaphore[IO](1).unsafeRunSync()
-      Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor), rebalance)
+      Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
         .withMetrics(ConsumerMetrics.empty)
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)

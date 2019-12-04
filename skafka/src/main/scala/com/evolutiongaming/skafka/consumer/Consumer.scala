@@ -225,9 +225,8 @@ object Consumer {
 
     val result = for {
       consumerJ <- consumerJ
-      rebalance <- Semaphore[F](1)
-      consumer   = apply(consumerJ, blocking, rebalance)
-      release    = blocking { consumerJ.close() } *> rebalance.withPermit(().pure[F])
+      consumer   = apply(consumerJ, blocking)
+      release    = blocking { consumerJ.close() }
     } yield {
       (consumer, release)
     }
@@ -240,17 +239,17 @@ object Consumer {
       semaphore <- Semaphore[F](1)
       result    <- consumer.allocated
     } yield {
-      val (consumer, close0) = result
+      val (consumer, close) = result
 
       val serial = new (F ~> F) {
         def apply[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
       }
 
-      val close = serial(close0)
+      val close1 = serial(close)
 
       val consumer1 = consumer.mapK(serial, serial)
 
-      (consumer1, close)
+      (consumer1, close1)
     }
     Resource(result)
   }
@@ -258,8 +257,7 @@ object Consumer {
 
   def apply[F[_] : Concurrent : ContextShift : ToFuture, K, V](
     consumer: ConsumerJ[K, V],
-    blocking: Blocking[F],
-    rebalance: Semaphore[F]
+    blocking: Blocking[F]
   ): Consumer[F, K, V] = {
 
     def commitLater1(f: OffsetCommitCallback => Unit) = {
@@ -287,11 +285,9 @@ object Consumer {
       } yield result
     }
 
-    val rebalanceDone = rebalance.withPermit(().pure[F])
-
     def listenerOf(listener: Option[RebalanceListener[F]]) = {
       listener
-        .map { _.asJava(rebalance) }
+        .map { _.asJava }
         .getOrElse(new NoOpConsumerRebalanceListener)
     }
 
@@ -337,7 +333,6 @@ object Consumer {
         for {
           result <- blocking { consumer.poll(timeoutJ) }
           result <- result.asScala[F]
-          _      <- rebalanceDone
         } yield result
       }
 

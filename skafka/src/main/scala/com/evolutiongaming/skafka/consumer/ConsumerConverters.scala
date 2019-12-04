@@ -5,7 +5,6 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.data.{NonEmptyList => Nel}
 import cats.effect.Concurrent
-import cats.effect.concurrent.Semaphore
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable, ToFuture}
@@ -42,19 +41,18 @@ object ConsumerConverters {
 
   implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
 
-    def asJava(semaphore: Semaphore[F])(implicit F: Concurrent[F], toFuture: ToFuture[F]): RebalanceListenerJ = {
-      
-      def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]): Unit = {
+    def asJava(implicit F: Concurrent[F], toFuture: ToFuture[F]): RebalanceListenerJ = {
+
+      def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]) = {
         partitions
           .asScala
           .toList
           .traverse { _.asScala[F] }
           .flatMap { partitions =>
             partitions
+              .sorted
               .toNel
-              .traverse { partitions =>
-                semaphore.withPermit { f(partitions.sorted) }
-              }
+              .foldMapM(f)
           }
           .toFuture
         ()

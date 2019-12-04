@@ -88,11 +88,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener[IO] = {
       new RebalanceListener[IO] {
 
-        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
-          assigned
-            .complete(())
-            .handleError { _ => () }
-        }
+        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = assigned.complete(())
 
         def onPartitionsRevoked(partitions: Nel[TopicPartition]) = ().pure[IO]
       }
@@ -100,25 +96,18 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     val result = for {
       assigned <- Deferred[IO, Unit]
-      done     <- Deferred[IO, Unit]
-      listener  = listenerOf(assigned)
+      listener  = listenerOf(assigned = assigned)
       consumer  = consumerOf(topic, listener.some)
       _        <- consumer.use { consumer =>
         val poll = consumer
           .poll(10.millis)
           .foreverM[Unit]
-          .guarantee(done.complete(()))
         Resource
           .make(poll.start) { _.cancel }
-          .use { _ =>
-            for {
-              _ <- assigned.get.timeout(1.minute)
-              _ <- done.get
-            } yield {}
-          }
+          .use { _ => assigned.get.timeout(1.minute) }
       }
     } yield consumer
-    result.run()
+    result.unsafeRunSync()
   }
 
   lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {

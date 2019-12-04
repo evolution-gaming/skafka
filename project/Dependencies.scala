@@ -18,14 +18,6 @@ object Dependencies {
     val `kafka-clients` = "org.apache.kafka" %  "kafka-clients" % version
   }
 
-  object Akka {
-    private val version = "2.5.25"
-    val actor   = "com.typesafe.akka" %% "akka-actor"   % version
-    val stream  = "com.typesafe.akka" %% "akka-stream"  % version
-    val testkit = "com.typesafe.akka" %% "akka-testkit" % version
-    val slf4j   = "com.typesafe.akka" %% "akka-slf4j"   % version
-  }
-
   object Logback {
     private val version = "1.2.3"
     val core    = "ch.qos.logback" % "logback-core"    % version

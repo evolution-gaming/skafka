@@ -6,7 +6,7 @@ object Dependencies {
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"            % "1.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"           % "1.0.6"
   val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "1.2.0"
-  val `play-json`          = "com.typesafe.play"      %% "play-json"               % "2.7.4"
+  val `play-json`          = "com.typesafe.play"      %% "play-json"               % "2.8.1"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.0"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.1.0"

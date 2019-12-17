@@ -3,9 +3,9 @@ package consumer
 
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
-import java.util.{Map => MapJ}
+import java.util.{Map => MapJ, Set => SetJ, List => ListJ, Collection => CollectionJ}
 
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
@@ -16,8 +16,12 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.clients.consumer.{
+  OffsetCommitCallback, Consumer => ConsumerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
+import org.apache.kafka.common.{TopicPartition => TopicPartitionJ, PartitionInfo => PartitionInfoJ}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
@@ -28,6 +32,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 trait Consumer[F[_], K, V] {
 
+  // TODO migrate from Nel to Nes
   def assign(partitions: Nel[TopicPartition]): F[Unit]
 
   def assignment: F[Set[TopicPartition]]
@@ -74,9 +79,9 @@ trait Consumer[F[_], K, V] {
   def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset]
 
 
-  def committed(partition: TopicPartition): F[OffsetAndMetadata]
+  def committed(partitions: Nes[TopicPartition]): F[Map[TopicPartition, OffsetAndMetadata]]
 
-  def committed(partition: TopicPartition, timeout: FiniteDuration): F[OffsetAndMetadata]
+  def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]]
 
 
   def partitions(topic: Topic): F[List[PartitionInfo]]
@@ -166,9 +171,13 @@ object Consumer {
 
       def position(partition: TopicPartition, timeout: FiniteDuration) = Offset.min.pure[F]
 
-      def committed(partition: TopicPartition) = OffsetAndMetadata.empty.pure[F]
+      def committed(partitions: Nes[TopicPartition]) = {
+        Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+      }
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = OffsetAndMetadata.empty.pure[F]
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+        Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+      }
 
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
@@ -291,6 +300,69 @@ object Consumer {
         .getOrElse(new NoOpConsumerRebalanceListener)
     }
 
+    def position1(partition: TopicPartition)(f: TopicPartitionJ => Long) = {
+      val partitionJ = partition.asJava
+      for {
+        offset <- blocking { f(partitionJ) }
+        offset <- Offset.of[F](offset)
+      } yield offset
+    }
+
+    def committed1(
+      partitions: Nes[TopicPartition])(
+      f: (SetJ[TopicPartitionJ]) => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
+    ) = {
+      val partitionsJ = partitions
+        .toSortedSet
+        .toSet
+        .map { a: TopicPartition => a.asJava }
+        .asJava
+      for {
+        result <- blocking { f(partitionsJ) }
+        result <- Option(result).fold {
+          Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+        } {
+          _.asScalaMap(_.asScala[F], _.asScala[F])
+        }
+      } yield result
+    }
+
+    def partitions1(f: => ListJ[PartitionInfoJ]) = {
+      for {
+        result <- blocking { f }
+        result <- result.asScala.toList.traverse { _.asScala[F] }
+      } yield result
+    }
+
+    def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
+      for {
+        result <- blocking { f }
+        result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
+      } yield result
+    }
+
+    def offsetsForTimes1(
+      timestamps: Map[TopicPartition, Offset])(
+      f: MapJ[TopicPartitionJ, LongJ] => MapJ[TopicPartitionJ, OffsetAndTimestampJ]
+    ) = {
+      val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
+      for {
+        result <- blocking { f(timestampsJ) }
+        result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
+      } yield result
+    }
+
+    def offsetsOf(
+      partitions: Nel[TopicPartition])(
+      f: CollectionJ[TopicPartitionJ] => MapJ[TopicPartitionJ, LongJ]
+    ) = {
+      val partitionsJ = partitions.map { _.asJava }.asJava
+      for {
+        result <- blocking { f(partitionsJ) }
+        result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
+      } yield result
+    }
+
     new Consumer[F, K, V] {
 
       def assign(partitions: Nel[TopicPartition]) = {
@@ -394,68 +466,34 @@ object Consumer {
       }
 
       def position(partition: TopicPartition) = {
-        val partitionsJ = partition.asJava
-        for {
-          offset <- blocking { consumer.position(partitionsJ) }
-          offset <- Offset.of[F](offset)
-        } yield offset
+        position1(partition) { consumer.position }
       }
 
 
       def position(partition: TopicPartition, timeout: FiniteDuration) = {
-        val partitionJ = partition.asJava
-        val timeoutJ = timeout.asJava
-        for {
-          offset <- blocking { consumer.position(partitionJ, timeoutJ) }
-          offset <- Offset.of[F](offset)
-        } yield offset
+        position1(partition) { consumer.position(_, timeout.asJava) }
       }
 
-      def committed(partition: TopicPartition) = {
-        val partitionJ = partition.asJava
-        for {
-          result <- blocking { consumer.committed(partitionJ) }
-          result <- result.asScala[F]
-        } yield result
+      def committed(partitions: Nes[TopicPartition]) = {
+        committed1(partitions) { consumer.committed }
       }
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = {
-        val partitionJ = partition.asJava
-        val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.committed(partitionJ, timeoutJ) }
-          result <- result.asScala[F]
-        } yield result
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+        committed1(partitions) { consumer.committed(_, timeout.asJava) }
       }
 
       def partitions(topic: Topic) = {
-        for {
-          result <- blocking { consumer.partitionsFor(topic) }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
-        } yield result
+        partitions1 { consumer.partitionsFor(topic) }
       }
 
       def partitions(topic: Topic, timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.partitionsFor(topic, timeoutJ) }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
-        } yield result
+        partitions1 { consumer.partitionsFor(topic, timeout.asJava) }
       }
 
-      val topics = {
-        for {
-          result <- blocking { consumer.listTopics() }
-          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
-        } yield result
-      }
+      val topics = topics1 { consumer.listTopics() }
 
       def topics(timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.listTopics(timeoutJ) }
-          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
-        } yield result
+        topics1 { consumer.listTopics(timeout.asJava) }
       }
 
       def pause(partitions: Nel[TopicPartition]) = {
@@ -478,54 +516,30 @@ object Consumer {
       }
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
-        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
-        for {
-          result <- blocking { consumer.offsetsForTimes(timestampsToSearchJ) }
-          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
-        } yield result
+        offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes }
       }
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
-        val timestampsToSearchJ = timestampsToSearch.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
         val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.offsetsForTimes(timestampsToSearchJ, timeoutJ) }
-          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
-        } yield result
+        offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes(_, timeoutJ) }
       }
 
       def beginningOffsets(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
-        for {
-          result <- blocking { consumer.beginningOffsets(partitionsJ) }
-          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
-        } yield result
+        offsetsOf(partitions) { consumer.beginningOffsets }
       }
 
       def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
         val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.beginningOffsets(partitionsJ, timeoutJ) }
-          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
-        } yield result
+        offsetsOf(partitions) { consumer.beginningOffsets(_, timeoutJ) }
       }
 
       def endOffsets(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
-        for {
-          result <- blocking { consumer.endOffsets(partitionsJ) }
-          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
-        } yield result
+        offsetsOf(partitions) { consumer.endOffsets }
       }
 
       def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
         val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.endOffsets(partitionsJ, timeoutJ) }
-          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
-        } yield result
+        offsetsOf(partitions) { consumer.endOffsets(_, timeoutJ) }
       }
 
       val wakeup = {
@@ -604,6 +618,8 @@ object Consumer {
         }
       }
     }
+
+    
 
     new Consumer[F, K, V] {
 
@@ -729,17 +745,25 @@ object Consumer {
         } yield r
       }
 
-      def committed(partition: TopicPartition) = {
+      def committed(partitions: Nes[TopicPartition]) = {
+        def topics = partitions
+          .toList
+          .map { _.topic }
+          .distinct
         for {
-          _ <- count("committed", List(partition.topic))
-          r <- consumer.committed(partition)
+          _ <- count("committed", topics)
+          r <- consumer.committed(partitions)
         } yield r
       }
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = {
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+        def topics = partitions
+          .toList
+          .map { _.topic }
+          .distinct
         for {
-          _ <- count("committed", List(partition.topic))
-          r <- consumer.committed(partition, timeout)
+          _ <- count("committed", topics)
+          r <- consumer.committed(partitions, timeout)
         } yield r
       }
 
@@ -901,9 +925,9 @@ object Consumer {
 
       def position(partition: TopicPartition, timeout: FiniteDuration) = fg(self.position(partition, timeout))
 
-      def committed(partition: TopicPartition) = fg(self.committed(partition))
+      def committed(partitions: Nes[TopicPartition]) = fg(self.committed(partitions))
 
-      def committed(partition: TopicPartition, timeout: FiniteDuration) = fg(self.committed(partition, timeout))
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = fg(self.committed(partitions, timeout))
 
       def partitions(topic: Topic) = fg(self.partitions(topic))
 

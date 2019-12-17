@@ -3,12 +3,13 @@ package com.evolutiongaming.skafka.consumer
 import java.lang.{Long => LongJ}
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, Duration => DurationJ}
+import java.util
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import cats.effect.IO
 import com.evolutiongaming.catshelper.Log
@@ -35,27 +36,28 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
   import ConsumerSpec._
 
-  val topic = "topic"
-  val partition = Partition.min
-  val offset = Offset.min
-  val topicPartition = TopicPartition(topic, partition)
-  val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
-  val offsets = Nem.of((topicPartition, offsetAndMetadata))
-  val partitions = Nel.of(topicPartition)
-  val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
-  val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
-  val consumerRecord = ConsumerRecord(
+  private val topic = "topic"
+  private val partition = Partition.min
+  private val offset = Offset.min
+  private val topicPartition = TopicPartition(topic, partition)
+  private val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
+  private val offsets = Nem.of((topicPartition, offsetAndMetadata))
+  private val partitions = Nel.of(topicPartition) // TODO remove
+  private val partitions1 = Nes.of(topicPartition) // TODO rename
+  private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  private val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
+  private val consumerRecord = ConsumerRecord(
     topicPartition = topicPartition,
     offset = offset,
     timestampAndType = Some(TimestampAndType(instant, TimestampType.Create)),
     key = Some(WithSize(Bytes.empty, 1)),
     value = Some(WithSize(Bytes.empty, 1)),
     headers = List(Header("key", Bytes.empty)))
-  val consumerRecords = ConsumerRecords(Map((topicPartition, Nel.of(consumerRecord))))
+  private val consumerRecords = ConsumerRecords(Map((topicPartition, Nel.of(consumerRecord))))
 
-  val node = new Node(1, "host", 2)
+  private val node = new Node(1, "host", 2)
 
-  val partitionInfo = PartitionInfo(
+  private val partitionInfo = PartitionInfo(
     topicPartition,
     leader = node,
     replicas = List(node),
@@ -166,11 +168,11 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "committed" in new Scope {
-      consumer.committed(topicPartition) should produce(offsetAndMetadata)
+      consumer.committed(partitions1) should produce(offsets.toSortedMap.toMap)
     }
 
     "committed with timeout" in new Scope {
-      consumer.committed(topicPartition, 1.second) should produce(offsetAndMetadata)
+      consumer.committed(partitions1, 1.second) should produce(offsets.toSortedMap.toMap)
     }
 
     "partitions" in new Scope {
@@ -366,6 +368,9 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def committed(partition: TopicPartitionJ, timeout: DurationJ) = offsetAndMetadata.asJava
 
+      def committed(partitions: util.Set[TopicPartitionJ]) = offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+
+      def committed(partitions: util.Set[TopicPartitionJ], timeout: DurationJ) = offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
 
       def metrics() = new java.util.HashMap()
 

@@ -5,16 +5,16 @@ object Dependencies {
   val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"          % "1.0.2"
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"            % "1.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"           % "1.0.6"
-  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "1.1.0"
-  val `play-json`          = "com.typesafe.play"      %% "play-json"               % "2.8.1"
+  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "1.2.0"
+  val `play-json`          = "com.typesafe.play"      %% "play-json"               % "2.7.4"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.0"
-  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.2"
+  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.1.0"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.0.8"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.10.3"
 
   object Kafka {
-    private val version = "2.3.1"
+    private val version = "2.4.0"
     val `kafka-clients` = "org.apache.kafka" %  "kafka-clients" % version
   }
 
@@ -25,7 +25,7 @@ object Dependencies {
   }
 
   object Slf4j {
-    private val version = "1.7.29"
+    private val version = "1.7.30"
     val api                = "org.slf4j" % "slf4j-api"        % version
     val `log4j-over-slf4j` = "org.slf4j" % "log4j-over-slf4j" % version
   }

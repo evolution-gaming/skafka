@@ -25,7 +25,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.assign(partitions)
           d <- d
-          _ <- log.debug(s"assign partitions: ${ partitions.mkString_(", ") } in ${ d.toMillis }ms")
+          _ <- log.debug(s"assign in ${ d.toMillis }ms, partitions: ${ partitions.mkString_(", ") }")
         } yield a
       }
 
@@ -46,7 +46,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.subscribe(topics, listenerLogging.some)
           d <- d
-          _ <- log.debug(s"subscribe topics: ${ topics.mkString_(", ") }, listener: ${ listener.isDefined } in ${ d.toMillis }ms")
+          _ <- log.debug(s"subscribe in ${ d.toMillis }ms, topics: ${ topics.mkString_(", ") }, listener: ${ listener.isDefined }")
         } yield a
       }
 
@@ -58,7 +58,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.subscribe(pattern, listenerLogging.some)
           d <- d
-          _ <- log.debug(s"subscribe pattern: $pattern, listener: ${ listener.isDefined } in ${ d.toMillis }ms")
+          _ <- log.debug(s"subscribe in ${ d.toMillis }ms, pattern: $pattern, listener: ${ listener.isDefined }")
         } yield a
       }
 
@@ -108,7 +108,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.commit(timeout)
           d <- d
-          _ <- log.debug(s"commit timeout: $timeout in ${ d.toMillis }ms")
+          _ <- log.debug(s"commit in ${ d.toMillis }ms, timeout: $timeout")
         } yield a
       }
 
@@ -117,7 +117,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.commit(offsets)
           d <- d
-          _ <- log.debug(s"commit offsets: ${ offsets.mkString_(", ") } in ${ d.toMillis }ms")
+          _ <- log.debug(s"commit in ${ d.toMillis }ms, offsets: ${ offsets.mkString_(", ") }")
         } yield a
       }
 
@@ -126,7 +126,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.commit(offsets, timeout)
           d <- d
-          _ <- log.debug(s"commit offsets: ${ offsets.mkString_(", ") }, timeout: $timeout in ${ d.toMillis }ms")
+          _ <- log.debug(s"commit in ${ d.toMillis }ms, offsets: ${ offsets.mkString_(", ") }, timeout: $timeout")
         } yield a
       }
 
@@ -144,7 +144,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.commitLater(offsets)
           d <- d
-          _ <- log.debug(s"commitLater offsets: ${ offsets.mkString_(", ") } in ${ d.toMillis }ms")
+          _ <- log.debug(s"commitLater in ${ d.toMillis }ms, offsets: ${ offsets.mkString_(", ") }")
         } yield a
       }
 
@@ -153,7 +153,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.seek(partition, offset)
           d <- d
-          _ <- log.debug(s"seek partition: $partition, offset: $offset in ${ d.toMillis }ms")
+          _ <- log.debug(s"seek in ${ d.toMillis }ms, partition: $partition, offset: $offset")
         } yield a
       }
 
@@ -162,7 +162,7 @@ object ConsumerLogging {
           d <- MeasureDuration[F].start
           a <- consumer.seek(partition, offsetAndMetadata)
           d <- d
-          _ <- log.debug(s"seek partition: $partition, offset: $offsetAndMetadata in ${ d.toMillis }ms")
+          _ <- log.debug(s"seek in ${ d.toMillis }ms, partition: $partition, offset: $offsetAndMetadata")
         } yield a
       }
 

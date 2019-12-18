@@ -4,10 +4,11 @@ import cats.data.{NonEmptyMap => Nem}
 import cats.implicits._
 import com.evolutiongaming.catshelper.{Log, MonadThrowable}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
+import com.evolutiongaming.smetrics.MeasureDuration
 
 object ProducerLogging {
 
-  def apply[F[_] : MonadThrowable](producer: Producer[F], log: Log[F]): Producer[F] = {
+  def apply[F[_] : MonadThrowable : MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] = {
 
     new Producer[F] {
 
@@ -29,11 +30,13 @@ object ProducerLogging {
         toBytesV: ToBytes[F, V]
       ) = {
         val a = for {
+          d <- MeasureDuration[F].start
           a <- producer.send(record)
         } yield for {
           a <- a.attempt
+          d <- d
           _ <- a match {
-            case Right(a) => log.debug(s"sent $record, result: $a")
+            case Right(a) => log.debug(s"send in ${ d.toMillis }ms, $record, result: $a")
             case Left(e)  => log.error(s"failed to send record $record: $e")
           }
           a <- a.liftTo[F]

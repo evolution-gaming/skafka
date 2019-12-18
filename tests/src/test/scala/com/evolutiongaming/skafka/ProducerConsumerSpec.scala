@@ -6,7 +6,7 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.Deferred
 import cats.effect.{IO, Resource}
 import cats.implicits._
@@ -67,7 +67,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       metrics    <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
       consumerOf  = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
       consumer   <- consumerOf[String, String](config)
-      _          <- Resource.liftF(consumer.subscribe(Nel.of(topic), listener))
+      _          <- Resource.liftF(consumer.subscribe(Nes.of(topic), listener))
     } yield consumer
   }
 
@@ -88,9 +88,9 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener[IO] = {
       new RebalanceListener[IO] {
 
-        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = assigned.complete(())
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = assigned.complete(())
 
-        def onPartitionsRevoked(partitions: Nel[TopicPartition]) = ().pure[IO]
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = ().pure[IO]
       }
     }
 

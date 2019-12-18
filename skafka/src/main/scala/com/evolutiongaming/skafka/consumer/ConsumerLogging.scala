@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import java.util.regex.Pattern
 
 import cats.Monad
-import cats.data.{NonEmptySet, NonEmptyList => Nel, NonEmptyMap => Nem}
+import cats.data.{NonEmptySet => Nes, NonEmptyMap => Nem}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
@@ -20,7 +20,7 @@ object ConsumerLogging {
 
     new Consumer[F, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = {
+      def assign(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.assign(partitions)
@@ -38,7 +38,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
+      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
 
         val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging(log)
 
@@ -166,7 +166,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = {
+      def seekToBeginning(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.seekToBeginning(partitions)
@@ -175,7 +175,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = {
+      def seekToEnd(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.seekToEnd(partitions)
@@ -202,7 +202,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def committed(partitions: NonEmptySet[TopicPartition]) = {
+      def committed(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.committed(partitions)
@@ -211,7 +211,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def committed(partitions: NonEmptySet[TopicPartition], timeout: FiniteDuration) = {
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.committed(partitions, timeout)
@@ -256,7 +256,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def pause(partitions: Nel[TopicPartition]) = {
+      def pause(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.pause(partitions)
@@ -274,7 +274,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def resume(partitions: Nel[TopicPartition]) = {
+      def resume(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.resume(partitions)
@@ -301,7 +301,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = {
+      def beginningOffsets(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.beginningOffsets(partitions)
@@ -310,7 +310,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.beginningOffsets(partitions, timeout)
@@ -319,7 +319,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
+      def endOffsets(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.endOffsets(partitions)
@@ -328,7 +328,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.endOffsets(partitions, timeout)

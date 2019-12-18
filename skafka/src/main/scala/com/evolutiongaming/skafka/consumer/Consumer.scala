@@ -5,7 +5,7 @@ import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 import java.util.{Map => MapJ, Set => SetJ, List => ListJ, Collection => CollectionJ}
 
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
@@ -32,13 +32,12 @@ import scala.concurrent.duration.FiniteDuration
   */
 trait Consumer[F[_], K, V] {
 
-  // TODO migrate from Nel to Nes
-  def assign(partitions: Nel[TopicPartition]): F[Unit]
+  def assign(partitions: Nes[TopicPartition]): F[Unit]
 
   def assignment: F[Set[TopicPartition]]
 
 
-  def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
+  def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
 
   def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]): F[Unit]
 
@@ -69,9 +68,9 @@ trait Consumer[F[_], K, V] {
   def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): F[Unit]
   
 
-  def seekToBeginning(partitions: Nel[TopicPartition]): F[Unit]
+  def seekToBeginning(partitions: Nes[TopicPartition]): F[Unit]
 
-  def seekToEnd(partitions: Nel[TopicPartition]): F[Unit]
+  def seekToEnd(partitions: Nes[TopicPartition]): F[Unit]
 
 
   def position(partition: TopicPartition): F[Offset]
@@ -100,11 +99,11 @@ trait Consumer[F[_], K, V] {
   final def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = topics(timeout)
 
 
-  def pause(partitions: Nel[TopicPartition]): F[Unit]
+  def pause(partitions: Nes[TopicPartition]): F[Unit]
 
   def paused: F[Set[TopicPartition]]
 
-  def resume(partitions: Nel[TopicPartition]): F[Unit]
+  def resume(partitions: Nes[TopicPartition]): F[Unit]
 
 
   def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
@@ -112,14 +111,14 @@ trait Consumer[F[_], K, V] {
   def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
 
 
-  def beginningOffsets(partitions: Nel[TopicPartition]): F[Map[TopicPartition, Offset]]
+  def beginningOffsets(partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]]
 
-  def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
+  def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
 
-  def endOffsets(partitions: Nel[TopicPartition]): F[Map[TopicPartition, Offset]]
+  def endOffsets(partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]]
 
-  def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
+  def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
   def wakeup: F[Unit]
 }
@@ -133,11 +132,11 @@ object Consumer {
 
     new Consumer[F, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = empty
+      def assign(partitions: Nes[TopicPartition]) = empty
 
       val assignment = Set.empty[TopicPartition].pure[F]
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = empty
+      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = empty
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = empty
 
@@ -163,9 +162,9 @@ object Consumer {
 
       def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = empty
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = empty
+      def seekToBeginning(partitions: Nes[TopicPartition]) = empty
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = empty
+      def seekToEnd(partitions: Nes[TopicPartition]) = empty
 
       def position(partition: TopicPartition) = Offset.min.pure[F]
 
@@ -187,11 +186,11 @@ object Consumer {
 
       def topics(timeout: FiniteDuration) = Map.empty[Topic, List[PartitionInfo]].pure[F]
 
-      def pause(partitions: Nel[TopicPartition]) = empty
+      def pause(partitions: Nes[TopicPartition]) = empty
 
       val paused = Set.empty[TopicPartition].pure[F]
 
-      def resume(partitions: Nel[TopicPartition]) = empty
+      def resume(partitions: Nes[TopicPartition]) = empty
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
         Map.empty[TopicPartition, Option[OffsetAndTimestamp]].pure[F]
@@ -201,19 +200,19 @@ object Consumer {
         Map.empty[TopicPartition, Option[OffsetAndTimestamp]].pure[F]
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = {
+      def beginningOffsets(partitions: Nes[TopicPartition]) = {
         Map.empty[TopicPartition, Offset].pure[F]
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         Map.empty[TopicPartition, Offset].pure[F]
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
+      def endOffsets(partitions: Nes[TopicPartition]) = {
         Map.empty[TopicPartition, Offset].pure[F]
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         Map.empty[TopicPartition, Offset].pure[F]
       }
 
@@ -312,11 +311,7 @@ object Consumer {
       partitions: Nes[TopicPartition])(
       f: (SetJ[TopicPartitionJ]) => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
     ) = {
-      val partitionsJ = partitions
-        .toSortedSet
-        .toSet
-        .map { a: TopicPartition => a.asJava }
-        .asJava
+      val partitionsJ = partitions.asJava
       for {
         result <- blocking { f(partitionsJ) }
         result <- Option(result).fold {
@@ -353,10 +348,10 @@ object Consumer {
     }
 
     def offsetsOf(
-      partitions: Nel[TopicPartition])(
+      partitions: Nes[TopicPartition])(
       f: CollectionJ[TopicPartitionJ] => MapJ[TopicPartitionJ, LongJ]
     ) = {
-      val partitionsJ = partitions.map { _.asJava }.asJava
+      val partitionsJ = partitions.asJava
       for {
         result <- blocking { f(partitionsJ) }
         result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
@@ -365,7 +360,7 @@ object Consumer {
 
     new Consumer[F, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = {
+      def assign(partitions: Nes[TopicPartition]) = {
         val partitionsJ = partitions.toList.map { _.asJava }.asJavaCollection
         Sync[F].delay { consumer.assign(partitionsJ) }
       }
@@ -379,8 +374,8 @@ object Consumer {
         }
       }
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
-        val topicsJ = topics.asJava
+      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
+        val topicsJ = topics.toSortedSet.toSet.asJava
         Sync[F].delay { consumer.subscribe(topicsJ, listenerOf(listener)) }
       }
 
@@ -455,13 +450,13 @@ object Consumer {
         Sync[F].delay { consumer.seek(partitionsJ, offsetAndMetadataJ) }
       }
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
+      def seekToBeginning(partitions: Nes[TopicPartition]) = {
+        val partitionsJ = partitions.asJava
         Sync[F].delay { consumer.seekToBeginning(partitionsJ) }
       }
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
+      def seekToEnd(partitions: Nes[TopicPartition]) = {
+        val partitionsJ = partitions.asJava
         Sync[F].delay { consumer.seekToEnd(partitionsJ) }
       }
 
@@ -496,8 +491,8 @@ object Consumer {
         topics1 { consumer.listTopics(timeout.asJava) }
       }
 
-      def pause(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
+      def pause(partitions: Nes[TopicPartition]) = {
+        val partitionsJ = partitions.asJava
         Sync[F].delay { consumer.pause(partitionsJ) }
       }
 
@@ -510,8 +505,8 @@ object Consumer {
         }
       }
 
-      def resume(partitions: Nel[TopicPartition]) = {
-        val partitionsJ = partitions.map { _.asJava }.asJava
+      def resume(partitions: Nes[TopicPartition]) = {
+        val partitionsJ = partitions.asJava
         Sync[F].delay { consumer.resume(partitionsJ) }
       }
 
@@ -524,20 +519,20 @@ object Consumer {
         offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes(_, timeoutJ) }
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = {
+      def beginningOffsets(partitions: Nes[TopicPartition]) = {
         offsetsOf(partitions) { consumer.beginningOffsets }
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         val timeoutJ = timeout.asJava
         offsetsOf(partitions) { consumer.beginningOffsets(_, timeoutJ) }
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
+      def endOffsets(partitions: Nes[TopicPartition]) = {
         offsetsOf(partitions) { consumer.endOffsets }
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         val timeoutJ = timeout.asJava
         offsetsOf(partitions) { consumer.endOffsets(_, timeoutJ) }
       }
@@ -597,20 +592,20 @@ object Consumer {
 
     def rebalanceListener(listener: RebalanceListener[F]) = {
 
-      def measure(name: String, partitions: Nel[TopicPartition]) = {
+      def measure(name: String, partitions: Nes[TopicPartition]) = {
         partitions.foldMapM { metrics.rebalance(name, _) }
       }
 
       new RebalanceListener[F] {
 
-        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
             _ <- measure("assigned", partitions)
             a <- listener.onPartitionsAssigned(partitions)
           } yield a
         }
 
-        def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
           for {
             _ <- measure("revoked", partitions)
             a <- listener.onPartitionsRevoked(partitions)
@@ -623,7 +618,7 @@ object Consumer {
 
     new Consumer[F, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = {
+      def assign(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList.toSet
         for {
           _ <- count("assign", topics)
@@ -633,7 +628,7 @@ object Consumer {
 
       val assignment = consumer.assignment
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[F]]) = {
+      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
         val listener1 = listener.map(rebalanceListener)
         for {
           _ <- count("subscribe", topics.toList)
@@ -715,7 +710,7 @@ object Consumer {
         } yield r
       }
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = {
+      def seekToBeginning(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList
         for {
           _ <- count("seek_to_beginning", topics)
@@ -723,7 +718,7 @@ object Consumer {
         } yield r
       }
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = {
+      def seekToEnd(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList
         for {
           _ <- count("seek_to_end", topics)
@@ -801,7 +796,7 @@ object Consumer {
         } yield r
       }
 
-      def pause(partitions: Nel[TopicPartition]) = {
+      def pause(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList
         for {
           _ <- count("pause", topics)
@@ -811,7 +806,7 @@ object Consumer {
 
       val paused = consumer.paused
 
-      def resume(partitions: Nel[TopicPartition]) = {
+      def resume(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList
         for {
           _ <- count("resume", topics)
@@ -829,22 +824,22 @@ object Consumer {
         call("offsets_for_times", topics) { consumer.offsetsForTimes(timestampsToSearch, timeout) }
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = {
+      def beginningOffsets(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList
         call("beginning_offsets", topics) { consumer.beginningOffsets(partitions) }
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         val topics = partitions.map(_.topic).toList
         call("beginning_offsets", topics) { consumer.beginningOffsets(partitions, timeout) }
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
+      def endOffsets(partitions: Nes[TopicPartition]) = {
         val topics = partitions.map(_.topic).toList
         call("end_offsets", topics) { consumer.endOffsets(partitions) }
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         val topics = partitions.map(_.topic).toList
         call("end_offsets", topics) { consumer.endOffsets(partitions, timeout) }
       }
@@ -881,11 +876,11 @@ object Consumer {
 
     def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new Consumer[G, K, V] {
 
-      def assign(partitions: Nel[TopicPartition]) = fg(self.assign(partitions))
+      def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))
 
       def assignment = fg(self.assignment)
 
-      def subscribe(topics: Nel[Topic], listener: Option[RebalanceListener[G]]) = {
+      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {
         val listener1 = listener.map(_.mapK(gf))
         fg(self.subscribe(topics, listener1))
       }
@@ -917,9 +912,9 @@ object Consumer {
 
       def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = fg(self.seek(partition, offsetAndMetadata))
 
-      def seekToBeginning(partitions: Nel[TopicPartition]) = fg(self.seekToBeginning(partitions))
+      def seekToBeginning(partitions: Nes[TopicPartition]) = fg(self.seekToBeginning(partitions))
 
-      def seekToEnd(partitions: Nel[TopicPartition]) = fg(self.seekToEnd(partitions))
+      def seekToEnd(partitions: Nes[TopicPartition]) = fg(self.seekToEnd(partitions))
 
       def position(partition: TopicPartition) = fg(self.position(partition))
 
@@ -937,11 +932,11 @@ object Consumer {
 
       def topics(timeout: FiniteDuration) = fg(self.topics(timeout))
 
-      def pause(partitions: Nel[TopicPartition]) = fg(self.pause(partitions))
+      def pause(partitions: Nes[TopicPartition]) = fg(self.pause(partitions))
 
       def paused = fg(self.paused)
 
-      def resume(partitions: Nel[TopicPartition]) = fg(self.resume(partitions))
+      def resume(partitions: Nes[TopicPartition]) = fg(self.resume(partitions))
 
       def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
         fg(self.offsetsForTimes(timestampsToSearch))
@@ -951,17 +946,17 @@ object Consumer {
         fg(self.offsetsForTimes(timestampsToSearch, timeout))
       }
 
-      def beginningOffsets(partitions: Nel[TopicPartition]) = fg(self.beginningOffsets(partitions))
+      def beginningOffsets(partitions: Nes[TopicPartition]) = fg(self.beginningOffsets(partitions))
 
-      def beginningOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         fg(self.beginningOffsets(partitions, timeout))
       }
 
-      def endOffsets(partitions: Nel[TopicPartition]) = {
+      def endOffsets(partitions: Nes[TopicPartition]) = {
         fg(self.endOffsets(partitions))
       }
 
-      def endOffsets(partitions: Nel[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         fg(self.endOffsets(partitions, timeout))
       }
 

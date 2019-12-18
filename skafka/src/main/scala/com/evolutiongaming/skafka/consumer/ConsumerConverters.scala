@@ -3,9 +3,10 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
 import cats.effect.Concurrent
 import cats.implicits._
+import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable, ToFuture}
 import com.evolutiongaming.skafka.Converters._
@@ -43,15 +44,14 @@ object ConsumerConverters {
 
     def asJava(implicit F: Concurrent[F], toFuture: ToFuture[F]): RebalanceListenerJ = {
 
-      def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nel[TopicPartition] => F[Unit]) = {
+      def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nes[TopicPartition] => F[Unit]) = {
         partitions
           .asScala
           .toList
           .traverse { _.asScala[F] }
           .flatMap { partitions =>
             partitions
-              .sorted
-              .toNel
+              .toNes
               .foldMapM(f)
           }
           .toFuture

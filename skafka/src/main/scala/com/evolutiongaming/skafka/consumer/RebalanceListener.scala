@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Applicative, FlatMap, ~>}
 import com.evolutiongaming.catshelper.Log
@@ -14,9 +14,9 @@ import com.evolutiongaming.smetrics.MeasureDuration
   */
 trait RebalanceListener[F[_]] {
 
-  def onPartitionsAssigned(partitions: Nel[TopicPartition]): F[Unit]
+  def onPartitionsAssigned(partitions: Nes[TopicPartition]): F[Unit]
 
-  def onPartitionsRevoked(partitions: Nel[TopicPartition]): F[Unit]
+  def onPartitionsRevoked(partitions: Nes[TopicPartition]): F[Unit]
 }
 
 object RebalanceListener {
@@ -25,9 +25,9 @@ object RebalanceListener {
 
   def const[F[_]](unit: F[Unit]): RebalanceListener[F] = new RebalanceListener[F] {
 
-    def onPartitionsAssigned(partitions: Nel[TopicPartition]) = unit
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]) = unit
 
-    def onPartitionsRevoked(partitions: Nel[TopicPartition]) = unit
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = unit
   }
 
 
@@ -35,11 +35,11 @@ object RebalanceListener {
 
     def mapK[G[_]](f: F ~> G): RebalanceListener[G] = new RebalanceListener[G] {
 
-      def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
+      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
         f(self.onPartitionsAssigned(partitions))
       }
 
-      def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
+      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
         f(self.onPartitionsRevoked(partitions))
       }
     }
@@ -51,7 +51,7 @@ object RebalanceListener {
       measureDuration: MeasureDuration[F]
     ): RebalanceListener[F] = new RebalanceListener[F] {
 
-      def onPartitionsAssigned(partitions: Nel[TopicPartition]) = {
+      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- self.onPartitionsAssigned(partitions)
@@ -60,7 +60,7 @@ object RebalanceListener {
         } yield a
       }
 
-      def onPartitionsRevoked(partitions: Nel[TopicPartition]) = {
+      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
         for {
           d <- MeasureDuration[F].start
           a <- self.onPartitionsRevoked(partitions)

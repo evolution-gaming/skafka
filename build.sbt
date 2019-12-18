@@ -35,7 +35,7 @@ lazy val skafka = (project
       Cats.macros,
       Cats.effect,
       `config-tools`,
-      Kafka.`kafka-clients`,
+      Kafka.clients,
       `future-helper`,
       `cats-helper`,
       smetrics,
@@ -59,6 +59,8 @@ lazy val tests = (project in file("tests")
     Test / parallelExecution := false)
     dependsOn skafka % "compile->compile;test->test"
     settings (libraryDependencies ++= Seq(
+      Kafka.kafka % Test,
+      `kafka-launcher` % Test,
       Slf4j.api % Test,
       Slf4j.`log4j-over-slf4j` % Test,
       Logback.core % Test,

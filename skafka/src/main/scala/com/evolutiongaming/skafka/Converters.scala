@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka
 
 import java.time.{Duration => DurationJ}
-import java.util.{Collection => CollectionJ, Map => MapJ}
+import java.util.{Collection => CollectionJ, Map => MapJ, Set => SetJ}
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, ToTry}
@@ -36,6 +36,18 @@ object Converters {
 
   implicit class AnyOps[A](val self: A) extends AnyVal {
     def noneIf(x: A): Option[A] = if (self == x) None else Some(self)
+  }
+
+
+  implicit class SetTopicPartitionOps(val self: Nes[TopicPartition]) extends AnyVal {
+
+    def asJava: SetJ[TopicPartitionJ] = {
+      self
+        .toSortedSet
+        .toSet[TopicPartition]
+        .map { _.asJava }
+        .asJava
+    }
   }
 
 

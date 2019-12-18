@@ -42,8 +42,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
   private val topicPartition = TopicPartition(topic, partition)
   private val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
   private val offsets = Nem.of((topicPartition, offsetAndMetadata))
-  private val partitions = Nel.of(topicPartition) // TODO remove
-  private val partitions1 = Nes.of(topicPartition) // TODO rename
+  private val partitions = Nes.of(topicPartition)
   private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   private val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
   private val consumerRecord = ConsumerRecord(
@@ -77,7 +76,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "subscribe topics" in new Scope {
-      verify(consumer.subscribe(Nel.of(topic), Some(rebalanceListener))) { _ =>
+      verify(consumer.subscribe(Nes.of(topic), Some(rebalanceListener))) { _ =>
         subscribeTopics shouldEqual List(topic)
         assigned.future.await()
         revoked.future.await()
@@ -168,11 +167,11 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "committed" in new Scope {
-      consumer.committed(partitions1) should produce(offsets.toSortedMap.toMap)
+      consumer.committed(partitions) should produce(offsets.toSortedMap.toMap)
     }
 
     "committed with timeout" in new Scope {
-      consumer.committed(partitions1, 1.second) should produce(offsets.toSortedMap.toMap)
+      consumer.committed(partitions, 1.second) should produce(offsets.toSortedMap.toMap)
     }
 
     "partitions" in new Scope {
@@ -274,9 +273,9 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     val rebalanceListener = new RebalanceListener[IO] {
       
-      def onPartitionsAssigned(partitions: Nel[TopicPartition]) = IO { assigned.success(()) }
+      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO { assigned.success(()) }
 
-      def onPartitionsRevoked(partitions: Nel[TopicPartition]) = IO { revoked.success(()) }
+      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO { revoked.success(()) }
     }
 
     val consumerJ = new ConsumerJ[Bytes, Bytes] {

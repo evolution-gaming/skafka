@@ -310,7 +310,11 @@ object Producer {
 
   implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
-    def withLogging(log: Log[F])(implicit F: MonadThrowable[F]): Producer[F] = {
+    def withLogging(
+      log: Log[F])(implicit
+      F: MonadThrowable[F],
+      measureDuration: MeasureDuration[F]
+    ): Producer[F] = {
       ProducerLogging(self, log)
     }
 

@@ -6,12 +6,13 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.Deferred
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import com.evolutiongaming.smetrics.CollectorRegistry
@@ -26,9 +27,17 @@ import scala.concurrent.duration._
 class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
+  private lazy val shutdown = StartKafka()
+
   private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
   private val timeout = 1.minute
+
+  override def beforeAll() = {
+    super.beforeAll()
+    shutdown
+    ()
+  }
 
   override def afterAll() = {
 
@@ -46,6 +55,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     closeAll.unsafeRunTimed(timeout)
 
+    shutdown()
     super.afterAll()
   }
 
@@ -67,7 +77,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       metrics    <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
       consumerOf  = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
       consumer   <- consumerOf[String, String](config)
-      _          <- Resource.liftF(consumer.subscribe(Nel.of(topic), listener))
+      _          <- Resource.liftF(consumer.subscribe(Nes.of(topic), listener))
     } yield consumer
   }
 
@@ -88,9 +98,9 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener[IO] = {
       new RebalanceListener[IO] {
 
-        def onPartitionsAssigned(partitions: Nel[TopicPartition]) = assigned.complete(())
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = assigned.complete(())
 
-        def onPartitionsRevoked(partitions: Nel[TopicPartition]) = ().pure[IO]
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = ().pure[IO]
       }
     }
 
@@ -116,7 +126,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val producer = producerOf(acks)
     (acks, List(producer.allocated.unsafeRunSync()))
   }
-  
+
   for {
     (acks, producers)    <- combinations
     ((producer, _), idx) <- producers.zipWithIndex
@@ -143,7 +153,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         timestamp = Some(timestamp),
         headers = headers)
       val metadata = produce(record)
-      val offset = if (acks == Acks.None) None else Some(Offset.min)
+      val offset = if (acks == Acks.None) none[Offset] else Offset.min.some
       metadata.offset shouldEqual offset
 
       val records = consumer.consume(timeout).map(Record(_))

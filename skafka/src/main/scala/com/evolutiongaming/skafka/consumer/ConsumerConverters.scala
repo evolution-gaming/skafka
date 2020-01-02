@@ -51,6 +51,7 @@ object ConsumerConverters {
           .traverse { _.asScala[F] }
           .flatMap { partitions =>
             partitions
+              .toSortedSet
               .toNes
               .foldMapM(f)
           }

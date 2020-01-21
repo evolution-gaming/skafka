@@ -89,7 +89,7 @@ object ConsumerMetrics {
     val rebalancesCounter = registry.counter(
       name = s"${ prefix }_rebalances",
       help = "Number of rebalances",
-      labels = LabelNames("client", "topic", "partition", "type"))
+      labels = LabelNames("client", "topic", "type"))
 
     val topicsLatency = registry.summary(
       name = s"${ prefix }_topics_latency",
@@ -134,7 +134,7 @@ object ConsumerMetrics {
 
           def rebalance(name: String, topicPartition: TopicPartition) = {
             rebalancesCounter
-              .labels(clientId, topicPartition.topic, topicPartition.partition.toString, name)
+              .labels(clientId, topicPartition.topic, name)
               .inc()
           }
 

@@ -8,7 +8,7 @@ object Dependencies {
   val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "1.5.2"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"          % "0.0.9"
   val `play-json`          = "com.typesafe.play"      %% "play-json"               % "2.7.4"
-  val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.0"
+  val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.1"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.3"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.1.0"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.0.8"

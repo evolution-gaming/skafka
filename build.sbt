@@ -48,7 +48,7 @@ lazy val `play-json` = (project
   settings (name := "skafka-play-json")
   settings commonSettings
   dependsOn skafka
-  settings (libraryDependencies ++= Seq(Dependencies.`play-json`, scalatest % Test)))
+  settings (libraryDependencies ++= Seq(Dependencies.`play-json-jsoniter`, scalatest % Test)))
 
 lazy val tests = (project in file("tests")
   settings (name := "skafka-tests")

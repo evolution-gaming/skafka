@@ -82,7 +82,8 @@ object ProducerMetrics {
     val bytesSummary = registry.summary(
       name = s"${ prefix }_bytes",
       help = "Message size in bytes",
-      quantiles = Quantiles.Empty,
+      quantiles = Quantiles(
+        Quantile(1.0, 0.0001)),
       labels = LabelNames("client", "topic"))
 
     val resultCounter = registry.counter(

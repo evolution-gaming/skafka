@@ -5,17 +5,17 @@ object Dependencies {
   val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"          % "1.0.2"
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"            % "1.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"           % "1.0.6"
-  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "1.7.1"
+  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "2.0.0"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"          % "0.0.9"
   val `play-json-jsoniter` = "com.evolutiongaming"    %% "play-json-jsoniter"      % "0.6.1"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.1"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.4"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.1.1"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.1.0"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.1.1"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.10.3"
 
   object Kafka {
-    private val version = "2.4.0"
+    private val version = "2.4.1"
     val kafka   = "org.apache.kafka" %% "kafka"         % version
     val clients = "org.apache.kafka" %  "kafka-clients" % version
   }
@@ -33,10 +33,10 @@ object Dependencies {
   }
 
   object Cats {
-    private val version = "2.0.0"
+    private val version = "2.1.1"
     val core   = "org.typelevel" %% "cats-core"   % version
     val kernel = "org.typelevel" %% "cats-kernel" % version
     val macros = "org.typelevel" %% "cats-macros" % version
-    val effect = "org.typelevel" %% "cats-effect" % "2.0.0"
+    val effect = "org.typelevel" %% "cats-effect" % "2.1.2"
   }
 }

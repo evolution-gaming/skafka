@@ -3,7 +3,7 @@ package consumer
 
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
-import java.util.{Map => MapJ, Set => SetJ, List => ListJ, Collection => CollectionJ}
+import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
@@ -16,16 +16,12 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{
-  OffsetCommitCallback, Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
-}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ, PartitionInfo => PartitionInfoJ}
+import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
-import scala.jdk.CollectionConverters._
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 
 /**
   * See [[org.apache.kafka.clients.consumer.Consumer]]
@@ -221,7 +217,7 @@ object Consumer {
   }
 
 
-  def of[F[_] : Concurrent : ContextShift : ToTry : ToFuture, K, V](
+  def of[F[_]: Concurrent: ContextShift: ToTry: ToFuture, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext)(implicit
     fromBytesK: FromBytes[F, K],
@@ -242,20 +238,24 @@ object Consumer {
   }
 
 
-  def serial[F[_] : Concurrent, K, V](consumer: Resource[F, Consumer[F, K, V]]): Resource[F, Consumer[F, K, V]] = {
+  def serial[F[_]: Concurrent, K, V](consumer: Resource[F, Consumer[F, K, V]]): Resource[F, Consumer[F, K, V]] = {
+
+    def serial = Semaphore[F](1).map { semaphore =>
+      new (F ~> F) {
+        def apply[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
+      }
+    }
+
     val result = for {
-      semaphore <- Semaphore[F](1)
-      result    <- consumer.allocated
+      serial0 <- serial
+      serial1 <- serial
+      result  <- consumer.allocated
     } yield {
       val (consumer, close) = result
 
-      val serial = new (F ~> F) {
-        def apply[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
-      }
+      val close1 = serial0(close)
 
-      val close1 = serial(close)
-
-      val consumer1 = consumer.mapK(serial, serial)
+      val consumer1 = consumer.mapK(serial0, serial1)
 
       (consumer1, close1)
     }

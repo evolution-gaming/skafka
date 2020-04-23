@@ -173,12 +173,12 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "committed with nulls " in new Scope {
-      override val committedNull = true
+      override def committedNull = true
       consumer.committed(partitions) should produce(Map.empty[TopicPartition, OffsetAndMetadata])
     }
 
     "committed with timeout with nulls" in new Scope {
-      override val committedNull = true
+      override def committedNull = true
       consumer.committed(partitions, 1.second) should produce(Map.empty[TopicPartition, OffsetAndMetadata])
     }
 
@@ -290,7 +290,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    protected val committedNull = false
+    protected def committedNull = false
 
     val consumerJ = new ConsumerJ[Bytes, Bytes] {
 

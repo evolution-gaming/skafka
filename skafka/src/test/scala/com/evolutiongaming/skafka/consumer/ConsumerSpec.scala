@@ -24,7 +24,6 @@ import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future, Promise}
 import scala.jdk.CollectionConverters._
@@ -323,7 +322,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def poll(timeout: Long) = {
-        val records = Map((topicPartition, List(consumerRecord.asJava).to(ListBuffer))).asJavaMap(_.asJava, _.asJava)
+        val records = Map((topicPartition, List(consumerRecord.asJava))).asJavaMap(_.asJava, _.asJava)
         new ConsumerRecordsJ[Bytes, Bytes](records)
       }
 
@@ -396,7 +395,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def metrics() = new java.util.HashMap()
 
       def partitionsFor(topic: Topic) = {
-        List(partitionInfo.asJava).to(ListBuffer).asJava
+        List(partitionInfo.asJava).asJava
       }
 
       def partitionsFor(topic: Topic, timeout: DurationJ) = {
@@ -404,7 +403,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def listTopics() = {
-        Map((topic, List(partitionInfo.asJava).to(ListBuffer).asJava)).asJavaMap(x => x, x => x)
+        Map((topic, List(partitionInfo.asJava).asJava)).asJavaMap(x => x, x => x)
       }
 
       def listTopics(timeout: DurationJ) = {

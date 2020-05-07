@@ -458,7 +458,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     val consumer = {
       implicit val measureDuration = MeasureDuration.empty[IO]
       Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
-        .withMetrics(ConsumerMetrics.empty)
+        .withMetrics(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)
     }

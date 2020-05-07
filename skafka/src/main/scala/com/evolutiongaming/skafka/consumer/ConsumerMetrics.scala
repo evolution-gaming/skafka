@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.effect.Resource
 import cats.implicits._
-import cats.{Applicative, Monad}
+import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import com.evolutiongaming.smetrics.MetricsHelper._
 import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantile, Quantiles}
@@ -34,7 +34,7 @@ object ConsumerMetrics {
   }
 
 
-  def empty[F[_] : Applicative]: ConsumerMetrics[F] = const(().pure[F])
+  def empty[F[_]: Applicative]: ConsumerMetrics[F] = const(().pure[F])
 
 
   def const[F[_]](unit: F[Unit]): ConsumerMetrics[F] = new ConsumerMetrics[F] {
@@ -51,7 +51,7 @@ object ConsumerMetrics {
   }
 
 
-  def of[F[_] : Monad](
+  def of[F[_]: Monad](
     registry: CollectorRegistry[F],
     prefix: Prefix = Prefix.Default
   ): Resource[F, ClientId => ConsumerMetrics[F]] = {
@@ -144,6 +144,33 @@ object ConsumerMetrics {
               .observe(latency.toNanos.nanosToSeconds)
           }
         }
+    }
+  }
+
+
+  implicit class ConsumerMetricsOps[F[_]](val self: ConsumerMetrics[F]) extends AnyVal {
+
+    def mapK[G[_]](f: F ~> G): ConsumerMetrics[G] = new ConsumerMetrics[G] {
+
+      def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
+        f(self.call(name, topic, latency, success))
+      }
+
+      def poll(topic: Topic, bytes: Int, records: Int) = {
+        f(self.poll(topic, bytes, records))
+      }
+
+      def count(name: String, topic: Topic) = {
+        f(self.count(name, topic))
+      }
+
+      def rebalance(name: String, topicPartition: TopicPartition) = {
+        f(self.rebalance(name, topicPartition))
+      }
+
+      def topics(latency: FiniteDuration) = {
+        f(self.topics(latency))
+      }
     }
   }
 }

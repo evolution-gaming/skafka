@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import cats.effect.Resource
 import cats.implicits._
-import cats.{Applicative, Monad}
+import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic}
 import com.evolutiongaming.smetrics.MetricsHelper._
 import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantile, Quantiles}
@@ -40,7 +40,7 @@ object ProducerMetrics {
     val Default: Prefix = "skafka_producer"
   }
 
-  def empty[F[_] : Applicative]: ProducerMetrics[F] = const(().pure[F])
+  def empty[F[_]: Applicative]: ProducerMetrics[F] = const(().pure[F])
 
   def const[F[_]](unit: F[Unit]): ProducerMetrics[F] = new ProducerMetrics[F] {
 
@@ -66,7 +66,7 @@ object ProducerMetrics {
   }
 
 
-  def of[F[_] : Monad](
+  def of[F[_]: Monad](
     registry: CollectorRegistry[F],
     prefix: Prefix = Prefix.Default
   ): Resource[F, ClientId => ProducerMetrics[F]] = {
@@ -177,6 +177,33 @@ object ProducerMetrics {
           }
         }
       }
+    }
+  }
+
+
+  implicit class ProducerMetricsOps[F[_]](val self: ProducerMetrics[F]) extends AnyVal {
+
+    def mapK[G[_]](f: F ~> G): ProducerMetrics[G] = new ProducerMetrics[G] {
+
+      def initTransactions(latency: FiniteDuration) = f(self.initTransactions(latency))
+
+      def beginTransaction = f(self.beginTransaction)
+
+      def sendOffsetsToTransaction(latency: FiniteDuration) = f(self.sendOffsetsToTransaction(latency))
+
+      def commitTransaction(latency: FiniteDuration) = f(self.commitTransaction(latency))
+
+      def abortTransaction(latency: FiniteDuration) = f(self.abortTransaction(latency))
+
+      def send(topic: Topic, latency: FiniteDuration, bytes: Int) = f(self.send(topic, latency, bytes))
+
+      def block(topic: Topic, latency: FiniteDuration) = f(self.block(topic, latency))
+
+      def failure(topic: Topic, latency: FiniteDuration) = f(self.failure(topic, latency))
+
+      def partitions(topic: Topic, latency: FiniteDuration) = f(self.partitions(topic, latency))
+
+      def flush(latency: FiniteDuration) = f(self.flush(latency))
     }
   }
 }

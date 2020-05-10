@@ -104,12 +104,13 @@ object Converters {
       self
         .asScala
         .toList
-        .traverse { case (k, v) =>
+        .collect { case (k, v) if k != null && v != null =>
           for {
             a <- ka(k)
             b <- vb(v)
           } yield (a, b)
         }
+        .sequence
         .map { _.toMap }
     }
   }

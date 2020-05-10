@@ -184,7 +184,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       implicit val concurrentIO: Concurrent[IO]     = IO.ioConcurrentEffect
       implicit val measureDuration = MeasureDuration.empty[IO]
       Producer[IO](jProducer, Blocking(executor))
-        .withMetrics(ProducerMetrics.empty)
+        .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
     }
   }

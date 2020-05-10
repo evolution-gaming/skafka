@@ -26,13 +26,16 @@ class ConsumerRecordsTest extends AnyFunSuite with Matchers {
       consumerRecord(topic = "0", partition = 0, offset = 0, key = 0),
       consumerRecord(topic = "0", partition = 0, offset = 3, key = 0),
       consumerRecord(topic = "0", partition = 1, offset = 1, key = 11),
-      consumerRecord(topic = "0", partition = 2, offset = 0, key = 21),
+      consumerRecord(topic = "0", partition = 2, offset = 1, key = 21),
       consumerRecord(topic = "1", partition = 0, offset = 1, key = 0),
       consumerRecord(topic = "1", partition = 0, offset = 0, key = 0),
       consumerRecord(topic = "0", partition = 1, offset = 0, key = 11))
 
     val consumerRecords = ConsumerRecords(records.sorted.groupBy(_.topicPartition))
 
-    ConsumerRecords.summaryShow.show(consumerRecords) shouldEqual "0-0:0..4 records: 5, 0-1:0..1 records: 2, 0-2:0 records: 1, 1-0:0..1 records: 2"
+    val expected = "0-0:0..4 records: 5, 0-1:0..1 records: 2, 0-2:1 records: 1, 1-0:0..1 records: 2"
+    ConsumerRecords
+      .summaryShow
+      .show(consumerRecords) shouldEqual expected
   }
 }

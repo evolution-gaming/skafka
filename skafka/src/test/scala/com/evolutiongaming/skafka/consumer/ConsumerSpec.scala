@@ -10,26 +10,23 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
-import cats.implicits._
 import cats.effect.IO
+import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._
-import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
-
-import scala.jdk.CollectionConverters._
-import scala.collection.compat._
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Await, Future, Promise}
-import scala.concurrent.duration._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future, Promise}
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 class ConsumerSpec extends AnyWordSpec with Matchers {
@@ -174,6 +171,16 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       consumer.committed(partitions, 1.second) should produce(offsets.toSortedMap.toMap)
     }
 
+    "committed with nulls " in new Scope {
+      override def committedNull = true
+      consumer.committed(partitions) should produce(Map.empty[TopicPartition, OffsetAndMetadata])
+    }
+
+    "committed with timeout with nulls" in new Scope {
+      override def committedNull = true
+      consumer.committed(partitions, 1.second) should produce(Map.empty[TopicPartition, OffsetAndMetadata])
+    }
+
     "partitions" in new Scope {
       consumer.partitions(topic) should produce(List(partitionInfo))
     }
@@ -272,11 +279,17 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     val assigned = Promise[Unit]()
 
     val rebalanceListener = new RebalanceListener[IO] {
-      
-      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO { assigned.success(()) }
 
-      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO { revoked.success(()) }
+      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO {
+        assigned.success(())
+      }
+
+      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO {
+        revoked.success(())
+      }
     }
+
+    protected def committedNull = false
 
     val consumerJ = new ConsumerJ[Bytes, Bytes] {
 
@@ -309,7 +322,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def poll(timeout: Long) = {
-        val records = Map((topicPartition, List(consumerRecord.asJava).to(ListBuffer))).asJavaMap(_.asJava, _.asJava)
+        val records = Map((topicPartition, List(consumerRecord.asJava))).asJavaMap(_.asJava, _.asJava)
         new ConsumerRecordsJ[Bytes, Bytes](records)
       }
 
@@ -349,7 +362,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadataJ) = {}
-      
+
       def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]) = {
         Scope.this.seekToBeginning = partitions.asScala.toList
       }
@@ -367,14 +380,22 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def committed(partition: TopicPartitionJ, timeout: DurationJ) = offsetAndMetadata.asJava
 
-      def committed(partitions: util.Set[TopicPartitionJ]) = offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+      def committed(partitions: util.Set[TopicPartitionJ]) =
+        if (!committedNull)
+          offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+        else
+          Map(new TopicPartitionJ(topic, partition.value) -> null).asJavaMap(identity, identity)
 
-      def committed(partitions: util.Set[TopicPartitionJ], timeout: DurationJ) = offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+      def committed(partitions: util.Set[TopicPartitionJ], timeout: DurationJ) =
+        if (!committedNull)
+          offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+        else
+          Map(new TopicPartitionJ(topic, partition.value) -> null).asJavaMap(identity, identity)
 
       def metrics() = new java.util.HashMap()
 
       def partitionsFor(topic: Topic) = {
-        List(partitionInfo.asJava).to(ListBuffer).asJava
+        List(partitionInfo.asJava).asJava
       }
 
       def partitionsFor(topic: Topic, timeout: DurationJ) = {
@@ -382,7 +403,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def listTopics() = {
-        Map((topic, List(partitionInfo.asJava).to(ListBuffer).asJava)).asJavaMap(x => x, x => x)
+        Map((topic, List(partitionInfo.asJava).asJava)).asJavaMap(x => x, x => x)
       }
 
       def listTopics(timeout: DurationJ) = {
@@ -437,11 +458,12 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     val consumer = {
       implicit val measureDuration = MeasureDuration.empty[IO]
       Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
-        .withMetrics(ConsumerMetrics.empty)
+        .withMetrics(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)
     }
   }
+
 }
 
 object ConsumerSpec {

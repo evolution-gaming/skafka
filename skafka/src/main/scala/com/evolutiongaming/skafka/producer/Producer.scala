@@ -34,7 +34,8 @@ trait Producer[F[_]] {
   def abortTransaction: F[Unit]
 
   /**
-    * @return Outer F[_] is about batching, inner F[_] is about sending
+    * @return Outer F[_] is about sending event (including batching if required),
+    * inner F[_] is about waiting and getting the result of the send operation.
     */
   def send[K, V](
     record: ProducerRecord[K, V])(implicit

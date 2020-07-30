@@ -5,7 +5,7 @@
 [![version](https://api.bintray.com/packages/evolutiongaming/maven/skafka/images/download.svg)](https://bintray.com/evolutiongaming/maven/skafka/_latestVersion)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
 
-Scala wrapper for [kafka-clients v2.2.1](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/2.1.0)
+Scala wrapper for [kafka-clients v2.5.0](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/2.5.0)
 
 ## Key features
 
@@ -47,5 +47,5 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 ```scala
 resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "7.1.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "10.0.0"
 ``` 

@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka
 
 import cats.Parallel
 import cats.effect.{Clock, Concurrent, ContextShift, IO, Timer}
-import cats.implicits._
 import com.evolutiongaming.catshelper.FromFuture
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.scalatest.Succeeded

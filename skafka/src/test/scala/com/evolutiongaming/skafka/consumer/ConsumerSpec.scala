@@ -6,7 +6,7 @@ import java.time.{Instant, Duration => DurationJ}
 import java.util
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import java.util.{Collection => CollectionJ, Map => MapJ}
+import java.util.{Optional, Collection => CollectionJ, Map => MapJ}
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
@@ -19,7 +19,7 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -237,6 +237,15 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       consumer.endOffsets(partitions, 1.second) should produce(Map((topicPartition, offset)))
     }
 
+    "groupMetadata" in new Scope {
+      val consumerGroupMetadata = ConsumerGroupMetadata(
+        groupId = "groupId",
+        generationId = 123,
+        memberId = "memberId",
+        groupInstanceId = "groupInstanceId".some)
+      consumer.groupMetadata should produce(consumerGroupMetadata)
+    }
+
     "wakeup" in new Scope {
       verify(consumer.wakeup) { _ =>
         wakeup shouldEqual true
@@ -259,8 +268,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     var commit = Option.empty[FiniteDuration]
 
     var commitSync = Option.empty[(Map[TopicPartition, OffsetAndMetadata], Option[FiniteDuration])]
-
-    var commitSyncTimeout = Option.empty[Duration]
 
     var pause = List.empty[TopicPartitionJ]
 
@@ -293,6 +300,14 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     val consumerJ = new ConsumerJ[Bytes, Bytes] {
 
+      def groupMetadata() = {
+        new ConsumerGroupMetadataJ(
+          "groupId",
+          123,
+          "memberId",
+          Optional.of("groupInstanceId"))
+      }
+      
       def assignment() = Set(topicPartition.asJava).asJava
 
       def subscription() = Set(topic).asJava

@@ -9,15 +9,15 @@ import cats.implicits._
 import com.evolutiongaming.catshelper.{FromFuture, FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Blocking, Bytes, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
-
-import scala.jdk.CollectionConverters._
-import scala.compat.java8.FutureConverters._
-import scala.concurrent.ExecutionContext
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
+
+import scala.compat.java8.FutureConverters._
+import scala.concurrent.ExecutionContext
+import scala.jdk.CollectionConverters._
 
 class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
@@ -26,7 +26,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     blockAndSend[IO](executor).run()
   }
 
-  private def blockAndSend[F[_] : ConcurrentEffect : ToTry : FromTry : ToFuture : FromFuture : ContextShift](
+  private def blockAndSend[F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: FromFuture: ContextShift](
     executor: ExecutionContext
   ) = {
 
@@ -39,15 +39,23 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     def producerOf(block: F[ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]) = {
       val producer = new ProducerJ[Bytes, Bytes] {
 
-        def sendOffsetsToTransaction(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], consumerGroupId: String) = {}
-
         def initTransactions() = {}
 
         def beginTransaction() = {}
 
-        def flush() = {}
+        def sendOffsetsToTransaction(
+          offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ],
+          groupMetadata: ConsumerGroupMetadata
+        ) = {}
+
+        def sendOffsetsToTransaction(
+          offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ],
+          consumerGroupId: String
+        ) = {}
 
         def commitTransaction() = {}
+
+        def flush() = {}
 
         def partitionsFor(topic: String) = Nil.asJava
 

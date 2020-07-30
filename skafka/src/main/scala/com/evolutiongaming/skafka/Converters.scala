@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import java.time.{Duration => DurationJ}
-import java.util.{Collection => CollectionJ, Map => MapJ, Set => SetJ}
+import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 
 import cats.Monad
 import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
@@ -202,5 +202,11 @@ object Converters {
   implicit class SkafkaOffsetAndMetadataOps(val self: OffsetAndMetadata) extends AnyVal {
 
     def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset.value, self.metadata)
+  }
+
+
+  implicit class OptionalOps[A](val self: Optional[A]) extends AnyVal {
+
+    def toOption: Option[A] = if (self.isPresent) self.get().some else none
   }
 }

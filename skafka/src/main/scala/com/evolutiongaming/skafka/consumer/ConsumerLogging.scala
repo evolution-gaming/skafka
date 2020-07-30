@@ -337,6 +337,15 @@ object ConsumerLogging {
         } yield a
       }
 
+      def groupMetadata = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.groupMetadata
+          d <- d
+          _ <- log.debug(s"groupMetadata in ${ d.toMillis }ms, result: $a")
+        } yield a
+      }
+
       val wakeup = {
         for {
           d <- MeasureDuration[F].start

@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect.{Bracket, Concurrent, ContextShift, Resource}
+import cats.effect.{Concurrent, ContextShift, Resource}
 import cats.{Applicative, Defer, ~>}
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.FromBytes
@@ -42,8 +42,7 @@ object ConsumerOf {
 
     def mapK[G[_] : Applicative : Defer](
       fg: F ~> G,
-      gf: G ~> F)(implicit
-      B: Bracket[F, Throwable]
+      gf: G ~> F
     ): ConsumerOf[G] = new ConsumerOf[G] {
 
       def apply[K, V](

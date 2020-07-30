@@ -6,12 +6,12 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
 import cats.effect.Concurrent
 import cats.implicits._
-import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable, ToFuture}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
@@ -161,9 +161,22 @@ object ConsumerConverters {
     }
   }
 
+
   implicit class TopicPartitionToOffsetMetadataMapOps(val m: Map[TopicPartition, OffsetAndMetadata]) extends AnyVal {
     def deepAsJava: MapJ[TopicPartitionJ, OffsetAndMetadataJ] = m.map {
       case (tp, om) => (tp.asJava, om.asJava)
     }.asJava
+  }
+
+
+  implicit class ConsumerGroupMetadataOps(val self: ConsumerGroupMetadataJ) extends AnyVal {
+
+    def asScala: ConsumerGroupMetadata = {
+      ConsumerGroupMetadata(
+        groupId = self.groupId(),
+        generationId = self.generationId(),
+        memberId = self.memberId(),
+        groupInstanceId = self.groupInstanceId().toOption)
+    }
   }
 }

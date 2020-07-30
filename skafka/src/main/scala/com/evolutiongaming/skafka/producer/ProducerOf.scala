@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.effect.{Bracket, ContextShift, Effect, Resource}
+import cats.effect.{ContextShift, Effect, Resource}
 import cats.{Defer, Monad, ~>}
 import com.evolutiongaming.smetrics.MeasureDuration
 
@@ -32,11 +32,9 @@ object ProducerOf {
 
     def mapK[G[_] : Monad : Defer](
       fg: F ~> G,
-      gf: G ~> F)(implicit
-      B: Bracket[F, Throwable]
-    ): ProducerOf[G] = new ProducerOf[G] {
-
-      def apply(config: ProducerConfig) = {
+      gf: G ~> F
+    ): ProducerOf[G] = {
+      (config: ProducerConfig) => {
         for {
           a <- self(config).mapK(fg)
         } yield {

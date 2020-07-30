@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
+import java.util
 import java.util.concurrent.CompletableFuture
 
 import cats.arrow.FunctionK
@@ -11,7 +12,7 @@ import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Blocking, Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 
@@ -142,17 +143,26 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     var abortTransaction = false
     var partitionsFor = ""
     var sendOffsetsToTransaction = ""
+    var sendOffsetsToTransaction1 = none[ConsumerGroupMetadataJ]
     val completableFuture = CompletableFuture.completedFuture(metadata.asJava)
 
     val jProducer = new ProducerJ[Bytes, Bytes] {
-      def sendOffsetsToTransaction(offsets: java.util.Map[TopicPartitionJ, OffsetAndMetadataJ], consumerGroupId: String) = {
-        Scope.this.sendOffsetsToTransaction = consumerGroupId
-      }
 
       def initTransactions() = Scope.this.initTransactions = true
 
       def beginTransaction() = Scope.this.beginTransaction = true
 
+      def sendOffsetsToTransaction(offsets: java.util.Map[TopicPartitionJ, OffsetAndMetadataJ], consumerGroupId: String) = {
+        Scope.this.sendOffsetsToTransaction = consumerGroupId
+      }
+
+      def sendOffsetsToTransaction(
+        offsets: util.Map[TopicPartitionJ, OffsetAndMetadataJ],
+        groupMetadata: ConsumerGroupMetadataJ
+      ) = {
+        Scope.this.sendOffsetsToTransaction1 = groupMetadata.some
+      }
+      
       def flush() = flushCalled = true
 
       def commitTransaction() = Scope.this.commitTransaction = true

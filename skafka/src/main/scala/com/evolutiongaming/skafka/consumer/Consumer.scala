@@ -116,6 +116,8 @@ trait Consumer[F[_], K, V] {
 
   def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
+  def groupMetadata: F[ConsumerGroupMetadata]
+
   def wakeup: F[Unit]
 }
 
@@ -211,6 +213,8 @@ object Consumer {
       def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         Map.empty[TopicPartition, Offset].pure[F]
       }
+
+      def groupMetadata = ConsumerGroupMetadata.Empty.pure[F]
 
       val wakeup = empty
     }
@@ -537,6 +541,10 @@ object Consumer {
         offsetsOf(partitions) { consumer.endOffsets(_, timeoutJ) }
       }
 
+      def groupMetadata = {
+        Sync[F].delay { consumer.groupMetadata() }.map { _.asScala }
+      }
+
       val wakeup = {
         blocking { consumer.wakeup() }
       }
@@ -571,7 +579,7 @@ object Consumer {
       } yield r
     }
 
-    def call1[T](name: String)(f: F[T]): F[T] = {
+    def call1[A](name: String)(f: F[A]): F[A] = {
       for {
         topics <- topics
         r      <- call(name, topics)(f)
@@ -844,6 +852,10 @@ object Consumer {
         call("end_offsets", topics) { consumer.endOffsets(partitions, timeout) }
       }
 
+      def groupMetadata = {
+        call1("group_metadata") { consumer.groupMetadata }
+      }
+
       val wakeup = {
         for {
           _ <- count1("wakeup")
@@ -959,6 +971,8 @@ object Consumer {
       def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         fg(self.endOffsets(partitions, timeout))
       }
+
+      def groupMetadata = fg(self.groupMetadata)
 
       def wakeup = fg(self.wakeup)
     }

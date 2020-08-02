@@ -11,7 +11,7 @@ object Dependencies {
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.1"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.0"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.1.1"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.1.2"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.10.3"
 
   object Kafka {

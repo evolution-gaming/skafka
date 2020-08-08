@@ -8,7 +8,7 @@ import cats.effect.Concurrent
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.DataHelper._
-import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable, ToFuture}
+import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
@@ -42,19 +42,32 @@ object ConsumerConverters {
 
   implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
 
-    def asJava(implicit F: Concurrent[F], toFuture: ToFuture[F]): RebalanceListenerJ = {
+    def asJava(
+      serialListeners: SerialListeners[F])(implicit
+      F: Concurrent[F],
+      toTry: ToTry[F],
+      toFuture: ToFuture[F]
+    ): RebalanceListenerJ = {
 
-      def onPartitions(partitions: CollectionJ[TopicPartitionJ])(f: Nes[TopicPartition] => F[Unit]) = {
-        partitions
-          .asScala
-          .toList
-          .traverse { _.asScala[F] }
-          .flatMap { partitions =>
+      def onPartitions(
+        partitions: CollectionJ[TopicPartitionJ],
+        call: Nes[TopicPartition] => F[Unit]
+      ) = {
+        serialListeners
+          .listener {
             partitions
-              .toSortedSet
-              .toNes
-              .foldMapM(f)
+              .asScala
+              .toList
+              .traverse { _.asScala[F] }
+              .flatMap { partitions =>
+                partitions
+                  .toSortedSet
+                  .toNes
+                  .foldMapM(call)
+              }
           }
+          .toTry
+          .get
           .toFuture
         ()
       }
@@ -62,11 +75,15 @@ object ConsumerConverters {
       new RebalanceListenerJ {
 
         def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
-          onPartitions(partitions)(self.onPartitionsAssigned)
+          onPartitions(partitions, self.onPartitionsAssigned)
         }
 
         def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
-          onPartitions(partitions)(self.onPartitionsRevoked)
+          onPartitions(partitions, self.onPartitionsRevoked)
+        }
+
+        override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions, self.onPartitionsLost)
         }
       }
     }
@@ -169,7 +186,7 @@ object ConsumerConverters {
   }
 
 
-  implicit class ConsumerGroupMetadataOps(val self: ConsumerGroupMetadataJ) extends AnyVal {
+  implicit class ConsumerGroupMetadataJOps(val self: ConsumerGroupMetadataJ) extends AnyVal {
 
     def asScala: ConsumerGroupMetadata = {
       ConsumerGroupMetadata(
@@ -177,6 +194,18 @@ object ConsumerConverters {
         generationId = self.generationId(),
         memberId = self.memberId(),
         groupInstanceId = self.groupInstanceId().toOption)
+    }
+  }
+
+
+  implicit class ConsumerGroupMetadataOps(val self: ConsumerGroupMetadata) extends AnyVal {
+
+    def asJava: ConsumerGroupMetadataJ = {
+      new ConsumerGroupMetadataJ(
+        self.groupId,
+        self.generationId,
+        self.memberId,
+        self.groupInstanceId.toOptional)
     }
   }
 }

@@ -13,25 +13,22 @@ import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.IO
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
+import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, Future, Promise}
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 class ConsumerSpec extends AnyWordSpec with Matchers {
-
-  import ConsumerSpec._
 
   private val topic = "topic"
   private val partition = Partition.min
@@ -75,8 +72,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     "subscribe topics" in new Scope {
       verify(consumer.subscribe(Nes.of(topic), Some(rebalanceListener))) { _ =>
         subscribeTopics shouldEqual List(topic)
-        assigned.future.await()
-        revoked.future.await()
       }
     }
 
@@ -84,8 +79,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       val pattern = Pattern.compile(".")
       verify(consumer.subscribe(pattern, Some(rebalanceListener))) { _ =>
         subscribePattern shouldEqual Some(pattern)
-        assigned.future.await()
-        revoked.future.await()
       }
     }
 
@@ -281,24 +274,18 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     var seekToEnd = List.empty[TopicPartitionJ]
 
-    val revoked = Promise[Unit]()
-
-    val assigned = Promise[Unit]()
-
     val rebalanceListener = new RebalanceListener[IO] {
 
-      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO {
-        assigned.success(())
-      }
+      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO.unit
 
-      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO {
-        revoked.success(())
-      }
+      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO.unit
+      
+      def onPartitionsLost(partitions: Nes[TopicPartition]) = IO.unit
     }
 
     protected def committedNull = false
 
-    val consumerJ = new ConsumerJ[Bytes, Bytes] {
+    val consumerJ: ConsumerJ[Bytes, Bytes] = new ConsumerJ[Bytes, Bytes] {
 
       def groupMetadata() = {
         new ConsumerGroupMetadataJ(
@@ -307,7 +294,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
           "memberId",
           Optional.of("groupInstanceId"))
       }
-      
+
       def assignment() = Set(topicPartition.asJava).asJava
 
       def subscription() = Set(topic).asJava
@@ -316,8 +303,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListenerJ) = {
         subscribeTopics = topics.asScala.toList
-        callback.onPartitionsAssigned(List(topicPartition.asJava).asJava)
-        callback.onPartitionsRevoked(List(topicPartition.asJava).asJava)
       }
 
       def assign(partitions: CollectionJ[TopicPartitionJ]) = {
@@ -326,8 +311,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListenerJ) = {
         subscribePattern = Some(pattern)
-        callback.onPartitionsAssigned(List(topicPartition.asJava).asJava)
-        callback.onPartitionsRevoked(List(topicPartition.asJava).asJava)
       }
 
       def subscribe(pattern: Pattern) = {}
@@ -470,19 +453,17 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    val consumer = {
-      implicit val measureDuration = MeasureDuration.empty[IO]
-      Consumer[IO, Bytes, Bytes](consumerJ, Blocking(executor))
+    val consumer: Consumer[IO, Bytes, Bytes] = {
+      Consumer
+        .fromConsumerJ(consumerJ.pure[IO])
+        .allocated
+        .toTry
+        .get
+        ._1
         .withMetrics(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)
     }
   }
 
-}
-
-object ConsumerSpec {
-  implicit class FutureOps[A](val self: Future[A]) extends AnyVal {
-    def await(): A = Await.result(self, 1.minute)
-  }
 }

@@ -13,7 +13,8 @@ lazy val commonSettings = Seq(
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   scalacOptions in(Compile, doc) += "-no-link-warnings",
-  libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary))
+  libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary),
+  scalacOptsFailOnWarn := Some(false))
 
 
 lazy val root = (project

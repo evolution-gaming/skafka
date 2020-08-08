@@ -6,7 +6,9 @@ import cats.effect._
 import cats.effect.concurrent.Deferred
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
-import com.evolutiongaming.catshelper.{Log, MonadThrowable}
+import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable}
+import com.evolutiongaming.catshelper.Blocking.implicits._
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -86,120 +88,120 @@ object Producer {
   }
 
 
-  def of[F[_] : Effect : ContextShift](
+  def of[F[_]: Effect: ContextShift](
     config: ProducerConfig,
     executorBlocking: ExecutionContext
   ): Resource[F, Producer[F]] = {
-
-    val blocking = Blocking(executorBlocking)
-
-    val result = for {
-      producerJ <- CreateProducerJ(config, blocking)
-      producer   = apply(producerJ, blocking)
-      close      = blocking { producerJ.close() }
-      release    = producer.flush.attempt *> close
-    } yield {
-      (producer, release)
-    }
-    Resource(result)
+    implicit val blocking = Blocking.fromExecutionContext(executorBlocking)
+    val producer = CreateProducerJ(config)
+    fromProducerJ(producer)
   }
 
 
-  def apply[F[_] : Effect](
-    producer: ProducerJ[Bytes, Bytes],
-    blocking: Blocking[F]
-  ): Producer[F] = {
+  def fromProducerJ[F[_]: Effect: Blocking](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
 
-    new Producer[F] {
+    def blocking[A](f: => A) = Sync[F].delay(f).blocking
 
-      val initTransactions = {
-        blocking { producer.initTransactions() }
-      }
+    def apply(producer: ProducerJ[Bytes, Bytes]) = {
+      new Producer[F] {
 
-      val beginTransaction = {
-        Sync[F].delay { producer.beginTransaction() }
-      }
-
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        val offsetsJ = offsets
-          .toSortedMap
-          .asJavaMap(_.asJava, _.asJava)
-        blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
-      }
-
-      val commitTransaction = {
-        blocking { producer.commitTransaction() }
-      }
-
-      val abortTransaction = {
-        blocking { producer.abortTransaction() }
-      }
-
-
-      def send[K, V](
-        record: ProducerRecord[K, V])(implicit
-        toBytesK: ToBytes[F, K],
-        toBytesV: ToBytes[F, V]
-      ) = {
-
-        def executionException[A]: PartialFunction[Throwable, F[A]] = {
-          case failure: ExecutionException => failure.getCause.raiseError[F, A]
+        val initTransactions = {
+          blocking { producer.initTransactions() }
         }
 
-        def unsafeRunSync[A](fa: F[A]): A = Effect[F].toIO(fa).unsafeRunSync()
+        val beginTransaction = {
+          Sync[F].delay { producer.beginTransaction() }
+        }
 
-        def block(record: ProducerRecordJ[Bytes, Bytes]) = {
+        def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
+          val offsetsJ = offsets
+            .toSortedMap
+            .asJavaMap(_.asJava, _.asJava)
+          blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
+        }
 
-          def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
-            (metadata: RecordMetadataJ, exception: Exception) =>
-              if (exception != null) {
-                unsafeRunSync(deferred.complete(exception.asLeft))
-              } else if (metadata != null) {
-                unsafeRunSync(deferred.complete(metadata.asRight))
-              } else {
-                val exception = SkafkaError("both metadata & exception are nulls")
-                unsafeRunSync(deferred.complete(exception.asLeft))
-              }
+        val commitTransaction = {
+          blocking { producer.commitTransaction() }
+        }
+
+        val abortTransaction = {
+          blocking { producer.abortTransaction() }
+        }
+
+
+        def send[K, V](
+          record: ProducerRecord[K, V])(implicit
+          toBytesK: ToBytes[F, K],
+          toBytesV: ToBytes[F, V]
+        ) = {
+
+          def executionException[A]: PartialFunction[Throwable, F[A]] = {
+            case failure: ExecutionException => failure.getCause.raiseError[F, A]
           }
 
-          Sync[F].uncancelable {
-            for {
-              deferred <- Deferred.uncancelable[F, Either[Throwable, RecordMetadataJ]]
-              callback  = callbackOf(deferred)
-              _        <- blocking { producer.send(record, callback) }.recoverWith(executionException)
-            } yield {
-              val result = deferred.get.flatMap(Sync[F].fromEither)
-              result.recoverWith(executionException)
+          def unsafeRunSync[A](fa: F[A]): A = Effect[F].toIO(fa).unsafeRunSync()
+
+          def block(record: ProducerRecordJ[Bytes, Bytes]) = {
+
+            def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
+              (metadata: RecordMetadataJ, exception: Exception) =>
+                if (exception != null) {
+                  unsafeRunSync(deferred.complete(exception.asLeft))
+                } else if (metadata != null) {
+                  unsafeRunSync(deferred.complete(metadata.asRight))
+                } else {
+                  val exception = SkafkaError("both metadata & exception are nulls")
+                  unsafeRunSync(deferred.complete(exception.asLeft))
+                }
+            }
+
+            Sync[F].uncancelable {
+              for {
+                deferred <- Deferred.uncancelable[F, Either[Throwable, RecordMetadataJ]]
+                callback  = callbackOf(deferred)
+                _        <- blocking { producer.send(record, callback) }.recoverWith(executionException)
+              } yield {
+                val result = deferred.get.flatMap(Sync[F].fromEither)
+                result.recoverWith(executionException)
+              }
             }
           }
+
+          def toBytesError(error: Throwable) = {
+            SkafkaError(s"toBytes failed for $record", error).raiseError[F, ProducerRecord[Bytes, Bytes]]
+          }
+
+          for {
+            bytes  <- record.toBytes.handleErrorWith(toBytesError)
+            bytesJ  = bytes.asJava
+            result <- block(bytesJ)
+          } yield for {
+            result <- result
+            result <- result.asScala[F]
+          } yield result
         }
 
-        def toBytesError(error: Throwable) = {
-          SkafkaError(s"toBytes failed for $record", error).raiseError[F, ProducerRecord[Bytes, Bytes]]
+
+        def partitions(topic: Topic) = {
+          for {
+            result <- blocking { producer.partitionsFor(topic) }
+            result <- result.asScala.toList.traverse { _.asScala[F] }
+          } yield result
         }
 
-        for {
-          bytes  <- record.toBytes.handleErrorWith(toBytesError)
-          bytesJ  = bytes.asJava
-          result <- block(bytesJ)
-        } yield for {
-          result <- result
-          result <- result.asScala[F]
-        } yield result
-      }
-
-
-      def partitions(topic: Topic) = {
-        for {
-          result <- blocking { producer.partitionsFor(topic) }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
-        } yield result
-      }
-
-      val flush = {
-        blocking { producer.flush() }
+        val flush = {
+          blocking { producer.flush() }
+        }
       }
     }
+
+    for {
+      producerJ <- producer.blocking.toResource
+      producer   = apply(producerJ)
+      close      = blocking { producerJ.close() }
+      flush      = producer.flush.attempt
+      _         <- Resource.release { flush *> close }
+    } yield producer
   }
 
 

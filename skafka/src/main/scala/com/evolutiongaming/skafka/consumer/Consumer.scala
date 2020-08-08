@@ -89,12 +89,6 @@ trait Consumer[F[_], K, V] {
 
   def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
 
-  @deprecated("use topics instead", "7.2.0")
-  final def listTopics: F[Map[Topic, List[PartitionInfo]]] = topics
-
-  @deprecated("use topics instead", "7.2.0")
-  final def listTopics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = topics(timeout)
-
 
   def pause(partitions: Nes[TopicPartition]): F[Unit]
 

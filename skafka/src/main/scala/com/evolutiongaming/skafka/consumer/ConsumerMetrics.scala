@@ -20,9 +20,6 @@ trait ConsumerMetrics[F[_]] {
   def rebalance(name: String, topicPartition: TopicPartition): F[Unit]
 
   def topics(latency: FiniteDuration): F[Unit]
-
-  @deprecated("use topics instead", "7.2.0")
-  final def listTopics(latency: FiniteDuration): F[Unit] = topics(latency)
 }
 
 object ConsumerMetrics {

@@ -6,9 +6,10 @@ import java.util.{Map => MapJ}
 import cats.effect.concurrent.Deferred
 import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, IO, Sync}
 import cats.implicits._
-import com.evolutiongaming.catshelper.{FromFuture, FromTry, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.{Blocking, FromFuture, FromTry, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Blocking, Bytes, Partition, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
@@ -16,19 +17,18 @@ import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
 import scala.compat.java8.FutureConverters._
-import scala.concurrent.ExecutionContext
 import scala.jdk.CollectionConverters._
 
 class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
   test("block & send") {
     import com.evolutiongaming.skafka.IOSuite._
-    blockAndSend[IO](executor).run()
+    blockAndSend[IO].run()
   }
 
-  private def blockAndSend[F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: FromFuture: ContextShift](
-    executor: ExecutionContext
-  ) = {
+  private def blockAndSend[
+    F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: FromFuture: ContextShift: Blocking
+  ] = {
 
     val topic = "topic"
     val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
@@ -37,7 +37,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
 
     def producerOf(block: F[ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]) = {
-      val producer = new ProducerJ[Bytes, Bytes] {
+      val producer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
         def initTransactions() = {}
 
@@ -90,7 +90,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
         def abortTransaction() = {}
       }
 
-      Producer[F](producer, Blocking(executor))
+      Producer.fromProducerJ(producer.pure[F])
     }
 
     def start[A](fa: F[A]) = {
@@ -110,19 +110,21 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
       }
     }
 
-    for {
-      sendDef     <- Deferred[F, ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]
-      metadataDef <- Deferred[F, RecordMetadataJ]
-      producer     = producerOf(sendDef.get)
-      blocked     <- start { producer.send(record) }
+    val result = for {
+      sendDef     <- Deferred[F, ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]].toResource
+      metadataDef <- Deferred[F, RecordMetadataJ].toResource
+      producer    <- producerOf(sendDef.get)
+      blocked     <- start { producer.send(record) }.toResource
       send         = (_: ProducerRecordJ[Bytes, Bytes]) => metadataDef.get
-      _           <- sendDef.complete(send)
-      blocked     <- blocked
-      sent        <- start { blocked }
-      _           <- metadataDef.complete(metadata.asJava)
-      result      <- sent
+      _           <- sendDef.complete(send).toResource
+      blocked     <- blocked.toResource
+      sent        <- start { blocked }.toResource
+      _           <- metadataDef.complete(metadata.asJava).toResource
+      result      <- sent.toResource
     } yield {
       result shouldEqual metadata
     }
+
+    result.use { _.pure[F] }
   }
 }

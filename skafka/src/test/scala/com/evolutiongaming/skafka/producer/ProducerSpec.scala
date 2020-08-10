@@ -5,12 +5,13 @@ import java.util.concurrent.CompletableFuture
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyMap => Nem}
-import cats.effect.{Concurrent, IO}
+import cats.effect.IO
 import cats.implicits._
-import com.evolutiongaming.concurrent.CurrentThreadExecutionContext
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Blocking, Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
@@ -26,7 +27,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
   val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
   val metadata = RecordMetadata(topicPartition)
 
-  "CreateProducer" should {
+  "Producer" should {
 
     "proxy initTransactions" in new Scope {
       verify(producer.initTransactions) { _ =>
@@ -96,7 +97,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
   }
 
 
-  "CreateProducer.empty" should {
+  "Producer.empty" should {
 
     implicit val empty = Producer.empty[IO]
 
@@ -146,7 +147,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     var sendOffsetsToTransaction1 = none[ConsumerGroupMetadataJ]
     val completableFuture = CompletableFuture.completedFuture(metadata.asJava)
 
-    val jProducer = new ProducerJ[Bytes, Bytes] {
+    val jProducer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
       def initTransactions() = Scope.this.initTransactions = true
 
@@ -189,11 +190,13 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     }
     
     val producer: Producer[IO] = {
-      implicit val executor = CurrentThreadExecutionContext
-      implicit val cs = IO.contextShift(executor)
-      implicit val concurrentIO: Concurrent[IO]     = IO.ioConcurrentEffect
       implicit val measureDuration = MeasureDuration.empty[IO]
-      Producer[IO](jProducer, Blocking(executor))
+      Producer
+        .fromProducerJ[IO](jProducer.pure[IO])
+        .allocated
+        .toTry
+        .get
+        ._1
         .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
     }

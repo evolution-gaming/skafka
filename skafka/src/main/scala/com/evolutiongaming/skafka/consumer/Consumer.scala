@@ -11,13 +11,14 @@ import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Monad, MonadError, ~>}
+import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{Log, ToFuture, ToTry}
+import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import scala.concurrent.ExecutionContext
@@ -222,300 +223,321 @@ object Consumer {
     fromBytesK: FromBytes[F, K],
     fromBytesV: FromBytes[F, V]
   ): Resource[F, Consumer[F, K, V]] = {
-
-    val blocking = Blocking(executorBlocking)
-    val consumerJ = CreateConsumerJ(config, fromBytesK, fromBytesV, blocking)
-
-    val consumer = for {
-      consumerJ <- consumerJ.toResource
-      _         <- Resource.release { blocking { consumerJ.close() } }
-    } yield {
-      apply(consumerJ, blocking)
-    }
-    consumer.serial
+    implicit val blocking = Blocking.fromExecutionContext(executorBlocking)
+    val consumer = CreateConsumerJ(config, fromBytesK, fromBytesV)
+    fromConsumerJ(consumer)
   }
 
 
-  def apply[F[_] : Concurrent : ContextShift : ToFuture, K, V](
-    consumer: ConsumerJ[K, V],
-    blocking: Blocking[F]
-  ): Consumer[F, K, V] = {
+  def fromConsumerJ[F[_]: Concurrent: ContextShift: ToFuture: ToTry: Blocking, K, V](
+    consumer: F[ConsumerJ[K, V]]
+  ): Resource[F, Consumer[F, K, V]] = {
 
-    def commitLater1(f: OffsetCommitCallback => Unit) = {
-      val commitLater = Async[F].asyncF[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { f1 =>
-        val callback = new OffsetCommitCallback {
+    def blocking[A](f: => A) = Sync[F].delay { f }.blocking
 
-          def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
-            if (exception != null) {
-              f1(exception.asLeft)
-            } else if (offsets != null) {
-              f1(offsets.asRight)
-            } else {
-              val failure = SkafkaError("both offsets & exception are nulls")
-              f1(failure.asLeft)
+    trait Around {
+      def apply[A](f: => A): F[A]
+    }
+
+    for {
+      serialListeners <- SerialListeners.of[F].toResource
+      semaphore       <- Semaphore(1).toResource
+      consumer        <- consumer.blocking.toResource
+      around           = new Around {
+        def apply[A](f: => A) = {
+          semaphore
+            .withPermit { serialListeners.around { blocking { f } } }
+            .flatten
+            .uncancelable
+        }
+      }
+      close            = around { consumer.close() }
+      _               <- Resource.release { close }
+    } yield {
+
+      def serial[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
+
+      def serialNonBlocking[A](f: => A) = serial { Sync[F].delay { f } }
+
+      def serialBlocking[A](f: => A) = serial { blocking { f } }
+
+      def commitLater1(f: OffsetCommitCallback => Unit) = {
+        val commitLater = Async[F].asyncF[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { f1 =>
+          val callback = new OffsetCommitCallback {
+
+            def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
+              if (exception != null) {
+                f1(exception.asLeft)
+              } else if (offsets != null) {
+                f1(offsets.asRight)
+              } else {
+                val failure = SkafkaError("both offsets & exception are nulls")
+                f1(failure.asLeft)
+              }
             }
+          }
+
+          blocking { f(callback) }
+        }
+
+        for {
+          result <- commitLater
+          _      <- ContextShift[F].shift
+        } yield result
+      }
+
+      def listenerOf(listener: Option[RebalanceListener[F]]) = {
+        listener.fold[ConsumerRebalanceListener] {
+          new NoOpConsumerRebalanceListener
+        } { listener =>
+          listener.asJava(serialListeners)
+        }
+      }
+
+      def position1(partition: TopicPartition)(f: TopicPartitionJ => Long) = {
+        val partitionJ = partition.asJava
+        for {
+          offset <- serialBlocking { f(partitionJ) }
+          offset <- Offset.of[F](offset)
+        } yield offset
+      }
+
+      def committed1(
+        partitions: Nes[TopicPartition])(
+        f: (SetJ[TopicPartitionJ]) => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
+      ) = {
+        val partitionsJ = partitions.asJava
+        for {
+          result <- serialBlocking { f(partitionsJ) }
+          result <- Option(result).fold {
+            Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+          } {
+            _.asScalaMap(_.asScala[F], _.asScala[F])
+          }
+        } yield result
+      }
+
+      def partitions1(f: => ListJ[PartitionInfoJ]) = {
+        for {
+          result <- serialBlocking { f }
+          result <- result.asScala.toList.traverse { _.asScala[F] }
+        } yield result
+      }
+
+      def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
+        for {
+          result <- serialBlocking { f }
+          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
+        } yield result
+      }
+
+      def offsetsForTimes1(
+        timestamps: Map[TopicPartition, Offset])(
+        f: MapJ[TopicPartitionJ, LongJ] => MapJ[TopicPartitionJ, OffsetAndTimestampJ]
+      ) = {
+        val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
+        for {
+          result <- serialBlocking { f(timestampsJ) }
+          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
+        } yield result
+      }
+
+      def offsetsOf(
+        partitions: Nes[TopicPartition])(
+        f: CollectionJ[TopicPartitionJ] => MapJ[TopicPartitionJ, LongJ]
+      ) = {
+        val partitionsJ = partitions.asJava
+        for {
+          result <- serialBlocking { f(partitionsJ) }
+          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
+        } yield result
+      }
+
+      new Consumer[F, K, V] {
+
+        def assign(partitions: Nes[TopicPartition]) = {
+          val partitionsJ = partitions.toList.map { _.asJava }.asJavaCollection
+          serialNonBlocking { consumer.assign(partitionsJ) }
+        }
+
+        val assignment = {
+          for {
+            result <- serialNonBlocking { consumer.assignment() }
+            result <- result.asScala.toList.traverse { _.asScala[F] }
+          } yield {
+            result.toSet
           }
         }
 
-        blocking { f(callback) }
-      }
-
-      for {
-        result <- commitLater
-        _      <- ContextShift[F].shift
-      } yield result
-    }
-
-    def listenerOf(listener: Option[RebalanceListener[F]]) = {
-      listener
-        .map { _.asJava }
-        .getOrElse(new NoOpConsumerRebalanceListener)
-    }
-
-    def position1(partition: TopicPartition)(f: TopicPartitionJ => Long) = {
-      val partitionJ = partition.asJava
-      for {
-        offset <- blocking { f(partitionJ) }
-        offset <- Offset.of[F](offset)
-      } yield offset
-    }
-
-    def committed1(
-      partitions: Nes[TopicPartition])(
-      f: (SetJ[TopicPartitionJ]) => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
-    ) = {
-      val partitionsJ = partitions.asJava
-      for {
-        result <- blocking { f(partitionsJ) }
-        result <- Option(result).fold {
-          Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
-        } {
-          _.asScalaMap(_.asScala[F], _.asScala[F])
+        def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
+          val topicsJ = topics.toSortedSet.toSet.asJava
+          val listenerJ = listenerOf(listener)
+          serialNonBlocking { consumer.subscribe(topicsJ, listenerJ) }
         }
-      } yield result
-    }
 
-    def partitions1(f: => ListJ[PartitionInfoJ]) = {
-      for {
-        result <- blocking { f }
-        result <- result.asScala.toList.traverse { _.asScala[F] }
-      } yield result
-    }
-
-    def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
-      for {
-        result <- blocking { f }
-        result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
-      } yield result
-    }
-
-    def offsetsForTimes1(
-      timestamps: Map[TopicPartition, Offset])(
-      f: MapJ[TopicPartitionJ, LongJ] => MapJ[TopicPartitionJ, OffsetAndTimestampJ]
-    ) = {
-      val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
-      for {
-        result <- blocking { f(timestampsJ) }
-        result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
-      } yield result
-    }
-
-    def offsetsOf(
-      partitions: Nes[TopicPartition])(
-      f: CollectionJ[TopicPartitionJ] => MapJ[TopicPartitionJ, LongJ]
-    ) = {
-      val partitionsJ = partitions.asJava
-      for {
-        result <- blocking { f(partitionsJ) }
-        result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
-      } yield result
-    }
-
-    new Consumer[F, K, V] {
-
-      def assign(partitions: Nes[TopicPartition]) = {
-        val partitionsJ = partitions.toList.map { _.asJava }.asJavaCollection
-        Sync[F].delay { consumer.assign(partitionsJ) }
-      }
-
-      val assignment = {
-        for {
-          result <- Sync[F].delay { consumer.assignment() }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
-        } yield {
-          result.toSet
+        def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
+          val listenerJ = listenerOf(listener)
+          serialNonBlocking { consumer.subscribe(pattern, listenerJ) }
         }
-      }
 
-      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
-        val topicsJ = topics.toSortedSet.toSet.asJava
-        Sync[F].delay { consumer.subscribe(topicsJ, listenerOf(listener)) }
-      }
-
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
-        Sync[F].delay { consumer.subscribe(pattern, listenerOf(listener)) }
-      }
-
-      val subscription = {
-        for {
-          result <- Sync[F].delay { consumer.subscription() }
-        } yield {
-          result.asScala.toSet
+        val subscription = {
+          for {
+            result <- serialNonBlocking { consumer.subscription() }
+          } yield {
+            result.asScala.toSet
+          }
         }
-      }
 
-      val unsubscribe = {
-        blocking { consumer.unsubscribe() }
-      }
-
-      def poll(timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        for {
-          result <- blocking { consumer.poll(timeoutJ) }
-          result <- result.asScala[F]
-        } yield result
-      }
-
-      val commit = {
-        blocking { consumer.commitSync() }
-      }
-
-      def commit(timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        blocking { consumer.commitSync(timeoutJ) }
-      }
-
-      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
-        val offsetsJ = offsets
-          .toSortedMap
-          .asJavaMap(_.asJava, _.asJava)
-        blocking { consumer.commitSync(offsetsJ) }
-      }
-
-      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-        val offsetsJ = offsets
-          .toSortedMap
-          .asJavaMap(_.asJava, _.asJava)
-        val timeoutJ = timeout.asJava
-        blocking { consumer.commitSync(offsetsJ, timeoutJ) }
-      }
-
-      val commitLater = {
-        for {
-          result <- commitLater1 { callback => consumer.commitAsync(callback) }
-          result <- result.asScalaMap(_.asScala[F], _.asScala[F])
-        } yield result
-      }
-
-      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
-        val offsetsJ = offsets.toSortedMap.deepAsJava
-        commitLater1 { callback => consumer.commitAsync(offsetsJ, callback) }.void
-      }
-
-      def seek(partition: TopicPartition, offset: Offset) = {
-        val partitionsJ = partition.asJava
-        Sync[F].delay { consumer.seek(partitionsJ, offset.value) }
-      }
-
-      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
-        val partitionsJ = partition.asJava
-        val offsetAndMetadataJ = offsetAndMetadata.asJava
-        Sync[F].delay { consumer.seek(partitionsJ, offsetAndMetadataJ) }
-      }
-
-      def seekToBeginning(partitions: Nes[TopicPartition]) = {
-        val partitionsJ = partitions.asJava
-        Sync[F].delay { consumer.seekToBeginning(partitionsJ) }
-      }
-
-      def seekToEnd(partitions: Nes[TopicPartition]) = {
-        val partitionsJ = partitions.asJava
-        Sync[F].delay { consumer.seekToEnd(partitionsJ) }
-      }
-
-      def position(partition: TopicPartition) = {
-        position1(partition) { consumer.position }
-      }
-
-
-      def position(partition: TopicPartition, timeout: FiniteDuration) = {
-        position1(partition) { consumer.position(_, timeout.asJava) }
-      }
-
-      def committed(partitions: Nes[TopicPartition]) = {
-        committed1(partitions) { consumer.committed }
-      }
-
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
-        committed1(partitions) { consumer.committed(_, timeout.asJava) }
-      }
-
-      def partitions(topic: Topic) = {
-        partitions1 { consumer.partitionsFor(topic) }
-      }
-
-      def partitions(topic: Topic, timeout: FiniteDuration) = {
-        partitions1 { consumer.partitionsFor(topic, timeout.asJava) }
-      }
-
-      val topics = topics1 { consumer.listTopics() }
-
-      def topics(timeout: FiniteDuration) = {
-        topics1 { consumer.listTopics(timeout.asJava) }
-      }
-
-      def pause(partitions: Nes[TopicPartition]) = {
-        val partitionsJ = partitions.asJava
-        Sync[F].delay { consumer.pause(partitionsJ) }
-      }
-
-      val paused = {
-        for {
-          result <- Sync[F].delay { consumer.paused() }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
-        } yield {
-          result.toSet
+        val unsubscribe = {
+          serialBlocking { consumer.unsubscribe() }
         }
-      }
 
-      def resume(partitions: Nes[TopicPartition]) = {
-        val partitionsJ = partitions.asJava
-        Sync[F].delay { consumer.resume(partitionsJ) }
-      }
+        def poll(timeout: FiniteDuration) = {
+          val timeoutJ = timeout.asJava
+          around { consumer.poll(timeoutJ) }.flatMap { _.asScala[F] }
+        }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
-        offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes }
-      }
+        val commit = {
+          serialBlocking { consumer.commitSync() }
+        }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes(_, timeoutJ) }
-      }
+        def commit(timeout: FiniteDuration) = {
+          val timeoutJ = timeout.asJava
+          serialBlocking { consumer.commitSync(timeoutJ) }
+        }
 
-      def beginningOffsets(partitions: Nes[TopicPartition]) = {
-        offsetsOf(partitions) { consumer.beginningOffsets }
-      }
+        def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+          val offsetsJ = offsets
+            .toSortedMap
+            .asJavaMap(_.asJava, _.asJava)
+          serialBlocking { consumer.commitSync(offsetsJ) }
+        }
 
-      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        offsetsOf(partitions) { consumer.beginningOffsets(_, timeoutJ) }
-      }
+        def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
+          val offsetsJ = offsets
+            .toSortedMap
+            .asJavaMap(_.asJava, _.asJava)
+          val timeoutJ = timeout.asJava
+          serialBlocking { consumer.commitSync(offsetsJ, timeoutJ) }
+        }
 
-      def endOffsets(partitions: Nes[TopicPartition]) = {
-        offsetsOf(partitions) { consumer.endOffsets }
-      }
+        val commitLater = {
+          for {
+            result <- commitLater1 { callback => consumer.commitAsync(callback) }
+            result <- result.asScalaMap(_.asScala[F], _.asScala[F])
+          } yield result
+        }
 
-      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
-        val timeoutJ = timeout.asJava
-        offsetsOf(partitions) { consumer.endOffsets(_, timeoutJ) }
-      }
+        def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+          val offsetsJ = offsets.toSortedMap.deepAsJava
+          commitLater1 { callback => consumer.commitAsync(offsetsJ, callback) }.void
+        }
 
-      def groupMetadata = {
-        Sync[F].delay { consumer.groupMetadata() }.map { _.asScala }
-      }
+        def seek(partition: TopicPartition, offset: Offset) = {
+          val partitionsJ = partition.asJava
+          serialNonBlocking { consumer.seek(partitionsJ, offset.value) }
+        }
 
-      val wakeup = {
-        blocking { consumer.wakeup() }
+        def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
+          val partitionsJ = partition.asJava
+          val offsetAndMetadataJ = offsetAndMetadata.asJava
+          serialNonBlocking { consumer.seek(partitionsJ, offsetAndMetadataJ) }
+        }
+
+        def seekToBeginning(partitions: Nes[TopicPartition]) = {
+          val partitionsJ = partitions.asJava
+          serialNonBlocking { consumer.seekToBeginning(partitionsJ) }
+        }
+
+        def seekToEnd(partitions: Nes[TopicPartition]) = {
+          val partitionsJ = partitions.asJava
+          serialNonBlocking { consumer.seekToEnd(partitionsJ) }
+        }
+
+        def position(partition: TopicPartition) = {
+          position1(partition) { consumer.position }
+        }
+
+
+        def position(partition: TopicPartition, timeout: FiniteDuration) = {
+          position1(partition) { consumer.position(_, timeout.asJava) }
+        }
+
+        def committed(partitions: Nes[TopicPartition]) = {
+          committed1(partitions) { consumer.committed }
+        }
+
+        def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+          committed1(partitions) { consumer.committed(_, timeout.asJava) }
+        }
+
+        def partitions(topic: Topic) = {
+          partitions1 { consumer.partitionsFor(topic) }
+        }
+
+        def partitions(topic: Topic, timeout: FiniteDuration) = {
+          partitions1 { consumer.partitionsFor(topic, timeout.asJava) }
+        }
+
+        val topics = topics1 { consumer.listTopics() }
+
+        def topics(timeout: FiniteDuration) = {
+          topics1 { consumer.listTopics(timeout.asJava) }
+        }
+
+        def pause(partitions: Nes[TopicPartition]) = {
+          val partitionsJ = partitions.asJava
+          serialNonBlocking { consumer.pause(partitionsJ) }
+        }
+
+        val paused = {
+          for {
+            result <- serialNonBlocking { consumer.paused() }
+            result <- result.asScala.toList.traverse { _.asScala[F] }
+          } yield {
+            result.toSet
+          }
+        }
+
+        def resume(partitions: Nes[TopicPartition]) = {
+          val partitionsJ = partitions.asJava
+          serialNonBlocking { consumer.resume(partitionsJ) }
+        }
+
+        def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
+          offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes }
+        }
+
+        def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
+          val timeoutJ = timeout.asJava
+          offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes(_, timeoutJ) }
+        }
+
+        def beginningOffsets(partitions: Nes[TopicPartition]) = {
+          offsetsOf(partitions) { consumer.beginningOffsets }
+        }
+
+        def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+          val timeoutJ = timeout.asJava
+          offsetsOf(partitions) { consumer.beginningOffsets(_, timeoutJ) }
+        }
+
+        def endOffsets(partitions: Nes[TopicPartition]) = {
+          offsetsOf(partitions) { consumer.endOffsets }
+        }
+
+        def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+          val timeoutJ = timeout.asJava
+          offsetsOf(partitions) { consumer.endOffsets(_, timeoutJ) }
+        }
+
+        def groupMetadata = {
+          serialNonBlocking { consumer.groupMetadata() }.map { _.asScala }
+        }
+
+        val wakeup = {
+          serialBlocking { consumer.wakeup() }
+        }
       }
     }
   }
@@ -588,6 +610,13 @@ object Consumer {
             for {
               _ <- measure("revoked", partitions)
               a <- listener.onPartitionsRevoked(partitions)
+            } yield a
+          }
+
+          def onPartitionsLost(partitions: Nes[TopicPartition]) = {
+            for {
+              _ <- measure("lost", partitions)
+              a <- listener.onPartitionsLost(partitions)
             } yield a
           }
         }
@@ -935,36 +964,6 @@ object Consumer {
       def groupMetadata = fg(self.groupMetadata)
 
       def wakeup = fg(self.wakeup)
-    }
-  }
-
-
-  implicit class ResourceConsumerOps[F[_], K, V](val self: Resource[F, Consumer[F, K, V]]) extends AnyVal {
-
-    def serial(implicit F: Concurrent[F]): Resource[F, Consumer[F, K, V]] = {
-
-      def serial = {
-        Semaphore[F](1).map { semaphore =>
-          new (F ~> F) {
-            def apply[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
-          }
-        }
-      }
-
-      val result = for {
-        serial0 <- serial
-        serial1 <- serial
-        result  <- self.allocated
-      } yield {
-        val (consumer, close) = result
-
-        val close1 = serial0(close)
-
-        val consumer1 = consumer.mapK(serial0, serial1)
-
-        (consumer1, close1)
-      }
-      Resource(result)
     }
   }
 }

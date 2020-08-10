@@ -187,7 +187,7 @@ object Converters {
   }
 
 
-  implicit class SkafkaOffsetAndMetadataJOps(val self: OffsetAndMetadataJ) extends AnyVal {
+  implicit class SkafkaOffsetAndMetadataJOpsConverters(val self: OffsetAndMetadataJ) extends AnyVal {
 
     def asScala[F[_] : ApplicativeThrowable]: F[OffsetAndMetadata] = {
       for {
@@ -199,14 +199,20 @@ object Converters {
   }
 
 
-  implicit class SkafkaOffsetAndMetadataOps(val self: OffsetAndMetadata) extends AnyVal {
+  implicit class SkafkaOffsetAndMetadataOpsConverters(val self: OffsetAndMetadata) extends AnyVal {
 
     def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset.value, self.metadata)
   }
 
 
-  implicit class OptionalOps[A](val self: Optional[A]) extends AnyVal {
+  implicit class OptionalOpsConverters[A](val self: Optional[A]) extends AnyVal {
 
     def toOption: Option[A] = if (self.isPresent) self.get().some else none
+  }
+
+
+  implicit class OptionOpsConverters[A](val self: Option[A]) extends AnyVal {
+
+    def toOptional: Optional[A] = self.fold(Optional.empty[A]()) { a => Optional.of(a) }
   }
 }

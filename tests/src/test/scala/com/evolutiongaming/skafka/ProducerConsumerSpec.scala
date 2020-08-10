@@ -101,6 +101,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = assigned.complete(())
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = ().pure[IO]
+
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = ().pure[IO]
       }
     }
 

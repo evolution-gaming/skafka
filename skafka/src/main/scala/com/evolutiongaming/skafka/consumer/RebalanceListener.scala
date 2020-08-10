@@ -17,6 +17,8 @@ trait RebalanceListener[F[_]] {
   def onPartitionsAssigned(partitions: Nes[TopicPartition]): F[Unit]
 
   def onPartitionsRevoked(partitions: Nes[TopicPartition]): F[Unit]
+
+  def onPartitionsLost(partitions: Nes[TopicPartition]): F[Unit]
 }
 
 object RebalanceListener {
@@ -28,6 +30,8 @@ object RebalanceListener {
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) = unit
 
     def onPartitionsRevoked(partitions: Nes[TopicPartition]) = unit
+
+    def onPartitionsLost(partitions: Nes[TopicPartition]) = unit
   }
 
 
@@ -41,6 +45,9 @@ object RebalanceListener {
 
       def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
         f(self.onPartitionsRevoked(partitions))
+      }
+      def onPartitionsLost(partitions: Nes[TopicPartition]) = {
+        f(self.onPartitionsLost(partitions))
       }
     }
 
@@ -66,6 +73,15 @@ object RebalanceListener {
           a <- self.onPartitionsRevoked(partitions)
           d <- d
           _ <- log.debug(s"onPartitionsRevoked ${ partitions.mkString_(", ") } in ${ d.toMillis }ms")
+        } yield a
+      }
+
+      def onPartitionsLost(partitions: Nes[TopicPartition]) = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- self.onPartitionsLost(partitions)
+          d <- d
+          _ <- log.debug(s"onPartitionsLost ${ partitions.mkString_(", ") } in ${ d.toMillis }ms")
         } yield a
       }
     }

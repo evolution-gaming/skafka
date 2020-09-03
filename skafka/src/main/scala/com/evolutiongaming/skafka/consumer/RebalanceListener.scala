@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 
 import cats.data.{NonEmptySet => Nes}
-import cats.implicits._
+import cats.syntax.all._
 import cats.{Applicative, FlatMap, ~>}
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.TopicPartition

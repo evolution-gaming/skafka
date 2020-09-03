@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka
 
 import cats.Show
-import cats.implicits._
 import cats.kernel.Order
 
 final case class OffsetAndMetadata(

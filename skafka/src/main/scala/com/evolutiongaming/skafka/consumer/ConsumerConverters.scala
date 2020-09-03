@@ -5,7 +5,7 @@ import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
 import cats.effect.Concurrent
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper._

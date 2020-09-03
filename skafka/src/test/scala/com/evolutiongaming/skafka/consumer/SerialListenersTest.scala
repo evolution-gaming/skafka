@@ -10,7 +10,7 @@ import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
 import cats.effect.{Concurrent, ContextShift, IO, Sync}
 import cats.effect.implicits._
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{Blocking, ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters._

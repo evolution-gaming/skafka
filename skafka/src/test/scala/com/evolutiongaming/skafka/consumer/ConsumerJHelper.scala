@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 
-import cats.implicits._
+import cats.syntax.all._
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 

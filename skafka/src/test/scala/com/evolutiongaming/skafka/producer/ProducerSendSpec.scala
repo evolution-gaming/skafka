@@ -5,7 +5,7 @@ import java.util.{Map => MapJ}
 
 import cats.effect.concurrent.Deferred
 import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, IO, Sync}
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.{Blocking, FromFuture, FromTry, ToFuture, ToTry}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._

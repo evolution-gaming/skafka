@@ -4,7 +4,7 @@ package producer
 import cats.data.{NonEmptyMap => Nem}
 import cats.effect._
 import cats.effect.concurrent.Deferred
-import cats.implicits._
+import cats.syntax.all._
 import cats.{Applicative, Functor, MonadError, ~>}
 import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable}
 import com.evolutiongaming.catshelper.Blocking.implicits._

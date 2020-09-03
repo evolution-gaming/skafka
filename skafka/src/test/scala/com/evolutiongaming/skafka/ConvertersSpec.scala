@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import cats.Id
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.skafka.Converters._
 import org.apache.kafka.common.Node
 import org.scalatest.matchers.should.Matchers

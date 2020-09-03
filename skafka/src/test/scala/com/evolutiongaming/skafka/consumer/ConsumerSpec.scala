@@ -11,7 +11,7 @@ import java.util.{Optional, Collection => CollectionJ, Map => MapJ}
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.IO
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._

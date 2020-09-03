@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import java.time.Instant
 
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}

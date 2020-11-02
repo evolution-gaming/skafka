@@ -10,11 +10,11 @@ object CreateConsumerJ {
 
   def apply[F[_]: Sync: ToTry, K, V](
     config: ConsumerConfig,
-    FromBytesK: FromBytes[F, K],
+    fromBytesK: FromBytes[F, K],
     fromBytesV: FromBytes[F, V]
   ): F[ConsumerJ[K, V]] = {
     val deserializerK = fromBytesV.asJava
-    val deserializerV = FromBytesK.asJava
+    val deserializerV = fromBytesK.asJava
     Sync[F].delay { new KafkaConsumer(config.properties, deserializerV, deserializerK) }
   }
 }

@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.data.{NonEmptyMap => Nem}
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.{Log, MonadThrowable}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 import com.evolutiongaming.smetrics.MeasureDuration

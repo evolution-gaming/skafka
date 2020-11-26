@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.Show
 import cats.data.{NonEmptyList => Nel}
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.skafka._
 
 

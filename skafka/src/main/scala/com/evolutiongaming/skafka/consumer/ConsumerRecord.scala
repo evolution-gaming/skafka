@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.Order
-import cats.implicits._
 import com.evolutiongaming.skafka._
 
 

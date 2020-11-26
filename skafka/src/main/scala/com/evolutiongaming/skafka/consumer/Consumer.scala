@@ -9,7 +9,7 @@ import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
-import cats.implicits._
+import cats.syntax.all._
 import cats.{Applicative, Monad, MonadError, ~>}
 import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._

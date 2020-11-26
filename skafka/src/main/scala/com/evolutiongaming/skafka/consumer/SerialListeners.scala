@@ -4,7 +4,7 @@ import cats.Applicative
 import cats.effect.Concurrent
 import cats.effect.concurrent.{Deferred, Ref, Semaphore}
 import cats.effect.implicits._
-import cats.implicits._
+import cats.syntax.all._
 
 /**
   * This rather complex mechanism exists for sake of ensuring

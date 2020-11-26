@@ -9,7 +9,6 @@ import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.Deferred
 import cats.effect.{IO, Resource}
-import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.kafka.StartKafka

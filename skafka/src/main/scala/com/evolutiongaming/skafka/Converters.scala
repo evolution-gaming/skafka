@@ -5,7 +5,7 @@ import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 
 import cats.Monad
 import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, ToTry}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}

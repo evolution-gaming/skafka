@@ -2,8 +2,6 @@ package com.evolutiongaming.skafka.consumer
 
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-
-import cats.implicits._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._

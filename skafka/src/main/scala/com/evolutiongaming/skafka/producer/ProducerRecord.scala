@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.producer
 import java.time.Instant
 
 import cats.effect.Sync
-import cats.implicits._
+import cats.syntax.all._
 import com.evolutiongaming.skafka._
 
 final case class ProducerRecord[+K, +V](

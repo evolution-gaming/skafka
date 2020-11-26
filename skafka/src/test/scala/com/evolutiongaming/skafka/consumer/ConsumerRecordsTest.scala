@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.data.{NonEmptyList => Nel}
-import cats.implicits._
 import com.evolutiongaming.skafka.{Offset, Partition, Topic, TopicPartition}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

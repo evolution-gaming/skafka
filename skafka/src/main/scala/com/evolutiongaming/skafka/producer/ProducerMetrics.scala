@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.effect.Resource
-import cats.implicits._
+import cats.syntax.all._
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic}
 import com.evolutiongaming.smetrics.MetricsHelper._

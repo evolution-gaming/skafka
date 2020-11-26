@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka
 
 import cats.{Order, Show}
-import cats.implicits._
 
 final case class TopicPartition(topic: Topic, partition: Partition) {
 

@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.implicits._
+import cats.syntax.all._
 
 import scala.util.control.NoStackTrace
 

@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
 
-import cats.implicits._
+import cats.syntax.all._
 import cats.{Applicative, Contravariant, ~>}
 import com.evolutiongaming.catshelper.FromTry
 

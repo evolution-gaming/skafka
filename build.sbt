@@ -32,8 +32,6 @@ lazy val skafka = (project
     scalacOptions -= "-Ywarn-unused:params",
     libraryDependencies ++= Seq(
       Cats.core,
-      Cats.kernel,
-      Cats.macros,
       Cats.effect,
       `config-tools`,
       Kafka.clients,

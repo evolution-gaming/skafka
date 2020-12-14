@@ -7,7 +7,7 @@ object Dependencies {
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"           % "1.0.6"
   val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "2.1.3"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"          % "0.0.10"
-  val `play-json-jsoniter` = "com.evolutiongaming"    %% "play-json-jsoniter"      % "0.7.1"
+  val `play-json-jsoniter` = "com.evolutiongaming"    %% "play-json-jsoniter"      % "0.9.0"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "0.9.1"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.3"
@@ -33,10 +33,8 @@ object Dependencies {
   }
 
   object Cats {
-    private val version = "2.1.1"
+    private val version = "2.3.0"
     val core   = "org.typelevel" %% "cats-core"   % version
-    val kernel = "org.typelevel" %% "cats-kernel" % version
-    val macros = "org.typelevel" %% "cats-macros" % version
-    val effect = "org.typelevel" %% "cats-effect" % "2.1.4"
+    val effect = "org.typelevel" %% "cats-effect" % version
   }
 }

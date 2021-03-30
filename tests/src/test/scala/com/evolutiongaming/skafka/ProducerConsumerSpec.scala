@@ -7,7 +7,7 @@ import java.util.UUID
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
-import cats.effect.concurrent.Deferred
+import cats.effect.concurrent.{Deferred, Ref}
 import cats.effect.{IO, Resource}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
@@ -120,6 +120,96 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       }
     } yield consumer
     result.unsafeRunSync()
+  }
+
+  test("rebalance listener correctness") {
+    // there was a bug where skafka's consumer methods would be working incorrectly if used inside rebalance listener
+    // two of them are representing world's most common use cases of consumer inside rebalance listener
+    // - position
+    //   the bug was causing it to return wrong offset, here's an example for a topic with single partition with 6 messages
+    //   current committed offset = 3,
+    //   consumer.poll is able to fetch 3 more records
+    //   consumer.position returns 6 (incorrect) instead of 3 (expected/correct), because it's executed after poll of KafkaConsumer.java
+    //
+    // - commit
+    //   using consumer to commit offsets for revoked partitions results in error
+    //   that partitions are no longer assigned to this instance of consumer
+    //
+    //
+    // The bug is caused by implementation details of SerialListeners and multi-thread access protection in skafka's consumer
+    // specifically because of following points
+    // *  6. RebalanceListenerNative exits, while RebalanceListener still running
+    // *  7. ConsumerNative.poll exits
+    // from https://github.com/evolution-gaming/skafka/blob/b76b257d5f6b2c75564b2bceae5d147d11db424d/skafka/src/main/scala/com/evolutiongaming/skafka/consumer/SerialListeners.scala
+    // kafka java consumer rebalance listener API is of a blocking nature, and it's expected from user code to complete the work before exiting listener's methods
+    // hence we should not be running skafka's rebalance listener in Async/Background fashion by default,
+    // still there's a possibility to fork computation in user land if needed
+    val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness"
+
+    def listenerOf(
+      consumer: Consumer[IO, String, String],
+      positions: Ref[IO, Set[Offset]],
+      assignedCounter: Ref[IO, Int],
+      assigned: Deferred[IO, Unit]
+    ): RebalanceListener[IO] = {
+      new RebalanceListener[IO] {
+
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+          for {
+            position <- consumer.position(partitions.head)
+            _ <- positions.update(_.+(position))
+            _ <- assignedCounter.update(_ + 1)
+            _ <- assigned.complete(())
+          } yield ()
+        }
+
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO.unit
+
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = IO.unit
+      }
+    }
+
+    val result = for {
+      testCompleted <- Deferred[IO, Unit]
+      positions <- Ref.of[IO, Set[Offset]](Set.empty)
+      assignedCounter <- Ref.of[IO, Int](0)
+      completeTestIfNeeded = for {
+        assignedCounter <- assignedCounter.get
+        positions <- positions.get
+        completed <- if (assignedCounter >= 100 || positions.size > 1) testCompleted.complete(()) else IO.unit
+      } yield completed
+
+      consumer = consumerOf(topic, none)
+      producer = producerOf(Acks.One)
+
+      _ <- producer.use { producer =>
+        for {
+          _ <- producer.send(ProducerRecord(topic, "value1", "key")).flatten
+          _ <- producer.send(ProducerRecord(topic, "value2", "key")).flatten
+        } yield ()
+      }
+
+      testStep = Deferred[IO, Unit].flatMap { assigned =>
+        consumer.use { consumer =>
+          val listener = listenerOf(consumer, positions, assignedCounter, assigned)
+          consumer.subscribe(Nes.of(topic), listener.some) *>
+            Resource
+              .make(consumer.poll(10.millis).foreverM.start)(_.cancel)
+              .use(_ => assigned.get.timeout(10.seconds)) *>
+            completeTestIfNeeded
+        }
+      }
+
+      _ <- Resource
+        .make(testStep.foreverM.start) {_.cancel}
+        .use { _ => testCompleted.get.timeout(55.seconds) }
+      positions <- positions.get
+    } yield positions
+
+    // we don't have any offsets committed, and only 2 messages are present in input topic
+    // also in this test we are not doing consumer.commit
+    // therefore consumer.position should always return Offset.min in listener.onPartitionsAssigned
+    result.unsafeRunSync() shouldEqual Set(Offset.min)
   }
 
   lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {

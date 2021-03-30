@@ -145,6 +145,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     // hence we should not be running skafka's rebalance listener in Async/Background fashion by default,
     // still there's a possibility to fork computation in user land if needed
     val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness"
+    val partitionsAssignedOkThreshold = 100
 
     def listenerOf(
       consumer: Consumer[IO, String, String],
@@ -176,7 +177,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       completeTestIfNeeded = for {
         assignedCounter <- assignedCounter.get
         positions <- positions.get
-        completed <- if (assignedCounter >= 100 || positions.size > 1) testCompleted.complete(()) else IO.unit
+        completed <- if (assignedCounter >= partitionsAssignedOkThreshold || positions.size > 1) testCompleted.complete(()) else IO.unit
       } yield completed
 
       consumer = consumerOf(topic, none)
@@ -202,7 +203,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
       _ <- Resource
         .make(testStep.foreverM.start) {_.cancel}
-        .use { _ => testCompleted.get.timeout(55.seconds) }
+        .use { _ =>
+          testCompleted.get.timeout(33.seconds)
+            .onError(_ => assignedCounter.get.map(c =>
+              println(s"rebalance listener correctness: onPartitionsAssigned $c out of $partitionsAssignedOkThreshold times")))
+        }
       positions <- positions.get
     } yield positions
 

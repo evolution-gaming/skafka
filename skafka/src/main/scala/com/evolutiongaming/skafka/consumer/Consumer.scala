@@ -240,14 +240,12 @@ object Consumer {
     }
 
     for {
-      serialListeners <- SerialListeners.of[F].toResource
       semaphore       <- Semaphore(1).toResource
       consumer        <- consumer.blocking.toResource
       around           = new Around {
         def apply[A](f: => A) = {
           semaphore
-            .withPermit { serialListeners.around { blocking { f } } }
-            .flatten
+            .withPermit { blocking { f } }
             .uncancelable
         }
       }
@@ -255,11 +253,9 @@ object Consumer {
       _               <- Resource.release { close }
     } yield {
 
-      def serial[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
+      def serialNonBlocking[A](f: => A) = { Sync[F].delay { f } }
 
-      def serialNonBlocking[A](f: => A) = serial { Sync[F].delay { f } }
-
-      def serialBlocking[A](f: => A) = serial { blocking { f } }
+      def serialBlocking[A](f: => A) = { blocking { f } }
 
       def commitLater1(f: OffsetCommitCallback => Unit) = {
         val commitLater = Async[F].asyncF[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { f1 =>
@@ -290,14 +286,15 @@ object Consumer {
         listener.fold[ConsumerRebalanceListener] {
           new NoOpConsumerRebalanceListener
         } { listener =>
-          listener.asJava(serialListeners)
+          listener.asJava
         }
       }
 
       def position1(partition: TopicPartition)(f: TopicPartitionJ => Long) = {
         val partitionJ = partition.asJava
         for {
-          offset <- serialBlocking { f(partitionJ) }
+          // FIXME re-implement this as non-blocking is used only to stay on current thread
+          offset <- serialNonBlocking { f(partitionJ) }
           offset <- Offset.of[F](offset)
         } yield offset
       }

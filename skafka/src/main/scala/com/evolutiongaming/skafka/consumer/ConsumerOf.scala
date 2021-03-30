@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.effect.{Concurrent, ContextShift, Resource}
 import cats.{Applicative, Defer, ~>}
-import com.evolutiongaming.catshelper.{ToFuture, ToTry}
+import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.FromBytes
 import com.evolutiongaming.smetrics.MeasureDuration
 
@@ -19,7 +19,7 @@ trait ConsumerOf[F[_]] {
 
 object ConsumerOf {
 
-  def apply[F[_] : Concurrent : ContextShift : ToTry : ToFuture : MeasureDuration](
+  def apply[F[_] : Concurrent : ContextShift : ToTry : MeasureDuration](
     executorBlocking: ExecutionContext,
     metrics: Option[ConsumerMetrics[F]] = None
   ): ConsumerOf[F] = new ConsumerOf[F] {

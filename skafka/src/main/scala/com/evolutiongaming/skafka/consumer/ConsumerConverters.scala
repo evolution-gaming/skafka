@@ -63,7 +63,7 @@ object ConsumerConverters {
               .toNes
               .foldMapM(call)
           }
-          .toTry
+          .toTry // FIXME: guarantee toTry.get execution on current thread
           .get
       }
 

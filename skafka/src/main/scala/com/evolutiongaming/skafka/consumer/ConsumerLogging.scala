@@ -38,6 +38,8 @@ object ConsumerLogging {
         } yield a
       }
 
+      def subscribe(topics: Nes[Topic], listener: ConsumerRebalanceListener[F]) = ???
+
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
 
         val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging(log)

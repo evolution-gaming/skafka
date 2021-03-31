@@ -42,29 +42,34 @@ object ConsumerConverters {
 
   implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
 
-    def asJava(implicit
+    def asJava(
+      serialListeners: SerialListeners[F])(implicit
       F: Concurrent[F],
-      toTry: ToTry[F]
+      toTry: ToTry[F],
+      toFuture: ToFuture[F]
     ): RebalanceListenerJ = {
 
       def onPartitions(
         partitions: CollectionJ[TopicPartitionJ],
         call: Nes[TopicPartition] => F[Unit]
       ) = {
-        // FIXME derive toTry timeout based on consumer group poll activity timeout (5 minutes by default)
-        //   1 minute is our default for ToTry[IO]
-        partitions
-          .asScala
-          .toList
-          .traverse {_.asScala[F]}
-          .flatMap { partitions =>
+        serialListeners
+          .listener {
             partitions
-              .toSortedSet
-              .toNes
-              .foldMapM(call)
+              .asScala
+              .toList
+              .traverse { _.asScala[F] }
+              .flatMap { partitions =>
+                partitions
+                  .toSortedSet
+                  .toNes
+                  .foldMapM(call)
+              }
           }
           .toTry
           .get
+          .toFuture
+        ()
       }
 
       new RebalanceListenerJ {

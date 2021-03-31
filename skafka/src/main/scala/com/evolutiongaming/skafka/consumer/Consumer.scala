@@ -217,7 +217,7 @@ object Consumer {
   }
 
 
-  def of[F[_]: Concurrent: ContextShift: ToTry, K, V](
+  def of[F[_]: Concurrent: ContextShift: ToTry: ToFuture, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext)(implicit
     fromBytesK: FromBytes[F, K],
@@ -229,7 +229,7 @@ object Consumer {
   }
 
 
-  def fromConsumerJ[F[_]: Concurrent: ContextShift: ToTry: Blocking, K, V](
+  def fromConsumerJ[F[_]: Concurrent: ContextShift: ToFuture: ToTry: Blocking, K, V](
     consumer: F[ConsumerJ[K, V]]
   ): Resource[F, Consumer[F, K, V]] = {
 

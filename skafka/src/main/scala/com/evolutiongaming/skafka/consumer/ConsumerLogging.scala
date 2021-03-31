@@ -38,7 +38,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscribe(topics: Nes[Topic], listener: ConsumerRebalanceListener[F]) = ???
+      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = ???
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
 

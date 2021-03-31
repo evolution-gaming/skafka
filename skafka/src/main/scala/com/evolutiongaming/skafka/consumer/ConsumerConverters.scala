@@ -11,12 +11,13 @@ import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 object ConsumerConverters {
 
@@ -70,6 +71,52 @@ object ConsumerConverters {
           .get
           .toFuture
         ()
+      }
+
+      new RebalanceListenerJ {
+
+        def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions, self.onPartitionsAssigned)
+        }
+
+        def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions, self.onPartitionsRevoked)
+        }
+
+        override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions, self.onPartitionsLost)
+        }
+      }
+    }
+  }
+
+  implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
+
+    def asJava(consumer: ConsumerJ[_, _])(implicit
+      F: Concurrent[F],
+      toTry: ToTry[F],
+    ): RebalanceListenerJ = {
+
+      def onPartitions(
+        partitions: CollectionJ[TopicPartitionJ],
+        call: Nes[TopicPartition] => RebalanceCallback[F, Unit]
+      ) = {
+        val result = partitions
+          .asScala
+          .toList
+          .traverse {_.asScala[F]}
+          .map { partitions =>
+            partitions
+              .toSortedSet
+              .toNes
+          }
+          .toTry
+          .flatMap { nesOpt =>
+            nesOpt.map {
+              nes => RebalanceCallback.run(call(nes), consumer)
+            }.getOrElse(Try(()))
+          }
+        result.fold(throw _, identity)
       }
 
       new RebalanceListenerJ {

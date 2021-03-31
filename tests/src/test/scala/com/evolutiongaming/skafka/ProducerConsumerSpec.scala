@@ -148,25 +148,26 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val partitionsAssignedOkThreshold = 100
 
     def listenerOf(
-      consumer: Consumer[IO, String, String],
       positions: Ref[IO, Set[Offset]],
       assignedCounter: Ref[IO, Int],
       assigned: Deferred[IO, Unit]
-    ): RebalanceListener[IO] = {
-      new RebalanceListener[IO] {
+    ): RebalanceListener1[IO] = {
+      new RebalanceListener1[IO] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            position <- consumer.position(partitions.head)
-            _ <- positions.update(_.+(position))
-            _ <- assignedCounter.update(_ + 1)
-            _ <- assigned.complete(())
+            position <- RebalanceCallback.position(partitions.head)
+            _ <- RebalanceCallback.lift(positions.update(_.+(position)))
+            _ <- RebalanceCallback.lift(assignedCounter.update(_ + 1))
+            _ <- RebalanceCallback.lift(assigned.complete(()))
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO.unit
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+          RebalanceCallback
+            .commit(partitions.map(_ -> OffsetAndMetadata.empty).toNonEmptyList.toNem)
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = IO.unit
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.noOp
       }
     }
 
@@ -192,14 +193,16 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
       testStep = Deferred[IO, Unit].flatMap { assigned =>
         consumer.use { consumer =>
-          val listener = listenerOf(consumer, positions, assignedCounter, assigned)
-          consumer.subscribe(Nes.of(topic), listener.some) *>
+          val listener = listenerOf(positions, assignedCounter, assigned)
+          val poll = consumer.poll(10.millis).onError(e => IO(println(s"poll failed $e")))
+          val subscribe = consumer.subscribe(Nes.of(topic), listener).onError(e => IO(println(s"subscribe failed $e")))
+          subscribe *>
             Resource
-              .make(consumer.poll(10.millis).foreverM.start)(_.cancel)
+              .make(poll.foreverM.start)(_.cancel)
               .use(_ => assigned.get.timeout(10.seconds)) *>
             completeTestIfNeeded
         }
-      }
+      }.onError(e => IO(println(s"test step failed $e")))
 
       _ <- Resource
         .make(testStep.foreverM.start) {_.cancel}

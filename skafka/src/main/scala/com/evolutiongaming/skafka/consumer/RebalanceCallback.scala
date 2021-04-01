@@ -26,7 +26,7 @@ def onPartitionAssigned(callback: RebalanceCallback[Unit]): ListenerConsumer[Uni
 }
  */
 /**
-  * Used to describe computations in callback methods of [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+  * Allows to describe computations in callback methods of [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   */
 sealed trait RebalanceCallback[F[_], A] {
   def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A]

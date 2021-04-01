@@ -896,10 +896,9 @@ object Consumer {
 
       def assignment = fg(self.assignment)
 
-      // TODO implement mapK for subscribe with RebalanceListener1
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[G]) = {
-//        val listener1 = listener.mapK(gf)
-        fg(self.subscribe(topics, RebalanceListener1.noOp[F]))
+        val listener1 = listener.mapK(gf)
+        fg(self.subscribe(topics, listener1))
       }
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {

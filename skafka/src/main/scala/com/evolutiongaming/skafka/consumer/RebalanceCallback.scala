@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.Monad
+import cats.{Monad, ~>}
 import cats.data.NonEmptyMap
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToTry
@@ -28,7 +28,9 @@ def onPartitionAssigned(callback: RebalanceCallback[Unit]): ListenerConsumer[Uni
 /**
   * Used to describe computations in callback methods of [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   */
-sealed trait RebalanceCallback[F[_], A]
+sealed trait RebalanceCallback[F[_], A] {
+  def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A]
+}
 
 object RebalanceCallback {
 
@@ -88,17 +90,27 @@ object RebalanceCallback {
     loop(rc)
   }
 
-  private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A]
+  private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A] {
+    override def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = Pure[G, A](a)
+  }
 
   private final case class MapStep[F[_], A, B](f: A => B, parent: RebalanceCallback[F, A])
-      extends RebalanceCallback[F, B]
+    extends RebalanceCallback[F, B] {
+    override def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, B] = MapStep[G, A, B](f, parent.mapK(fg))
+  }
 
   private final case class FlatMapStep[F[_], A, B](f: A => RebalanceCallback[F, B], parent: RebalanceCallback[F, A])
-      extends RebalanceCallback[F, B]
+    extends RebalanceCallback[F, B] {
+    override def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, B] = FlatMapStep[G, A, B](f andThen (_.mapK(fg)), parent.mapK(fg))
+  }
 
-  private final case class LiftStep[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
+  private final case class LiftStep[F[_], A](fa: F[A]) extends RebalanceCallback[F, A] {
+    override def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = LiftStep[G, A](fg(fa))
+  }
 
-  private final case class ConsumerStep[F[_], A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[F, A]
+  private final case class ConsumerStep[F[_], A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[F, A] {
+    override def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = ConsumerStep[G, A](f)
+  }
 
   implicit class ListenerConsumerOps[F[_], A](val self: RebalanceCallback[F, A]) extends AnyVal {
 

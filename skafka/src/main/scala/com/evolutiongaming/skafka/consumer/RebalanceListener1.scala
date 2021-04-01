@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.data.{NonEmptySet => Nes}
+import cats.~>
 import com.evolutiongaming.skafka.TopicPartition
 
 /**
@@ -9,13 +10,25 @@ import com.evolutiongaming.skafka.TopicPartition
   * // TODO rename to something more meaningful vs just appending `1` to existing name `RebalanceListener`
   * see [[com.evolutiongaming.skafka.consumer.RebalanceCallback]]
   */
-trait RebalanceListener1[F[_]] {
+trait RebalanceListener1[F[_]] { self =>
 
   def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit]
 
   def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit]
 
   def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit]
+
+  def mapK[G[_]](fg: F ~> G): RebalanceListener1[G] = new RebalanceListener1[G] {
+
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[G, Unit] =
+      self.onPartitionsAssigned(partitions).mapK(fg)
+
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[G, Unit] =
+      self.onPartitionsRevoked(partitions).mapK(fg)
+
+    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[G, Unit] =
+      self.onPartitionsLost(partitions).mapK(fg)
+  }
 
 }
 

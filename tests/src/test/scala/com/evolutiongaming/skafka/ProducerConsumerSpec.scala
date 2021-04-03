@@ -194,22 +194,23 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       testStep = Deferred[IO, Unit].flatMap { assigned =>
         consumer.use { consumer =>
           val listener = listenerOf(positions, assignedCounter, assigned)
-          val poll = consumer.poll(10.millis).onError(e => IO(println(s"poll failed $e")))
-          val subscribe = consumer.subscribe(Nes.of(topic), listener).onError(e => IO(println(s"subscribe failed $e")))
+          val poll = consumer.poll(10.millis).onError({ case e => IO(println(s"poll failed $e")) })
+          val subscribe = consumer.subscribe(Nes.of(topic), listener).onError({ case e => IO(println(s"subscribe failed $e")) })
           subscribe *>
             Resource
               .make(poll.foreverM.start)(_.cancel)
               .use(_ => assigned.get.timeout(10.seconds)) *>
             completeTestIfNeeded
         }
-      }.onError(e => IO(println(s"test step failed $e")))
+      }.onError({ case e => IO(println(s"test step failed $e")) })
 
       _ <- Resource
         .make(testStep.foreverM.start) {_.cancel}
         .use { _ =>
           testCompleted.get.timeout(33.seconds)
-            .onError(_ => assignedCounter.get.map(c =>
-              println(s"rebalance listener correctness: onPartitionsAssigned $c out of $partitionsAssignedOkThreshold times")))
+            .onError({ case _ => assignedCounter.get.map(c =>
+              println(s"rebalance listener correctness: onPartitionsAssigned $c out of $partitionsAssignedOkThreshold times"))
+            })
         }
       positions <- positions.get
     } yield positions

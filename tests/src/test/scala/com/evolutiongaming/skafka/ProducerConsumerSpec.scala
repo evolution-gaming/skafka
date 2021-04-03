@@ -153,21 +153,21 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       assigned: Deferred[IO, Unit]
     ): RebalanceListener1[IO] = {
       new RebalanceListener1[IO] {
+        import RebalanceCallback._
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            position <- RebalanceCallback.position(partitions.head)
-            _ <- RebalanceCallback.lift(positions.update(_.+(position)))
-            _ <- RebalanceCallback.lift(assignedCounter.update(_ + 1))
-            _ <- RebalanceCallback.lift(assigned.complete(()))
+            position <- position(partitions.head)
+            _ <- lift(positions.update(_.+(position)))
+            _ <- lift(assignedCounter.update(_ + 1))
+            _ <- lift(assigned.complete(()))
           } yield ()
         }
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
-          RebalanceCallback
-            .commit(partitions.map(_ -> OffsetAndMetadata.empty).toNonEmptyList.toNem)
+          commit(partitions.map(_ -> OffsetAndMetadata.empty).toNonEmptyList.toNem)
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.noOp
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
       }
     }
 

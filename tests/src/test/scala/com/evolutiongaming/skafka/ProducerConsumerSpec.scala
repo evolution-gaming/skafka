@@ -194,15 +194,15 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       testStep = Deferred[IO, Unit].flatMap { assigned =>
         consumer.use { consumer =>
           val listener = listenerOf(positions, assignedCounter, assigned)
-          val poll = consumer.poll(10.millis).onError({ case e => IO(println(s"poll failed $e")) })
-          val subscribe = consumer.subscribe(Nes.of(topic), listener).onError({ case e => IO(println(s"subscribe failed $e")) })
+          val poll = consumer.poll(10.millis)
+          val subscribe = consumer.subscribe(Nes.of(topic), listener)
           subscribe *>
             Resource
               .make(poll.foreverM.start)(_.cancel)
               .use(_ => assigned.get.timeout(10.seconds)) *>
             completeTestIfNeeded
         }
-      }.onError({ case e => IO(println(s"test step failed $e")) })
+      }
 
       _ <- Resource
         .make(testStep.foreverM.start) {_.cancel}

@@ -12,6 +12,8 @@ import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
 
+import RebalanceCallback.Helpers._
+
 // TODO review if we can do it without F[_] everywhere
 // TODO add most common usages in scaladoc from spec (using position/seek/commit)
 /*
@@ -64,18 +66,14 @@ object RebalanceCallback {
       )
     )
 
-  def committed[F[_] : MonadThrowable](partitions: Nes[TopicPartition]): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = {
-    for {
-      result <- ConsumerStep(c => c.committed(partitions.asJava))
-      result <- lift(
-        Option(result).fold {
-          Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
-        } {
-          _.asScalaMap(_.asScala[F], _.asScala[F])
-        }
-      )
-    } yield result
-  }
+  def committed[F[_]: MonadThrowable](
+    partitions: Nes[TopicPartition]
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = committed1(partitions, none)
+
+  def committed[F[_]: MonadThrowable](
+    partitions: Nes[TopicPartition],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = committed1(partitions, timeout.some)
 
   // TODO using Offset.unsafe to avoid requiring ApplicativeThrowable as in Offset.of
   //  also it looks like consumer.position cannot return invalid offset
@@ -131,6 +129,31 @@ object RebalanceCallback {
     def map[B](f: A => B): RebalanceCallback[F, B] = MapStep(f, self)
 
     def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = FlatMapStep(f, self)
+
+  }
+
+  private[consumer] object Helpers {
+
+    def committed1[F[_]: MonadThrowable](
+      partitions: Nes[TopicPartition],
+      timeout: Option[FiniteDuration]
+    ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = {
+      for {
+        result <- ConsumerStep { c =>
+          timeout match {
+            case Some(value) => c.committed(partitions.asJava, value.asJava)
+            case None        => c.committed(partitions.asJava)
+          }
+        }
+        result <- lift(
+          Option(result).fold {
+            Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+          } {
+            _.asScalaMap(_.asScala[F], _.asScala[F])
+          }
+        )
+      } yield result
+    }
 
   }
 

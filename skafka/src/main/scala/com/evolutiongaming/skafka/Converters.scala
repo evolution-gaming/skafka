@@ -7,7 +7,7 @@ import cats.Monad
 import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, ToTry}
+import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header => HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
@@ -214,5 +214,13 @@ object Converters {
   implicit class OptionOpsConverters[A](val self: Option[A]) extends AnyVal {
 
     def toOptional: Optional[A] = self.fold(Optional.empty[A]()) { a => Optional.of(a) }
+  }
+
+  def committedAsScala[F[_] : MonadThrowable](result: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): F[Map[TopicPartition, OffsetAndMetadata]] = {
+    Option(result).fold {
+      Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+    } {
+      _.asScalaMap(_.asScala[F], _.asScala[F])
+    }
   }
 }

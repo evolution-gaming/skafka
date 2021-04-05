@@ -145,13 +145,7 @@ object RebalanceCallback {
             case None        => c.committed(partitions.asJava)
           }
         }
-        result <- lift(
-          Option(result).fold {
-            Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
-          } {
-            _.asScalaMap(_.asScala[F], _.asScala[F])
-          }
-        )
+        result <- lift(committedAsScala[F](result))
       } yield result
     }
 

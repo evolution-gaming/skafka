@@ -314,11 +314,7 @@ object Consumer {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
-          result <- Option(result).fold {
-            Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
-          } {
-            _.asScalaMap(_.asScala[F], _.asScala[F])
-          }
+          result <- committedAsScala[F](result)
         } yield result
       }
 

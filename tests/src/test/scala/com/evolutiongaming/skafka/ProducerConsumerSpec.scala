@@ -157,7 +157,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            position <- position(partitions.head)
+            position <- position(partitions.head) // TODO: allow consumer error handling in user land
             _ <- lift(positions.update(_.+(position)))
             _ <- lift(assignedCounter.update(_ + 1))
             _ <- lift(assigned.complete(()))

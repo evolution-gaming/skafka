@@ -1,12 +1,13 @@
 package com.evolutiongaming.skafka.consumer
 
+import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.implicits._
 import cats.{Monad, ~>}
-import cats.data.NonEmptyMap
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.ToTry
+import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
+import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, TopicPartition}
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
-import com.evolutiongaming.skafka.Converters._
 
 import scala.concurrent.duration.FiniteDuration
 import scala.util.Try
@@ -41,7 +42,7 @@ object RebalanceCallback {
 
   def lift[F[_], A](fa: F[A]): RebalanceCallback[F, A] = LiftStep(fa)
 
-  def commit[F[_]](offsets: NonEmptyMap[TopicPartition, OffsetAndMetadata]): RebalanceCallback[F, Unit] =
+  def commit[F[_]](offsets: Nem[TopicPartition, OffsetAndMetadata]): RebalanceCallback[F, Unit] =
     ConsumerStep(
       _.commitSync(
         offsets
@@ -51,7 +52,7 @@ object RebalanceCallback {
     )
 
   def commit[F[_]](
-    offsets: NonEmptyMap[TopicPartition, OffsetAndMetadata],
+    offsets: Nem[TopicPartition, OffsetAndMetadata],
     timeout: FiniteDuration
   ): RebalanceCallback[F, Unit] =
     ConsumerStep(
@@ -62,6 +63,19 @@ object RebalanceCallback {
         timeout.asJava
       )
     )
+
+  def committed[F[_] : MonadThrowable](partitions: Nes[TopicPartition]): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = {
+    for {
+      result <- ConsumerStep(c => c.committed(partitions.asJava))
+      result <- lift(
+        Option(result).fold {
+          Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+        } {
+          _.asScalaMap(_.asScala[F], _.asScala[F])
+        }
+      )
+    } yield result
+  }
 
   // TODO using Offset.unsafe to avoid requiring ApplicativeThrowable as in Offset.of
   //  also it looks like consumer.position cannot return invalid offset

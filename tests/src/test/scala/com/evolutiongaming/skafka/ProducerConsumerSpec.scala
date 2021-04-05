@@ -122,7 +122,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     result.unsafeRunSync()
   }
 
-  test("rebalance listener correctness") {
+  test("rebalance listener correctness - consumer.position") {
     // there was a bug where skafka's consumer methods would be working incorrectly if used inside rebalance listener
     // two of them are representing world's most common use cases of consumer inside rebalance listener
     // - position
@@ -132,8 +132,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     //   consumer.position returns 6 (incorrect) instead of 3 (expected/correct), because it's executed after poll of KafkaConsumer.java
     //
     // - commit
-    //   using consumer to commit offsets for revoked partitions results in error
-    //   that partitions are no longer assigned to this instance of consumer
+    //   using consumer to commit offsets for revoked partitions results in logical error
+    //   as partitions are no longer assigned to this instance of consumer
     //
     //
     // The bug is caused by implementation details of SerialListeners and multi-thread access protection in skafka's consumer
@@ -144,12 +144,21 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     // kafka java consumer rebalance listener API is of a blocking nature, and it's expected from user code to complete the work before exiting listener's methods
     // hence we should not be running skafka's rebalance listener in Async/Background fashion by default,
     // still there's a possibility to fork computation in user land if needed
-    val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness"
-    val partitionsAssignedOkThreshold = 100
+
+    // test case:
+    // trigger rebalance multiple times by
+    //  - creating new consumer instance
+    //  - join to consumer group
+    //  - shut down consumer on the very first partition assigned
+    // in `onPartitionsAssigned` - aggregate consumer.position responses in Set[Offset]
+    // if the Set has only one element, then it works correctly
+
+    val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-position"
+    val requiredNumberOfRebalances = 100
 
     def listenerOf(
       positions: Ref[IO, Set[Offset]],
-      assignedCounter: Ref[IO, Int],
+      rebalanceCounter: Ref[IO, Int],
       assigned: Deferred[IO, Unit]
     ): RebalanceListener1[IO] = {
       new RebalanceListener1[IO] {
@@ -159,13 +168,12 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           for {
             position <- position(partitions.head) // TODO: allow consumer error handling in user land
             _ <- lift(positions.update(_.+(position)))
-            _ <- lift(assignedCounter.update(_ + 1))
+            _ <- lift(rebalanceCounter.update(_ + 1))
             _ <- lift(assigned.complete(()))
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
-          commit(partitions.map(_ -> OffsetAndMetadata.empty).toNonEmptyList.toNem)
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = noOp
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
       }
@@ -174,11 +182,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val result = for {
       testCompleted <- Deferred[IO, Unit]
       positions <- Ref.of[IO, Set[Offset]](Set.empty)
-      assignedCounter <- Ref.of[IO, Int](0)
+      rebalanceCounter <- Ref.of[IO, Int](0)
       completeTestIfNeeded = for {
-        assignedCounter <- assignedCounter.get
+        rebalanceCounter <- rebalanceCounter.get
         positions <- positions.get
-        completed <- if (assignedCounter >= partitionsAssignedOkThreshold || positions.size > 1) testCompleted.complete(()) else IO.unit
+        completed <- if (rebalanceCounter >= requiredNumberOfRebalances || positions.size > 1) testCompleted.complete(()) else IO.unit
       } yield completed
 
       consumer = consumerOf(topic, none)
@@ -193,7 +201,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
       testStep = Deferred[IO, Unit].flatMap { assigned =>
         consumer.use { consumer =>
-          val listener = listenerOf(positions, assignedCounter, assigned)
+          val listener = listenerOf(positions, rebalanceCounter, assigned)
           val poll = consumer.poll(10.millis)
           val subscribe = consumer.subscribe(Nes.of(topic), listener)
           subscribe *>
@@ -208,8 +216,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         .make(testStep.foreverM.start) {_.cancel}
         .use { _ =>
           testCompleted.get.timeout(33.seconds)
-            .onError({ case _ => assignedCounter.get.map(c =>
-              println(s"rebalance listener correctness: onPartitionsAssigned $c out of $partitionsAssignedOkThreshold times"))
+            .onError({ case _ => rebalanceCounter.get.map(c =>
+              println(s"rebalance listener correctness (position): onPartitionsAssigned $c out of $requiredNumberOfRebalances times"))
             })
         }
       positions <- positions.get
@@ -219,6 +227,94 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     // also in this test we are not doing consumer.commit
     // therefore consumer.position should always return Offset.min in listener.onPartitionsAssigned
     result.unsafeRunSync() shouldEqual Set(Offset.min)
+  }
+
+  test("rebalance listener correctness - consumer.commit") {
+    // test case:
+    // trigger rebalance multiple times N by
+    //  - creating new consumer instance
+    //  - join to consumer group
+    //  - shut down consumer on the very first partition assigned
+    // in `onPartitionsRevoked` - aggregate consumer.committed responses in List[Offset]
+    // in `onPartitionsRevoked` - commit single offset within range [1..N)
+    // if the List == [0..N), then it works correctly,
+    // as every commit was successfully executed
+
+    val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-commit"
+    val requiredNumberOfRebalances = 100
+
+    def listenerOf(
+                    offsets: Ref[IO, List[Offset]],
+                    rebalanceCounter: Ref[IO, Int],
+                    assigned: Deferred[IO, Unit]
+                  ): RebalanceListener1[IO] = {
+      new RebalanceListener1[IO] {
+
+        import RebalanceCallback._
+
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+          for {
+            _ <- lift(rebalanceCounter.update(_ + 1))
+            _ <- lift(assigned.complete(()))
+          } yield ()
+        }
+
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+          for {
+            committed <- committed[IO](partitions)
+            offset = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
+            _ <- lift(offsets.update(_ :+ offset))
+            _ <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
+          } yield ()
+
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
+      }
+    }
+
+    val result = for {
+      testCompleted <- Deferred[IO, Unit]
+      offsets <- Ref.of[IO, List[Offset]](List.empty)
+      rebalanceCounter <- Ref.of[IO, Int](0)
+      completeTestIfNeeded = for {
+        rebalanceCounter <- rebalanceCounter.get
+        completed <- if (rebalanceCounter >= requiredNumberOfRebalances) testCompleted.complete(()) else IO.unit
+      } yield completed
+
+      consumer = consumerOf(topic, none)
+      producer = producerOf(Acks.One)
+
+      _ <- producer.use { producer =>
+        // send 1 record just to create the topic
+        producer.send(ProducerRecord(topic, s"value", "key")).flatten
+      }
+
+      testStep = Deferred[IO, Unit].flatMap { assigned =>
+        consumer.use { consumer =>
+          val listener = listenerOf(offsets, rebalanceCounter, assigned)
+          val poll = consumer.poll(10.millis)
+          val subscribe = consumer.subscribe(Nes.of(topic), listener)
+          subscribe *>
+            Resource
+              .make(poll.foreverM.start)(_.cancel)
+              .use(_ => assigned.get.timeout(10.seconds)) *>
+            completeTestIfNeeded
+        }
+      }
+
+      _ <- Resource
+        .make(testStep.foreverM.start) {
+          _.cancel
+        }
+        .use { _ =>
+          testCompleted.get.timeout(33.seconds)
+            .onError({ case _ => rebalanceCounter.get.map(c =>
+              println(s"rebalance listener correctness (commit): onPartitionsAssigned $c out of $requiredNumberOfRebalances times"))
+            })
+        }
+      offsets <- offsets.get
+    } yield offsets
+
+    result.unsafeRunSync() shouldEqual (0 until requiredNumberOfRebalances).map(i => Offset.unsafe(i)).toList
   }
 
   lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {

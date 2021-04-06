@@ -8,8 +8,9 @@ import java.util.UUID
 import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{IO, Resource}
+import cats.effect.{Concurrent, Fiber, IO, Resource, Timer}
 import cats.implicits._
+import cats.effect.syntax.all._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.kafka.StartKafka
@@ -186,7 +187,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       completeTestIfNeeded = for {
         rebalanceCounter <- rebalanceCounter.get
         positions <- positions.get
-        completed <- if (rebalanceCounter >= requiredNumberOfRebalances || positions.size > 1) testCompleted.complete(()) else IO.unit
+        completed <- if (rebalanceCounter >= requiredNumberOfRebalances || positions.size > 1) testCompleted.complete(()).handleError(_ => ()) else IO.unit
       } yield completed
 
       consumer = consumerOf(topic, none)
@@ -200,16 +201,15 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       }
 
       testStep = Deferred[IO, Unit].flatMap { assigned =>
-        consumer.use { consumer =>
-          val listener = listenerOf(positions, rebalanceCounter, assigned)
-          val poll = consumer.poll(10.millis)
-          val subscribe = consumer.subscribe(Nes.of(topic), listener)
-          subscribe *>
-            Resource
-              .make(poll.foreverM.start)(_.cancel)
-              .use(_ => assigned.get.timeout(10.seconds)) *>
-            completeTestIfNeeded
-        }
+        val x = for {
+          _ <- Resource.make(IO.unit)(_ => completeTestIfNeeded)
+          consumer <- consumer
+          listener = listenerOf(positions, rebalanceCounter, assigned)
+          _ <- Resource.liftF(consumer.subscribe(Nes.of(topic), listener))
+          poll = consumer.poll(10.millis).onError({ case e => IO(println(s"poll failed $e")) })
+          _ <- poll.foreverM.backgroundAwaitExit.timeoutRelease(5.seconds)
+        } yield ()
+        x.use(_ => assigned.get.timeout(10.seconds))
       }
 
       _ <- Resource
@@ -499,4 +499,36 @@ object ProducerConsumerSpec {
 
     def commit() = self.commit.unsafeToFuture()
   }
+
+  implicit class Ops[F[_], A](val self: F[A]) extends AnyVal {
+    def startAwaitExit(implicit c: Concurrent[F]): F[Fiber[F, A]] = {
+      for {
+        deferred <- Deferred[F, Unit]
+        fiber    <- self.guarantee { deferred.complete(()).handleError { _ => () } }.start
+      } yield {
+        new Fiber[F, A] {
+          def cancel = {
+            for {
+              _ <- fiber.cancel
+              _ <- deferred.get
+            } yield {}
+          }
+          def join = fiber.join
+        }
+      }
+    }
+
+    def backgroundAwaitExit(implicit c: Concurrent[F]): Resource[F, Unit] = {
+      Resource
+        .make { self.startAwaitExit } { _.cancel }
+        .as(())
+    }
+  }
+
+  implicit class ResourceOps[F[_], A](val self: Resource[F, A]) extends AnyVal {
+    def timeoutRelease(duration: FiniteDuration)(implicit c: Concurrent[F], t: Timer[F]): Resource[F, A] = {
+      Resource(self.allocated.map { case (a, release) => (a, release.timeout(duration))} )
+    }
+  }
+
 }

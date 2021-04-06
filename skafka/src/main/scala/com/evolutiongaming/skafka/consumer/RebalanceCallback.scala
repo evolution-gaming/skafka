@@ -83,6 +83,18 @@ object RebalanceCallback {
   def position[F[_]](tp: TopicPartition, timeout: FiniteDuration): RebalanceCallback[F, Offset] =
     ConsumerStep(c => Offset.unsafe(c.position(tp.asJava, timeout.asJava)))
 
+  def seek[F[_]](partition: TopicPartition, offset: Offset): RebalanceCallback[F, Unit] =
+    ConsumerStep(c => c.seek(partition.asJava, offset.value))
+
+  def seek[F[_]](partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): RebalanceCallback[F, Unit] =
+    ConsumerStep(c => c.seek(partition.asJava, offsetAndMetadata.asJava))
+
+  def seekToBeginning[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
+    ConsumerStep(c => c.seekToBeginning(partitions.asJava))
+
+  def seekToEnd[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
+    ConsumerStep(c => c.seekToEnd(partitions.asJava))
+
   private[consumer] def run[F[_]: Monad: ToTry, A](
     rc: RebalanceCallback[F, A],
     consumer: ConsumerJ[_, _]

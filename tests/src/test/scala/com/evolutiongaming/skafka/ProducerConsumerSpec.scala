@@ -317,6 +317,53 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     result.unsafeRunSync() shouldEqual (0 until requiredNumberOfRebalances).map(i => Offset.unsafe(i)).toList
   }
 
+  test("rebalance listener correctness - consumer.seek") {
+    // test case:
+    // having a topic with 2 messages: key:value1 and key:value2
+    // trigger rebalance multiple times by
+    //  - creating new consumer instance
+    //  - join to consumer group
+    //  - shut down consumer after getting some records from poll
+    // in `onPartitionsAssigned` - do consumer.seek(1)
+    // consumer.poll should always return List(key:value2) as we skip first message using consumer.seek
+
+    val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-seek"
+
+    def listener: RebalanceListener1[IO] = {
+      new RebalanceListener1[IO] {
+        import RebalanceCallback._
+
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = seek(partitions.head, Offset.unsafe(1))
+
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = noOp
+
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
+      }
+    }
+
+    val consumer = consumerOf(topic, none)
+    val producer = producerOf(Acks.One)
+
+    producer.use { producer =>
+      for {
+        _ <- producer.send(ProducerRecord(topic, "value1", "key")).flatten
+        _ <- producer.send(ProducerRecord(topic, "value2", "key")).flatten
+      } yield ()
+    }.unsafeRunSync()
+
+    val consumeRecords: IO[List[(String, String)]] = consumer.use { consumer =>
+      for {
+        _ <- consumer.subscribe(Nes.of(topic), listener)
+        poll = consumer.poll(10.millis).onError({ case e => IO(println(s"seek poll failed $e")) })
+        records <- poll.iterateUntil(_.values.nonEmpty)
+      } yield records.values.values.flatMap(_.toList.map(r => (r.key.get.value, r.value.get.value))).toList
+    }
+
+    1 to 100 foreach { _ =>
+      consumeRecords.unsafeRunTimed(5.seconds).get shouldEqual List(("key", "value2"))
+    }
+  }
+
   lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {
     acks <- List(Acks.One, Acks.None)
   } yield {

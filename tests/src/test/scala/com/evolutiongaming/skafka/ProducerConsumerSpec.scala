@@ -354,7 +354,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val consumeRecords: IO[List[(String, String)]] = consumer.use { consumer =>
       for {
         _ <- consumer.subscribe(Nes.of(topic), listener)
-        poll = consumer.poll(10.millis).onError({ case e => IO(println(s"seek poll failed $e")) })
+        poll = consumer.poll(10.millis)
         records <- poll.iterateUntil(_.values.nonEmpty)
       } yield records.values.values.flatMap(_.toList.map(r => (r.key.get.value, r.value.get.value))).toList
     }

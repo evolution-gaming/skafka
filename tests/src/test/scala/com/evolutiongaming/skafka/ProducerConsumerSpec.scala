@@ -8,13 +8,13 @@ import java.util.UUID
 import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{Concurrent, Fiber, IO, Resource, Sync, Timer}
+import cats.effect.{IO, Resource}
 import cats.implicits._
-import cats.effect.syntax.all._
-import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.kafka.StartKafka
+import com.evolutiongaming.skafka.FiberWithBlockingCancel._
+import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer._
 import com.evolutiongaming.skafka.producer._
 import com.evolutiongaming.smetrics.CollectorRegistry
@@ -551,46 +551,6 @@ object ProducerConsumerSpec {
     }
 
     def commit() = self.commit.unsafeToFuture()
-  }
-
-  implicit class Ops[F[_], A](val self: F[A]) extends AnyVal {
-    def startAwaitExit(implicit c: Concurrent[F]): F[Fiber[F, A]] = {
-      for {
-        deferred <- Deferred[F, Unit]
-        fiber <- self.guarantee {
-          Sync[F].delay(println(s"${System.nanoTime()} going to complete deferred")) *>
-            deferred.complete(()).handleError { _ => () } *>
-            Sync[F].delay(println(s"${System.nanoTime()} completed deferred"))
-        }.start
-      } yield {
-        new Fiber[F, A] {
-          def cancel = {
-            for {
-              _ <- fiber.cancel
-              _ <- deferred.get
-            } yield {}
-          }
-
-          def join = fiber.join
-        }
-      }
-    }
-
-    def backgroundAwaitExit(implicit c: Concurrent[F]): Resource[F, Unit] = {
-      Resource
-        .make {
-          self.startAwaitExit
-        } {
-          _.cancel
-        }
-        .as(())
-    }
-  }
-
-  implicit class ResourceOps[F[_], A](val self: Resource[F, A]) extends AnyVal {
-    def timeoutRelease(duration: FiniteDuration)(implicit c: Concurrent[F], t: Timer[F]): Resource[F, A] = {
-      Resource(self.allocated.map { case (a, release) => (a, release.timeout(duration))} )
-    }
   }
 
 }

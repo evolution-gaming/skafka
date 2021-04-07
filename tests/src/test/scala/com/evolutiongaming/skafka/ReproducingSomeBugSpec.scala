@@ -14,20 +14,24 @@ import scala.concurrent.duration._
 class ReproducingSomeBugSpec extends AnyFunSuite with Matchers {
   test("mb we have a concurrency issue with skafka/fiber.cancel/resource combo") {
     val testStep = for {
-      pollCounter      <- Ref.of[IO, Int](0).toResource
-      pollReturnedSome <- Deferred[IO, Unit].toResource
-      consumer         <- SafeConsumer.of[IO]("pollResult", 1, pollReturnedSome)
+      pollCounter       <- Ref.of[IO, Int](0).toResource
+      pollReturnedSome  <- Deferred[IO, Unit].toResource
+      pollReturnedSome1 <- Deferred[IO, Unit].toResource
+      consumer          <- SafeConsumer.of[IO]("pollResult", 1, pollReturnedSome)
       poll = {
-        IO.delay(println(s"${System.nanoTime()} gonna do poll")) *>
-          pollCounter.update(_ + 1) *>
-          consumer.poll(10.millis).onError({ case e => IO(println(s"${System.nanoTime()} poll failed $e")) }) *>
-          IO.delay(println(s"${System.nanoTime()} poll completed"))
+        for {
+          _ <- IO.delay(println(s"${System.nanoTime()} gonna do poll"))
+          _ <- pollCounter.update(_ + 1)
+          r <- consumer.poll(10.millis).onError({ case e => IO(println(s"${System.nanoTime()} poll failed $e")) })
+          _ <- if (r.isDefined) pollReturnedSome1.complete(()).handleError(_ => ()) else IO.unit
+          _ <- IO.delay(println(s"${System.nanoTime()} poll completed"))
+        } yield ()
       }
       _ <- {
         val x = for {
           _ <- poll.foreverM.backgroundAwaitExit.timeoutRelease(10.seconds)
         } yield ()
-        x.use(_ => pollReturnedSome.get.timeout(30.seconds))
+        x.use(_ => pollReturnedSome1.get.timeout(30.seconds))
       }.toResource
       numberOfPolls <- pollCounter.get.toResource
     } yield numberOfPolls

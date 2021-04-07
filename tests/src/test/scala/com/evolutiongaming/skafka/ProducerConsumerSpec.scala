@@ -12,6 +12,7 @@ import cats.effect.{Concurrent, Fiber, IO, Resource, Timer}
 import cats.implicits._
 import cats.effect.syntax.all._
 import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.skafka.consumer._
@@ -78,7 +79,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       metrics    <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
       consumerOf  = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
       consumer   <- consumerOf[String, String](config)
-      _          <- Resource.liftF(consumer.subscribe(Nes.of(topic), listener))
+      _          <- consumer.subscribe(Nes.of(topic), listener).toResource
     } yield consumer
   }
 
@@ -202,10 +203,10 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
       testStep = Deferred[IO, Unit].flatMap { assigned =>
         val x = for {
-          _ <- Resource.make(IO.unit)(_ => completeTestIfNeeded)
+          _ <- Resource.release(completeTestIfNeeded)
           consumer <- consumer
           listener = listenerOf(positions, rebalanceCounter, assigned)
-          _ <- Resource.liftF(consumer.subscribe(Nes.of(topic), listener))
+          _ <- consumer.subscribe(Nes.of(topic), listener).toResource
           poll = consumer.poll(10.millis).onError({ case e => IO(println(s"poll failed $e")) })
           _ <- poll.foreverM.backgroundAwaitExit.timeoutRelease(5.seconds)
         } yield ()

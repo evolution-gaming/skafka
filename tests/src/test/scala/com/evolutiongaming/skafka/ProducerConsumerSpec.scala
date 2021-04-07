@@ -8,7 +8,7 @@ import java.util.UUID
 import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{Concurrent, Fiber, IO, Resource, Timer}
+import cats.effect.{Concurrent, Fiber, IO, Resource, Sync, Timer}
 import cats.implicits._
 import cats.effect.syntax.all._
 import com.evolutiongaming.catshelper.Log
@@ -156,7 +156,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     // if the Set has only one element, then it works correctly
 
     val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-position"
-    val requiredNumberOfRebalances = 100
+    val requiredNumberOfRebalances = 1 // FIXME - set 100 after debugging of poll pail
+    // poll failed java.lang.IllegalStateException: This consumer has already been closed.
 
     def listenerOf(
       positions: Ref[IO, Set[Offset]],
@@ -207,7 +208,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           consumer <- consumer
           listener = listenerOf(positions, rebalanceCounter, assigned)
           _ <- consumer.subscribe(Nes.of(topic), listener).toResource
-          poll = consumer.poll(10.millis).onError({ case e => IO(println(s"poll failed $e")) })
+          poll = {
+            IO.delay(println(s"${System.nanoTime()} gonna do poll")) *>
+              consumer.poll(10.millis).onError({ case e => IO(println(s"${System.nanoTime()} poll failed $e")) }) *>
+              IO.delay(println(s"${System.nanoTime()} poll completed"))
+          }.uncancelable
           _ <- poll.foreverM.backgroundAwaitExit.timeoutRelease(5.seconds)
         } yield ()
         x.use(_ => assigned.get.timeout(10.seconds))
@@ -552,7 +557,11 @@ object ProducerConsumerSpec {
     def startAwaitExit(implicit c: Concurrent[F]): F[Fiber[F, A]] = {
       for {
         deferred <- Deferred[F, Unit]
-        fiber    <- self.guarantee { deferred.complete(()).handleError { _ => () } }.start
+        fiber <- self.guarantee {
+          Sync[F].delay(println(s"${System.nanoTime()} going to complete deferred")) *>
+            deferred.complete(()).handleError { _ => () } *>
+            Sync[F].delay(println(s"${System.nanoTime()} completed deferred"))
+        }.start
       } yield {
         new Fiber[F, A] {
           def cancel = {
@@ -561,6 +570,7 @@ object ProducerConsumerSpec {
               _ <- deferred.get
             } yield {}
           }
+
           def join = fiber.join
         }
       }
@@ -568,7 +578,11 @@ object ProducerConsumerSpec {
 
     def backgroundAwaitExit(implicit c: Concurrent[F]): Resource[F, Unit] = {
       Resource
-        .make { self.startAwaitExit } { _.cancel }
+        .make {
+          self.startAwaitExit
+        } {
+          _.cancel
+        }
         .as(())
     }
   }

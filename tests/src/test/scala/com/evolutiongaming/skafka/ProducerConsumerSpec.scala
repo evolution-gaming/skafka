@@ -157,7 +157,6 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-position"
     val requiredNumberOfRebalances = 100
-    // poll failed java.lang.IllegalStateException: This consumer has already been closed.
 
     def listenerOf(
       positions: Ref[IO, Set[Offset]],

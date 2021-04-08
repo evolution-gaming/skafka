@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka
 import cats.implicits._
 import cats.effect.syntax.all._
 import cats.effect.concurrent.Deferred
-import cats.effect.{Concurrent, Fiber, Resource, Sync, Timer}
+import cats.effect.{Concurrent, Fiber, Resource, Timer}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -13,9 +13,7 @@ object FiberWithBlockingCancel {
       for {
         deferred <- Deferred[F, Unit]
         fiber <- self.guarantee {
-          Sync[F].delay(println(s"${System.nanoTime()} going to complete deferred")) *>
-            deferred.complete(()).handleError { _ => () } *>
-            Sync[F].delay(println(s"${System.nanoTime()} completed deferred"))
+          deferred.complete(()).handleError { _ => () }
         }.start
       } yield {
         new Fiber[F, A] {
@@ -44,7 +42,7 @@ object FiberWithBlockingCancel {
 
   implicit class ResourceOps[F[_], A](val self: Resource[F, A]) extends AnyVal {
     def withTimeoutRelease(duration: FiniteDuration)(implicit c: Concurrent[F], t: Timer[F]): Resource[F, A] = {
-      Resource(self.allocated.map { case (a, release) => (a, release.timeout(duration))} )
+      Resource(self.allocated.map { case (a, release) => (a, release.timeout(duration)) })
     }
   }
 

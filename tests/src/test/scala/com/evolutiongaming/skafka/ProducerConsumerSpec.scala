@@ -156,7 +156,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     // if the Set has only one element, then it works correctly
 
     val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-position"
-    val requiredNumberOfRebalances = 1 // FIXME - set 100 after debugging of poll pail
+    val requiredNumberOfRebalances = 100
     // poll failed java.lang.IllegalStateException: This consumer has already been closed.
 
     def listenerOf(
@@ -209,10 +209,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           listener = listenerOf(positions, rebalanceCounter, assigned)
           _ <- consumer.subscribe(Nes.of(topic), listener).toResource
           poll = {
-            IO.delay(println(s"${System.nanoTime()} gonna do poll")) *>
-              consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) }) *>
-              IO.delay(println(s"${System.nanoTime()} poll completed"))
-          }.uncancelable
+              consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) })
+          }
           _ <- (IO.cancelBoundary *> poll).foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
         } yield ()
         x.use(_ => assigned.get.timeout(10.seconds))

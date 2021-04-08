@@ -14,21 +14,21 @@ import scala.concurrent.duration._
 class ReproducingSomeBugSpec extends AnyFunSuite with Matchers {
   test("mb we have a concurrency issue with skafka/fiber.cancel/resource combo") {
     val testStep = for {
-      pollCounter       <- Ref.of[IO, Int](0).toResource
-      pollReturnedSome  <- Deferred[IO, Unit].toResource
+      counter       <- Ref.of[IO, Int](0).toResource
+      tbd  <- Deferred[IO, Unit].toResource
       consumer          <- SafeConsumer.of[IO]("pollResult", 1)
       poll = {
         for {
           _ <- IO.delay(println(s"${System.nanoTime()} gonna do poll"))
-          _ <- pollCounter.update(_ + 1)
+          _ <- counter.update(_ + 1)
           r <- consumer.poll.onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) })
-          _ <- if (r.isDefined) pollReturnedSome.complete(()).handleError(_ => ()) else IO.unit
+          _ <- if (r.isDefined) tbd.complete(()).handleError(_ => ()) else IO.unit
           _ <- IO.delay(println(s"${System.nanoTime()} poll completed"))
         } yield ()
       }
-      _             <- poll.foreverM.backgroundAwaitExit.withTimeoutRelease(10.seconds)
-      _             <- pollReturnedSome.get.timeout(30.seconds).toResource
-      numberOfPolls <- pollCounter.get.toResource
+      _             <- (IO.cancelBoundary *> poll).foreverM.backgroundAwaitExit.withTimeoutRelease(10.seconds)
+      _             <- tbd.get.timeout(30.seconds).toResource
+      numberOfPolls <- counter.get.toResource
     } yield numberOfPolls
 
     val numberOfPolls = testStep.use(i => i.pure[IO]).unsafeRunSync()

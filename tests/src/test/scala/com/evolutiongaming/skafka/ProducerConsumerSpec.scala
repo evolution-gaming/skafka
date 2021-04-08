@@ -213,7 +213,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
               consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) }) *>
               IO.delay(println(s"${System.nanoTime()} poll completed"))
           }.uncancelable
-          _ <- poll.foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
+          _ <- (IO.cancelBoundary *> poll).foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
         } yield ()
         x.use(_ => assigned.get.timeout(10.seconds))
       }

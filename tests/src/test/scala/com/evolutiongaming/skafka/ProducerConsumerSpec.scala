@@ -169,6 +169,19 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
+            _ <- lift(IO.shift)
+            _ <- lift(
+              IO.shift *>
+                IO.delay(()) *>
+                IO.shift *>
+                IO.delay(())
+            )
+            // with IO.shift attempts we make sure that
+            // kafka java consumer.position method would be called from the same thread as consumer.poll
+            // otherwise kafka java consumer throws
+            // ConcurrentModificationException("KafkaConsumer is not safe for multi-threaded access")
+            // which in result would terminate current flatMap chain
+            // and fail the test as positions (Set[Offset]) would be empty
             position <- position(partitions.head) // TODO: allow consumer error handling in user land
             _ <- lift(positions.update(_.+(position)))
             _ <- lift(rebalanceCounter.update(_ + 1))

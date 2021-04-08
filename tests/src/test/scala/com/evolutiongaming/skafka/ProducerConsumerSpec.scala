@@ -345,7 +345,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-seek"
 
-    def listener: RebalanceListener1[IO] = {
+    val listener: RebalanceListener1[IO] = {
       new RebalanceListener1[IO] {
         import RebalanceCallback._
 

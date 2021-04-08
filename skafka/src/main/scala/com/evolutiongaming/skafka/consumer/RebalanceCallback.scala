@@ -1,18 +1,24 @@
 package com.evolutiongaming.skafka.consumer
 
+import java.lang.{Long => LongJ}
+import java.time.Instant
+import java.util.{Map => MapJ}
+
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Monad, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
+import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable, ToTry}
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, TopicPartition}
+import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.consumer.ConsumerConverters._
+import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
+import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.concurrent.duration.FiniteDuration
+import scala.jdk.CollectionConverters._
 import scala.util.Try
-
-import RebalanceCallback.Helpers._
 
 // TODO review if we can do it without F[_] everywhere
 // TODO add most common usages in scaladoc from spec (using position/seek/commit)
@@ -44,36 +50,113 @@ object RebalanceCallback {
 
   def lift[F[_], A](fa: F[A]): RebalanceCallback[F, A] = LiftStep(fa)
 
-  def commit[F[_]](offsets: Nem[TopicPartition, OffsetAndMetadata]): RebalanceCallback[F, Unit] =
+  def assignment[F[_]]: RebalanceCallback[F, Set[TopicPartition]] =
     ConsumerStep(
-      _.commitSync(
-        offsets
-          .toSortedMap
-          .asJavaMap(_.asJava, _.asJava)
-      )
+      _.assignment()
+        .asScala
+        .toSet
+        .map(unsafeTopicPartition)
     )
+
+  def beginningOffsets[F[_]: MonadThrowable](
+    partitions: Nes[TopicPartition]
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.beginningOffsets(partitions.asJava))
+
+  def beginningOffsets[F[_]: MonadThrowable](
+    partitions: Nes[TopicPartition],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.beginningOffsets(partitions.asJava, timeout.asJava))
+
+  def commit[F[_]]: RebalanceCallback[F, Unit] =
+    ConsumerStep(_.commitSync())
+
+  def commit[F[_]](timeout: FiniteDuration): RebalanceCallback[F, Unit] =
+    ConsumerStep(_.commitSync(timeout.asJava))
+
+  def commit[F[_]](offsets: Nem[TopicPartition, OffsetAndMetadata]): RebalanceCallback[F, Unit] =
+    ConsumerStep(_.commitSync(asOffsetsJ(offsets)))
 
   def commit[F[_]](
     offsets: Nem[TopicPartition, OffsetAndMetadata],
     timeout: FiniteDuration
   ): RebalanceCallback[F, Unit] =
-    ConsumerStep(
-      _.commitSync(
-        offsets
-          .toSortedMap
-          .asJavaMap(_.asJava, _.asJava),
-        timeout.asJava
-      )
-    )
+    ConsumerStep(_.commitSync(asOffsetsJ(offsets), timeout.asJava))
 
   def committed[F[_]: MonadThrowable](
     partitions: Nes[TopicPartition]
-  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = committed1(partitions, none)
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] =
+    committed1(partitions, none)
 
   def committed[F[_]: MonadThrowable](
     partitions: Nes[TopicPartition],
     timeout: FiniteDuration
-  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = committed1(partitions, timeout.some)
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] =
+    committed1(partitions, timeout.some)
+
+  def endOffsets[F[_]: MonadThrowable](
+    partitions: Nes[TopicPartition]
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.endOffsets(partitions.asJava))
+
+  def endOffsets[F[_]: MonadThrowable](
+    partitions: Nes[TopicPartition],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.endOffsets(partitions.asJava, timeout.asJava))
+
+  def groupMetadata[F[_]]: RebalanceCallback[F, ConsumerGroupMetadata] =
+    ConsumerStep(_.groupMetadata().asScala)
+
+  def topics[F[_]: MonadThrowable]: RebalanceCallback[F, Map[Topic, List[PartitionInfo]]] =
+    for {
+      result <- ConsumerStep(_.listTopics())
+      result <- lift(partitionsInfoMapF[F](result))
+    } yield result
+
+  def topics[F[_]: MonadThrowable](timeout: FiniteDuration): RebalanceCallback[F, Map[Topic, List[PartitionInfo]]] =
+    for {
+      result <- ConsumerStep(_.listTopics(timeout.asJava))
+      result <- lift(partitionsInfoMapF[F](result))
+    } yield result
+
+  def offsetsForTimes[F[_]: MonadThrowable](
+    timestampsToSearch: Nem[TopicPartition, Instant]
+  ): RebalanceCallback[F, Map[TopicPartition, Option[OffsetAndTimestamp]]] =
+    for {
+      result <- ConsumerStep(_.offsetsForTimes(timestampsToSearchJ(timestampsToSearch)))
+      result <- lift(offsetsAndTimestampsMapF[F](result))
+    } yield result
+
+  def offsetsForTimes[F[_]: MonadThrowable](
+    timestampsToSearch: Nem[TopicPartition, Instant],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, Option[OffsetAndTimestamp]]] =
+    for {
+      result <- ConsumerStep(_.offsetsForTimes(timestampsToSearchJ(timestampsToSearch), timeout.asJava))
+      result <- lift(offsetsAndTimestampsMapF[F](result))
+    } yield result
+
+  def partitionsFor[F[_]: ApplicativeThrowable](topic: Topic): RebalanceCallback[F, List[PartitionInfo]] =
+    for {
+      result <- ConsumerStep(_.partitionsFor(topic))
+      result <- lift(partitionsInfoListF[F](result))
+    } yield result
+
+  def partitionsFor[F[_]: ApplicativeThrowable](
+    topic: Topic,
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, List[PartitionInfo]] =
+    for {
+      result <- ConsumerStep(_.partitionsFor(topic, timeout.asJava))
+      result <- lift(partitionsInfoListF[F](result))
+    } yield result
+
+  def paused[F[_]]: RebalanceCallback[F, Set[TopicPartition]] =
+    ConsumerStep(
+      _.paused().asScala.toSet.map(unsafeTopicPartition)
+    )
 
   // TODO using Offset.unsafe to avoid requiring ApplicativeThrowable as in Offset.of
   //  also it looks like consumer.position cannot return invalid offset
@@ -94,6 +177,8 @@ object RebalanceCallback {
 
   def seekToEnd[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
     ConsumerStep(c => c.seekToEnd(partitions.asJava))
+
+  def subscription[F[_]]: RebalanceCallback[F, Set[Topic]] = ConsumerStep(_.subscription().asScala.toSet)
 
   private[consumer] def run[F[_]: Monad: ToTry, A](
     rc: RebalanceCallback[F, A],
@@ -157,8 +242,24 @@ object RebalanceCallback {
             case None        => c.committed(partitions.asJava)
           }
         }
-        result <- lift(committedAsScala[F](result))
+        result <- lift(committedOffsetsF[F](result))
       } yield result
+    }
+
+    def offsets1[F[_]: MonadThrowable](
+      f: ConsumerJ[_, _] => MapJ[TopicPartitionJ, LongJ]
+    ): RebalanceCallback[F, Map[TopicPartition, Offset]] = {
+      for {
+        result <- ConsumerStep(f)
+        result <- lift(offsetsMapF[F](result))
+      } yield result
+    }
+
+    def unsafeTopicPartition(tp: TopicPartitionJ): TopicPartition =
+      TopicPartition(tp.topic(), Partition.unsafe(tp.partition()))
+
+    def timestampsToSearchJ(nem: Nem[TopicPartition, Instant]): MapJ[TopicPartitionJ, LongJ] = {
+      nem.toSortedMap.asJavaMap(_.asJava, _.toEpochMilli)
     }
 
   }

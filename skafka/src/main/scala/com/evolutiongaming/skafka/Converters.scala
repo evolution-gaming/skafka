@@ -1,10 +1,11 @@
 package com.evolutiongaming.skafka
 
+import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
-import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ}
+import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ, List => ListJ}
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
+import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes, NonEmptyMap => Nem}
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
@@ -216,11 +217,27 @@ object Converters {
     def toOptional: Optional[A] = self.fold(Optional.empty[A]()) { a => Optional.of(a) }
   }
 
-  def committedAsScala[F[_] : MonadThrowable](result: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): F[Map[TopicPartition, OffsetAndMetadata]] = {
-    Option(result).fold {
+  def committedOffsetsF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): F[Map[TopicPartition, OffsetAndMetadata]] = {
+    Option(mapJ).fold {
       Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
     } {
       _.asScalaMap(_.asScala[F], _.asScala[F])
     }
+  }
+
+  def offsetsMapF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, LongJ]): F[Map[TopicPartition, Offset]] = {
+    mapJ.asScalaMap(_.asScala[F], a => Offset.of[F](a))
+  }
+
+  def asOffsetsJ(offsets: Nem[TopicPartition, OffsetAndMetadata]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
+    offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+  }
+
+  def partitionsInfoListF[F[_]: ApplicativeThrowable](listJ: ListJ[PartitionInfoJ]): F[List[PartitionInfo]] = {
+    listJ.asScala.toList.traverse { _.asScala[F] }
+  }
+
+  def partitionsInfoMapF[F[_]: MonadThrowable](mapJ: MapJ[Topic, ListJ[PartitionInfoJ]]): F[Map[Topic, List[PartitionInfo]]] = {
+    mapJ.asScalaMap(_.pure[F], partitionsInfoListF[F])
   }
 }

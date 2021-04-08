@@ -314,21 +314,21 @@ object Consumer {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
-          result <- committedAsScala[F](result)
+          result <- committedOffsetsF[F](result)
         } yield result
       }
 
       def partitions1(f: => ListJ[PartitionInfoJ]) = {
         for {
           result <- serialBlocking { f }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
+          result <- partitionsInfoListF[F](result)
         } yield result
       }
 
       def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
         for {
           result <- serialBlocking { f }
-          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
+          result <- partitionsInfoMapF[F](result)
         } yield result
       }
 
@@ -339,7 +339,7 @@ object Consumer {
         val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
         for {
           result <- serialBlocking { f(timestampsJ) }
-          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
+          result <- offsetsAndTimestampsMapF[F](result)
         } yield result
       }
 
@@ -350,7 +350,7 @@ object Consumer {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
-          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
+          result <- offsetsMapF[F](result)
         } yield result
       }
 
@@ -415,16 +415,12 @@ object Consumer {
         }
 
         def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
+          val offsetsJ = asOffsetsJ(offsets)
           serialBlocking { consumer.commitSync(offsetsJ) }
         }
 
         def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
+          val offsetsJ = asOffsetsJ(offsets)
           val timeoutJ = timeout.asJava
           serialBlocking { consumer.commitSync(offsetsJ, timeoutJ) }
         }

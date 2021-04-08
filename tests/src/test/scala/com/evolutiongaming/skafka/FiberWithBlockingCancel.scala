@@ -43,7 +43,7 @@ object FiberWithBlockingCancel {
   }
 
   implicit class ResourceOps[F[_], A](val self: Resource[F, A]) extends AnyVal {
-    def timeoutRelease(duration: FiniteDuration)(implicit c: Concurrent[F], t: Timer[F]): Resource[F, A] = {
+    def withTimeoutRelease(duration: FiniteDuration)(implicit c: Concurrent[F], t: Timer[F]): Resource[F, A] = {
       Resource(self.allocated.map { case (a, release) => (a, release.timeout(duration))} )
     }
   }

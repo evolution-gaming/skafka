@@ -210,10 +210,10 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           _ <- consumer.subscribe(Nes.of(topic), listener).toResource
           poll = {
             IO.delay(println(s"${System.nanoTime()} gonna do poll")) *>
-              consumer.poll(10.millis).onError({ case e => IO(println(s"${System.nanoTime()} poll failed $e")) }) *>
+              consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) }) *>
               IO.delay(println(s"${System.nanoTime()} poll completed"))
           }.uncancelable
-          _ <- poll.foreverM.backgroundAwaitExit.timeoutRelease(5.seconds)
+          _ <- poll.foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
         } yield ()
         x.use(_ => assigned.get.timeout(10.seconds))
       }

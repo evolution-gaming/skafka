@@ -16,23 +16,18 @@ class ReproducingSomeBugSpec extends AnyFunSuite with Matchers {
     val testStep = for {
       pollCounter       <- Ref.of[IO, Int](0).toResource
       pollReturnedSome  <- Deferred[IO, Unit].toResource
-      pollReturnedSome1 <- Deferred[IO, Unit].toResource
-      consumer          <- SafeConsumer.of[IO]("pollResult", 1, pollReturnedSome)
+      consumer          <- SafeConsumer.of[IO]("pollResult", 1)
       poll = {
         for {
           _ <- IO.delay(println(s"${System.nanoTime()} gonna do poll"))
           _ <- pollCounter.update(_ + 1)
-          r <- consumer.poll(10.millis).onError({ case e => IO(println(s"${System.nanoTime()} poll failed $e")) })
-          _ <- if (r.isDefined) pollReturnedSome1.complete(()).handleError(_ => ()) else IO.unit
+          r <- consumer.poll.onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) })
+          _ <- if (r.isDefined) pollReturnedSome.complete(()).handleError(_ => ()) else IO.unit
           _ <- IO.delay(println(s"${System.nanoTime()} poll completed"))
         } yield ()
       }
-      _ <- {
-        val x = for {
-          _ <- poll.foreverM.backgroundAwaitExit.timeoutRelease(10.seconds)
-        } yield ()
-        x.use(_ => pollReturnedSome1.get.timeout(30.seconds))
-      }.toResource
+      _             <- poll.foreverM.backgroundAwaitExit.withTimeoutRelease(10.seconds)
+      _             <- pollReturnedSome.get.timeout(30.seconds).toResource
       numberOfPolls <- pollCounter.get.toResource
     } yield numberOfPolls
 
@@ -43,12 +38,11 @@ class ReproducingSomeBugSpec extends AnyFunSuite with Matchers {
 
 object ReproducingSomeBugSpec {
 
-  class SafeConsumer[F[_]: Sync](unsafe: UnsafeConsumer, pollReturnedSome: Deferred[F, Unit]) {
+  class SafeConsumer[F[_]: Sync](unsafe: UnsafeConsumer) {
 
-    def poll(timeout: FiniteDuration): F[Option[String]] = {
+    def poll: F[Option[String]] = {
       for {
-        result <- Sync[F].delay(unsafe.poll(timeout.toMillis))
-        _      <- if (result.isDefined) pollReturnedSome.complete(()).handleError(_ => ()) else ().pure[F]
+        result <- Sync[F].delay(unsafe.poll())
       } yield result
     }
 
@@ -58,12 +52,11 @@ object ReproducingSomeBugSpec {
   object SafeConsumer {
     def of[F[_]: Sync](
       pollResultValue: String,
-      pollReturnsSomeAfterAttemptN: Int,
-      pollReturnedSome: Deferred[F, Unit]
+      pollReturnsSomeAfterAttemptN: Int
     ): Resource[F, SafeConsumer[F]] =
       Resource.make(
         Sync[F].delay(
-          new SafeConsumer[F](new UnsafeConsumer(pollResultValue, pollReturnsSomeAfterAttemptN), pollReturnedSome)
+          new SafeConsumer[F](new UnsafeConsumer(pollResultValue, pollReturnsSomeAfterAttemptN))
         )
       )(_.close)
   }
@@ -72,9 +65,8 @@ object ReproducingSomeBugSpec {
     @volatile private var closed  = false
     @volatile private var attempt = 0
 
-    def poll(timeoutMs: Long): Option[String] = {
+    def poll(): Option[String] = {
       if (closed) throw new IllegalStateException("Consumer is closed")
-      Thread.sleep(timeoutMs)
       attempt += 1
       if (attempt >= pollReturnsSomeStartingWithAttemptN) {
         pollResultValue.some

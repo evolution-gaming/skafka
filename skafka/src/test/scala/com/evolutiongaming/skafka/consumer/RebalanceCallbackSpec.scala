@@ -173,7 +173,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
 object RebalanceCallbackSpec {
 
-  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: ConsumerJ[_, _]): Try[A] = {
+  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: ConsumerJ[_, _]): Try[Any] = {
     RebalanceCallback.run[Try, A](rc, consumer)
   }
 

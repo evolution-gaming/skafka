@@ -16,9 +16,10 @@ import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
-import scala.util.Try
+import scala.util.{Success, Try}
 
 // TODO review if we can do it without F[_] everywhere
 // TODO add most common usages in scaladoc from spec (using position/seek/commit)
@@ -183,22 +184,49 @@ object RebalanceCallback {
   private[consumer] def run[F[_]: Monad: ToTry, A](
     rc: RebalanceCallback[F, A],
     consumer: ConsumerJ[_, _]
-  ): Try[A] = {
+  ): Try[Any] = {
+    type Value = Try[Any]
+    type S     = Try[Any] => Try[RebalanceCallback[F, _]]
+    case class Cont(cb: RebalanceCallback[F, _], tail: List[S])
 
-    // TODO @tailrec failed to convert map/flatMap to patmat in 5 minutes, was getting scalac errors about type mismatches
-    def loop[A1](rc: RebalanceCallback[F, A1]): Try[A1] = {
+    @tailrec
+    def loop[A1](rc: RebalanceCallback[F, A1], lst: List[S]): Try[Any] = {
+      def fold(tr: Try[Any]): Either[Cont, Value] = {
+        lst match {
+          case Nil => Right(tr)
+          case head :: tail =>
+            head(tr) match {
+              case Success(value) => Left(Cont(value, tail))
+              case e              => Right(e)
+            }
+        }
+      }
       rc match {
-        case Pure(a)                => Try(a)
-        case MapStep(f, parent)     => loop(parent).map(f)
-        case FlatMapStep(f, parent) => loop(parent).flatMap { a => loop(f(a)) }
-        case LiftStep(fa)           => fa.toTry
-        case ConsumerStep(f)        => Try { f(consumer) }
+        case Pure(a) =>
+          fold(Try(a)) match {
+            case Left(c)  => loop(c.cb, c.tail)
+            case Right(t) => t
+          }
+        case LiftStep(fa) =>
+          fold(fa.toTry) match {
+            case Left(c)  => loop(c.cb, c.tail)
+            case Right(t) => t
+          }
+        case ConsumerStep(f) =>
+          fold(Try { f(consumer) }) match {
+            case Left(c)  => loop(c.cb, c.tail)
+            case Right(t) => t
+          }
+        case MapStep(f, parent) =>
+          val mapTry: S = (tr: Try[Any]) => tr.map(a => Pure(f(a)))
+          loop(parent, mapTry :: lst)
+        case FlatMapStep(f, parent) =>
+          val flatMapTry = (tr: Try[Any]) => tr.map(a => f(a))
+          loop(parent, flatMapTry :: lst)
       }
     }
-
-    loop(rc)
+    loop(rc, List.empty)
   }
-
   private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A] {
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = Pure[G, A](a)
   }

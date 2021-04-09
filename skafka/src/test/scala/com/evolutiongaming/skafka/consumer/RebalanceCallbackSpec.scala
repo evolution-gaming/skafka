@@ -98,7 +98,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         val rcOk = for {
-          _      <- noOp[IO]
+          _      <- noOp
           result <- assignment
           _       = lift(IO.raiseError[Unit](TestError)) // should have no effect
           _       = paused // throws TestError2 but should have no effect

@@ -7,7 +7,6 @@ import com.evolutiongaming.skafka.TopicPartition
 /**
   * Will be converted to [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]] during consumer.subscribe
   * // TODO add most common usages in scaladoc from spec (using position/seek/commit)
-  * // TODO rename to something more meaningful vs just appending `1` to existing name `RebalanceListener`
   * see [[com.evolutiongaming.skafka.consumer.RebalanceCallback]]
   */
 trait RebalanceListener1[F[_]] { self =>

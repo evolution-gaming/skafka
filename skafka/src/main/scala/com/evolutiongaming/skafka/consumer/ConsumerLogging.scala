@@ -38,8 +38,11 @@ object ConsumerLogging {
         } yield a
       }
 
-      // TODO: implement logging for subscribe with RebalanceListener1
+      // TODO: + github issue - implement logging for subscribe with RebalanceListener1
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = consumer.subscribe(topics, listener)
+
+      // TODO: + github issue - implement logging for subscribe with RebalanceListener1
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = consumer.subscribe(pattern, listener)
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
 

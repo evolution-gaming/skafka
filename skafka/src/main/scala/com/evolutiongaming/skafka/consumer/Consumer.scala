@@ -34,9 +34,9 @@ trait Consumer[F[_], K, V] {
 
   def assignment: F[Set[TopicPartition]]
 
-  // TODO default `listener` to `RebalanceListener1.noOp` ?
-  //  or add subscribe methods without any listeners and hide implementation details
   def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit]
+
+  def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit]
 
   def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
 
@@ -134,6 +134,8 @@ object Consumer {
       val assignment = Set.empty[TopicPartition].pure[F]
 
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit] = empty
+
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit] = empty
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = empty
 
@@ -371,10 +373,14 @@ object Consumer {
         }
 
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
-          // TODO derive ToTry timeout based on ConsumerConfig.maxPollInterval: FiniteDuration (defaulf of 5.minutes)
           val topicsJ = topics.toSortedSet.asJava
           val listenerJ = listener.asJava(consumer)
           serialNonBlocking { consumer.subscribe(topicsJ, listenerJ) }
+        }
+
+        def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
+          val listenerJ = listener.asJava(consumer)
+          serialNonBlocking { consumer.subscribe(pattern, listenerJ) }
         }
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
@@ -640,8 +646,11 @@ object Consumer {
 
         val assignment = self.assignment
 
-        // TODO add metrics
+        // TODO add metrics - create github issue
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = self.subscribe(topics, listener)
+
+        // TODO add metrics - create github issue
+        def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = self.subscribe(pattern, listener)
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
@@ -891,6 +900,11 @@ object Consumer {
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[G]) = {
         val listener1 = listener.mapK(gf)
         fg(self.subscribe(topics, listener1))
+      }
+
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[G]) = {
+        val listener1 = listener.mapK(gf)
+        fg(self.subscribe(pattern, listener1))
       }
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {

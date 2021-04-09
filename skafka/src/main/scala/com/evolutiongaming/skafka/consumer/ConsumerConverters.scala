@@ -100,7 +100,9 @@ object ConsumerConverters {
       def onPartitions(
         partitions: CollectionJ[TopicPartitionJ],
         call: Nes[TopicPartition] => RebalanceCallback[F, Unit]
-      ) = {
+      ): Unit = {
+        // TODO add github issue to derive ToTry timeout based on ConsumerConfig.maxPollInterval: FiniteDuration (default of 5.minutes)
+        //   count total time for separate methods revoked/assigned/lost
         val result = partitions
           .asScala
           .toList
@@ -114,22 +116,22 @@ object ConsumerConverters {
           .flatMap { nesOpt =>
             nesOpt.map {
               nes => RebalanceCallback.run(call(nes), consumer)
-            }.getOrElse(Try(()))
+            }.getOrElse(().pure[Try])
           }
-        result.fold(throw _, identity)
+        result.fold(throw _, _ => ())
       }
 
       new RebalanceListenerJ {
 
-        def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
+        def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]): Unit = {
           onPartitions(partitions, self.onPartitionsAssigned)
         }
 
-        def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
+        def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]): Unit = {
           onPartitions(partitions, self.onPartitionsRevoked)
         }
 
-        override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]) = {
+        override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]): Unit = {
           onPartitions(partitions, self.onPartitionsLost)
         }
       }

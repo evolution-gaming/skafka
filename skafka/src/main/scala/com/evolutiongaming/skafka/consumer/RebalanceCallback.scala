@@ -227,6 +227,7 @@ object RebalanceCallback {
     }
     loop(rc, List.empty)
   }
+
   private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A] {
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = Pure[G, A](a)
   }

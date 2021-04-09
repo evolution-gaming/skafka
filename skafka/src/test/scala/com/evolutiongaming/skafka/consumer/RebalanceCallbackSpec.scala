@@ -8,6 +8,7 @@ import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => 
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.IO
+import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
@@ -21,12 +22,11 @@ import org.apache.kafka.clients.consumer.{
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
-import com.evolutiongaming.skafka.IOSuite._
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
-import scala.util.{Failure, Try}
 import scala.util.control.NoStackTrace
+import scala.util.{Failure, Try}
 
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
@@ -164,6 +164,24 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         RebalanceCallback.run(rcOk, null) mustBe Try(())
         list mustBe List("one", "two", "3")
+      }
+
+      "flatMap is free from StackOverflowError" in {
+        val stackOverflowErrorDepth = 1000000
+        // check that deep enough recursion results in StackOverflowError with current JVM settings
+        try {
+          // trigger SOE with given stackOverflowErrorDepth
+          triggerStackOverflowError(stackOverflowErrorDepth)
+          fail(
+            s"expected a StackOverflowError from $stackOverflowErrorDepth-deep recursion, consider increasing the depth in test"
+          )
+        } catch {
+          case _: StackOverflowError => // stackOverflowErrorDepth has correct value
+        }
+
+        val rc = List.fill(stackOverflowErrorDepth)(noOp[Try]).fold(noOp[Try]) { (agg, e) => agg.flatMap(_ => e) }
+
+        tryRun(rc, null) mustBe Try(())
       }
 
     }
@@ -323,4 +341,9 @@ object RebalanceCallbackSpec {
     DurationJ.ofSeconds(7),
     7.seconds
   )
+
+  def triggerStackOverflowError(n: Int): Int = {
+    if (n <= 0) n
+    else n + triggerStackOverflowError(n - 1)
+  }
 }

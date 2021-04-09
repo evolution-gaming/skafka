@@ -31,6 +31,7 @@ import scala.util.control.NoStackTrace
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
   "RebalanceCallback" - {
+
     "consumer unrelated methods do nothing with consumer" - {
       val consumer: ConsumerJ[_, _] =
         null // null to verify zero interactions with consumer, otherwise there would be an NPE
@@ -83,6 +84,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     }
 
     "composability" - {
+
       "flatMap" in {
         val expected               = partitions.s
         var a: Set[TopicPartition] = Set.empty
@@ -144,6 +146,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         b mustBe "unchanged"
         c mustBe "rcError2"
       }
+
       "flatMap correct execution order" in {
         var list: List[String] = List.empty
 
@@ -162,7 +165,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         RebalanceCallback.run(rcOk, null) mustBe Try(())
         list mustBe List("one", "two", "3")
       }
+
     }
+
   }
 }
 

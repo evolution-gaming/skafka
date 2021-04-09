@@ -144,7 +144,24 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         b mustBe "unchanged"
         c mustBe "rcError2"
       }
+      "flatMap correct execution order" in {
+        var list: List[String] = List.empty
 
+        val rcOk = for {
+          _ <- lift(IO.delay {
+            list = list :+ "one"
+          })
+          _ <- lift(IO.delay {
+            list = list :+ "two"
+          })
+          _ <- lift(IO.delay {
+            list = list :+ "3"
+          })
+        } yield ()
+
+        RebalanceCallback.run(rcOk, null) mustBe Try(())
+        list mustBe List("one", "two", "3")
+      }
     }
   }
 }

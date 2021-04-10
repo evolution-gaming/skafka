@@ -6,7 +6,7 @@ import java.util.{Map => MapJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import cats.{Monad, ~>}
+import cats.~>
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
@@ -37,7 +37,7 @@ def onPartitionAssigned(callback: RebalanceCallback[Unit]): ListenerConsumer[Uni
 /**
   * Allows to describe computations in callback methods of [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   */
-sealed trait RebalanceCallback[F[_], A]
+sealed trait RebalanceCallback[+F[_], +A]
 
 object RebalanceCallback {
 
@@ -170,80 +170,76 @@ object RebalanceCallback {
 
   def position[F[_]](tp: TopicPartition, timeout: FiniteDuration): RebalanceCallback[F, Offset] =
     for {
-      result <- WithConsumer(c => c.position(tp.asJava, timeout.asJava))
+      result <- WithConsumer(_.position(tp.asJava, timeout.asJava))
       result <- fromTry(Offset.of[Try](result))
     } yield result
 
   def seek[F[_]](partition: TopicPartition, offset: Offset): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seek(partition.asJava, offset.value))
+    WithConsumer(_.seek(partition.asJava, offset.value))
 
   def seek[F[_]](partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seek(partition.asJava, offsetAndMetadata.asJava))
+    WithConsumer(_.seek(partition.asJava, offsetAndMetadata.asJava))
 
   def seekToBeginning[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seekToBeginning(partitions.asJava))
+    WithConsumer(_.seekToBeginning(partitions.asJava))
 
   def seekToEnd[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seekToEnd(partitions.asJava))
+    WithConsumer(_.seekToEnd(partitions.asJava))
 
   def subscription[F[_]]: RebalanceCallback[F, Set[Topic]] = WithConsumer(_.subscription().asScala.toSet)
 
-  private[consumer] def run[F[_]: Monad: ToTry, A](
-    rc: RebalanceCallback[F, A],
+  private[consumer] def run[F[_]: ToTry, A](
+    rebalanceCallback: RebalanceCallback[F, A],
     consumer: ConsumerJ[_, _]
-  ): Try[Any] = {
-    type Value = Try[Any]
-    type S     = Try[Any] => Try[RebalanceCallback[F, _]]
-    case class Cont(cb: RebalanceCallback[F, _], tail: List[S])
+  ): Try[A] = {
+    type S = Any => RebalanceCallback[F, Any]
 
     @tailrec
-    def loop[A1](rc: RebalanceCallback[F, A1], lst: List[S]): Try[Any] = {
-      def fold(tr: Try[Any]): Either[Cont, Value] = {
-        lst match {
-          case Nil => Right(tr)
-          case head :: tail =>
-            head(tr) match {
-              case Success(value) => Left(Cont(value, tail))
-              case e              => Right(e)
-            }
-        }
-      }
-      rc match {
-        case Pure(a) =>
-          fold(Try(a)) match {
-            case Left(c)  => loop(c.cb, c.tail)
-            case Right(t) => t
+    def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
+      c match {
+        case c: Pure[A1] =>
+          ss match {
+            case Nil     => c.a.pure[Try]
+            case s :: ss => loop(s(c.a), ss)
           }
-        case LiftStep(fa) =>
-          fold(fa.toTry) match {
-            case Left(c)  => loop(c.cb, c.tail)
-            case Right(t) => t
+        case c: LiftStep[F, A1] =>
+          c.fa.toTry match {
+            case Success(a) =>
+              ss match {
+                case Nil     => a.pure[Try]
+                case s :: ss => loop(s(a), ss)
+              }
+            case Failure(a) => a.raiseError[Try, A1]
           }
-        case WithConsumer(f) =>
-          fold(Try { f(consumer) }) match {
-            case Left(c)  => loop(c.cb, c.tail)
-            case Right(t) => t
+        case c: WithConsumer[A1] =>
+          Try { c.f(consumer) } match {
+            case Success(a) =>
+              ss match {
+                case Nil     => a.pure[Try]
+                case s :: ss => loop(s(a), ss)
+              }
+            case Failure(a) => a.raiseError[Try, A1]
           }
-        case FlatMapStep(f, parent) =>
-          val flatMapTry = (tr: Try[Any]) => tr.map(a => f(a))
-          loop(parent, flatMapTry :: lst)
-        case Error(throwable) =>
-          throwable.raiseError[Try, Any]
+        case c: FlatMapStep[F, _, A1] =>
+          loop(c.parent, c.f.asInstanceOf[S] :: ss)
+        case Error(a) =>
+          a.raiseError[Try, A1]
       }
     }
-    loop(rc, List.empty)
+
+    Try(loop(rebalanceCallback, List.empty).asInstanceOf[Try[A]]).flatten
   }
 
-  private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A]
+  private final case class Pure[A](a: A) extends RebalanceCallback[Nothing, A]
 
   private final case class FlatMapStep[F[_], A, B](f: A => RebalanceCallback[F, B], parent: RebalanceCallback[F, A])
       extends RebalanceCallback[F, B]
 
   private final case class LiftStep[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
 
-  private final case class WithConsumer[F[_], A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[F, A]
+  private final case class WithConsumer[A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[Nothing, A]
 
-  private final case class Error[F[_], A](throwable: Throwable) extends RebalanceCallback[F, A]
+  private final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
 
 //  private final case class FlatMapError[F[_], A](
 //    f: Throwable => RebalanceCallback[F, A],

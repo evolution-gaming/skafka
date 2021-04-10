@@ -1,9 +1,5 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
-import java.time.Instant
-import java.util.{Map => MapJ}
-
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Monad, ~>}
@@ -16,7 +12,9 @@ import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
-import scala.annotation.tailrec
+import java.lang.{Long => LongJ}
+import java.time.Instant
+import java.util.{Map => MapJ}
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
@@ -37,7 +35,7 @@ def onPartitionAssigned(callback: RebalanceCallback[Unit]): ListenerConsumer[Uni
 /**
   * Allows to describe computations in callback methods of [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   */
-sealed trait RebalanceCallback[F[_], A]
+sealed trait RebalanceCallback[+F[_], +A]
 
 object RebalanceCallback {
 
@@ -189,49 +187,25 @@ object RebalanceCallback {
   def subscription[F[_]]: RebalanceCallback[F, Set[Topic]] = WithConsumer(_.subscription().asScala.toSet)
 
   private[consumer] def run[F[_]: Monad: ToTry, A](
-    rc: RebalanceCallback[F, A],
+    rebalanceCallback: RebalanceCallback[F, A],
     consumer: ConsumerJ[_, _]
-  ): Try[Any] = {
-    type Value = Try[Any]
-    type S     = Try[Any] => Try[RebalanceCallback[F, _]]
-    case class Cont(cb: RebalanceCallback[F, _], tail: List[S])
+  ): Try[A] = {
 
-    @tailrec
-    def loop[A1](rc: RebalanceCallback[F, A1], lst: List[S]): Try[Any] = {
-      def fold(tr: Try[Any]): Either[Cont, Value] = {
-        lst match {
-          case Nil => Right(tr)
-          case head :: tail =>
-            head(tr) match {
-              case Success(value) => Left(Cont(value, tail))
-              case e              => Right(e)
-            }
-        }
-      }
-      rc match {
-        case Pure(a) =>
-          fold(Try(a)) match {
-            case Left(c)  => loop(c.cb, c.tail)
-            case Right(t) => t
+//    @tailrec
+    def loop[A1](c: RebalanceCallback[F, A1]): Try[A1] = {
+      c match {
+        case c: Pure[F, A1] => c.a.pure[Try]
+        case c: LiftStep[F, A1] => c.fa.toTry
+        case c: WithConsumer[F, A1] => Try { c.f(consumer) }
+        case c: FlatMapStep[F, _, A1] =>
+          loop(c.parent) match {
+            case Success(a) => loop(c.f(a))
+            case Failure(a) => a.raiseError[Try, A1]
           }
-        case LiftStep(fa) =>
-          fold(fa.toTry) match {
-            case Left(c)  => loop(c.cb, c.tail)
-            case Right(t) => t
-          }
-        case WithConsumer(f) =>
-          fold(Try { f(consumer) }) match {
-            case Left(c)  => loop(c.cb, c.tail)
-            case Right(t) => t
-          }
-        case FlatMapStep(f, parent) =>
-          val flatMapTry = (tr: Try[Any]) => tr.map(a => f(a))
-          loop(parent, flatMapTry :: lst)
-        case Error(throwable) =>
-          throwable.raiseError[Try, Any]
+        case c: Error[F, A1] => c.throwable.raiseError[Try, A1]
       }
     }
-    loop(rc, List.empty)
+    loop(rebalanceCallback)
   }
 
   private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A]

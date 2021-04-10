@@ -8,7 +8,6 @@ import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => 
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.IO
-import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
@@ -179,7 +178,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           case _: StackOverflowError => // stackOverflowErrorDepth has correct value
         }
 
-        val rc = List.fill(stackOverflowErrorDepth)(noOp[Try]).fold(noOp[Try]) { (agg, e) => agg.flatMap(_ => e) }
+        val rc = List.fill(stackOverflowErrorDepth)(noOp).fold(noOp) { (agg, e) => agg.flatMap(_ => e) }
 
         tryRun(rc, null) mustBe Try(())
       }

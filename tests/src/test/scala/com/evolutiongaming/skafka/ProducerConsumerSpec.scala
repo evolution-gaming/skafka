@@ -277,7 +277,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
           for {
-            committed <- committed[IO](partitions)
+            committed <- committed(partitions)
             offset = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
             _ <- lift(offsets.update(_ :+ offset))
             _ <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
@@ -349,7 +349,10 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       new RebalanceListener1[IO] {
         import RebalanceCallback._
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = seek(partitions.head, Offset.unsafe(1))
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+          partitions
+            .toList.map(seek(_, Offset.unsafe(1)))
+            .fold(noOp)((agg, e) => agg.flatMap(_ => e))
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = noOp
 

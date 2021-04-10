@@ -191,33 +191,34 @@ object RebalanceCallback {
     consumer: ConsumerJ[_, _]
   ): Try[A] = {
 
-//    @tailrec
+    //    @tailrec
     def loop[A1](c: RebalanceCallback[F, A1]): Try[A1] = {
       c match {
-        case c: Pure[F, A1] => c.a.pure[Try]
-        case c: LiftStep[F, A1] => c.fa.toTry
-        case c: WithConsumer[F, A1] => Try { c.f(consumer) }
+        case c: Pure[A1]              => c.a.pure[Try]
+        case c: LiftStep[F, A1]       => c.fa.toTry
+        case c: WithConsumer[A1]      => Try { c.f(consumer) }
         case c: FlatMapStep[F, _, A1] =>
           loop(c.parent) match {
             case Success(a) => loop(c.f(a))
             case Failure(a) => a.raiseError[Try, A1]
           }
-        case c: Error[F, A1] => c.throwable.raiseError[Try, A1]
+        case c: Error[A1]             => c.throwable.raiseError[Try, A1]
       }
     }
+
     loop(rebalanceCallback)
   }
 
-  private final case class Pure[F[_], A](a: A) extends RebalanceCallback[F, A]
+  private final case class Pure[A](a: A) extends RebalanceCallback[Nothing, A]
 
   private final case class FlatMapStep[F[_], A, B](f: A => RebalanceCallback[F, B], parent: RebalanceCallback[F, A])
       extends RebalanceCallback[F, B]
 
   private final case class LiftStep[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
 
-  private final case class WithConsumer[F[_], A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[F, A]
+  private final case class WithConsumer[A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[Nothing, A]
 
-  private final case class Error[F[_], A](throwable: Throwable) extends RebalanceCallback[F, A]
+  private final case class Error[A](throwable: Throwable) extends RebalanceCallback[Nothing, A]
 
 //  private final case class FlatMapError[F[_], A](
 //    f: Throwable => RebalanceCallback[F, A],

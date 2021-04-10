@@ -227,7 +227,10 @@ object RebalanceCallback {
       }
     }
 
-    Try(loop(rebalanceCallback, List.empty).asInstanceOf[Try[A]]).flatten
+    for {
+      a <- loop(rebalanceCallback, List.empty)
+      a <- Try { a.asInstanceOf[A] }
+    } yield a
   }
 
   private final case class Pure[A](a: A) extends RebalanceCallback[Nothing, A]

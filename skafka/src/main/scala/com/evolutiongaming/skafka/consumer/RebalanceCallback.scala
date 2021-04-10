@@ -15,6 +15,7 @@ import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import java.lang.{Long => LongJ}
 import java.time.Instant
 import java.util.{Map => MapJ}
+import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
@@ -168,45 +169,62 @@ object RebalanceCallback {
 
   def position[F[_]](tp: TopicPartition, timeout: FiniteDuration): RebalanceCallback[F, Offset] =
     for {
-      result <- WithConsumer(c => c.position(tp.asJava, timeout.asJava))
+      result <- WithConsumer(_.position(tp.asJava, timeout.asJava))
       result <- fromTry(Offset.of[Try](result))
     } yield result
 
   def seek[F[_]](partition: TopicPartition, offset: Offset): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seek(partition.asJava, offset.value))
+    WithConsumer(_.seek(partition.asJava, offset.value))
 
   def seek[F[_]](partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seek(partition.asJava, offsetAndMetadata.asJava))
+    WithConsumer(_.seek(partition.asJava, offsetAndMetadata.asJava))
 
   def seekToBeginning[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seekToBeginning(partitions.asJava))
+    WithConsumer(_.seekToBeginning(partitions.asJava))
 
   def seekToEnd[F[_]](partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
-    WithConsumer(c => c.seekToEnd(partitions.asJava))
+    WithConsumer(_.seekToEnd(partitions.asJava))
 
   def subscription[F[_]]: RebalanceCallback[F, Set[Topic]] = WithConsumer(_.subscription().asScala.toSet)
 
-  private[consumer] def run[F[_]: Monad: ToTry, A](
+  private[consumer] def run[F[_]: ToTry, A](
     rebalanceCallback: RebalanceCallback[F, A],
     consumer: ConsumerJ[_, _]
   ): Try[A] = {
+    type S = Any => RebalanceCallback[F, Any]
 
-    //    @tailrec
-    def loop[A1](c: RebalanceCallback[F, A1]): Try[A1] = {
+    @tailrec
+    def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
       c match {
-        case c: Pure[A1]              => c.a.pure[Try]
-        case c: LiftStep[F, A1]       => c.fa.toTry
-        case c: WithConsumer[A1]      => Try { c.f(consumer) }
-        case c: FlatMapStep[F, _, A1] =>
-          loop(c.parent) match {
-            case Success(a) => loop(c.f(a))
+        case c: Pure[A1]              =>
+          ss match {
+            case Nil     => c.a.pure[Try]
+            case s :: ss => loop(s(c.a), ss)
+          }
+        case c: LiftStep[F, A1]       =>
+          c.fa.toTry match {
+            case Success(a) => ss match {
+              case Nil     => a.pure[Try]
+              case s :: ss => loop(s(a), ss)
+            }
             case Failure(a) => a.raiseError[Try, A1]
           }
-        case c: Error[A1]             => c.throwable.raiseError[Try, A1]
+        case c: WithConsumer[A1]      =>
+          Try { c.f(consumer) } match {
+            case Success(a) => ss match {
+              case Nil     => a.pure[Try]
+              case s :: ss => loop(s(a), ss)
+            }
+            case Failure(a) => a.raiseError[Try, A1]
+          }
+        case c: FlatMapStep[F, _, A1] =>
+          loop(c.parent, c.f.asInstanceOf[S] :: ss)
+        case Error(a)                 =>
+          a.raiseError[Try, A1]
       }
     }
 
-    loop(rebalanceCallback)
+    loop(rebalanceCallback, List.empty).asInstanceOf[Try[A]]
   }
 
   private final case class Pure[A](a: A) extends RebalanceCallback[Nothing, A]
@@ -218,7 +236,7 @@ object RebalanceCallback {
 
   private final case class WithConsumer[A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[Nothing, A]
 
-  private final case class Error[A](throwable: Throwable) extends RebalanceCallback[Nothing, A]
+  private final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
 
 //  private final case class FlatMapError[F[_], A](
 //    f: Throwable => RebalanceCallback[F, A],

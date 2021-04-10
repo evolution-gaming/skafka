@@ -646,10 +646,10 @@ object Consumer {
 
         val assignment = self.assignment
 
-        // TODO add metrics - create github issue
+        // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = self.subscribe(topics, listener)
 
-        // TODO add metrics - create github issue
+        // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
         def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = self.subscribe(pattern, listener)
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {

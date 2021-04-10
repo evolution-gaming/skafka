@@ -101,8 +101,8 @@ object ConsumerConverters {
         partitions: CollectionJ[TopicPartitionJ],
         call: Nes[TopicPartition] => RebalanceCallback[F, Unit]
       ): Unit = {
-        // TODO add github issue to derive ToTry timeout based on ConsumerConfig.maxPollInterval: FiniteDuration (default of 5.minutes)
-        //   count total time for separate methods revoked/assigned/lost
+        // If you're thinking about deriving ToTry timeout based on ConsumerConfig.maxPollInterval
+        // please have a look on https://github.com/evolution-gaming/skafka/issues/125
         val result = partitions
           .asScala
           .toList

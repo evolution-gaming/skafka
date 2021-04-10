@@ -38,10 +38,10 @@ object ConsumerLogging {
         } yield a
       }
 
-      // TODO: + github issue - implement logging for subscribe with RebalanceListener1
+      // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = consumer.subscribe(topics, listener)
 
-      // TODO: + github issue - implement logging for subscribe with RebalanceListener1
+      // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
       def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = consumer.subscribe(pattern, listener)
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {

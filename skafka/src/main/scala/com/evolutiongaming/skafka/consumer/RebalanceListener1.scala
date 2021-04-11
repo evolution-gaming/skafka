@@ -20,22 +20,6 @@ trait RebalanceListener1[F[_]] { self =>
 }
 
 object RebalanceListener1 {
-  def noOp[F[_]]: RebalanceListener1[F] =
-    new RebalanceListener1[F] {
-
-      def onPartitionsAssigned(
-        partitions: Nes[TopicPartition]
-      ): RebalanceCallback[F, Unit] = RebalanceCallback.noOp
-
-      def onPartitionsRevoked(
-        partitions: Nes[TopicPartition]
-      ): RebalanceCallback[F, Unit] = RebalanceCallback.noOp
-
-      def onPartitionsLost(
-        partitions: Nes[TopicPartition]
-      ): RebalanceCallback[F, Unit] = RebalanceCallback.noOp
-
-    }
 
   implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
 

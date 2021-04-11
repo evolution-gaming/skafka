@@ -181,16 +181,16 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
             // ConcurrentModificationException("KafkaConsumer is not safe for multi-threaded access")
             // which in result would terminate current flatMap chain
             // and fail the test as positions (Set[Offset]) would be empty
-            position <- position(partitions.head) // TODO: allow consumer error handling in user land
+            position <- position(partitions.head)
             _ <- lift(positions.update(_.+(position)))
             _ <- lift(rebalanceCounter.update(_ + 1))
             _ <- lift(assigned.complete(()))
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = noOp
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
       }
     }
 
@@ -283,7 +283,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
             _ <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
           } yield ()
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
       }
     }
 
@@ -352,11 +352,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
           partitions
             .toList.map(seek(_, Offset.unsafe(1)))
-            .fold(noOp)((agg, e) => agg.flatMap(_ => e))
+            .fold(RebalanceCallback.empty)((agg, e) => agg.flatMap(_ => e))
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = noOp
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
       }
     }
 

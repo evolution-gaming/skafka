@@ -35,8 +35,12 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       val consumer: ConsumerJ[_, _] =
         null // null to verify zero interactions with consumer, otherwise there would be an NPE
 
-      "noOp just returns Unit" in {
-        tryRun(noOp, consumer) mustBe Try(())
+      "empty just returns Unit" in {
+        tryRun(RebalanceCallback.empty, consumer) mustBe Try(())
+      }
+
+      "pure just returns containing value" in {
+        tryRun(RebalanceCallback.pure("value"), consumer) mustBe Try("value")
       }
 
       "lift just returns the result of lifted computation" in {
@@ -97,7 +101,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         val rcOk = for {
-          _      <- noOp
+          _      <- RebalanceCallback.empty
           result <- assignment
           _       = lift(IO.raiseError[Unit](TestError)) // should have no effect
           _       = paused // throws TestError2 but should have no effect
@@ -178,7 +182,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           case _: StackOverflowError => // stackOverflowErrorDepth has correct value
         }
 
-        val rc = List.fill(stackOverflowErrorDepth)(noOp).fold(noOp) { (agg, e) => agg.flatMap(_ => e) }
+        val rc = List
+          .fill(stackOverflowErrorDepth)(RebalanceCallback.empty)
+          .fold(RebalanceCallback.empty) { (agg, e) => agg.flatMap(_ => e) }
 
         tryRun(rc, null) mustBe Try(())
       }

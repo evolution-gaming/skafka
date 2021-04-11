@@ -66,10 +66,7 @@ sealed trait RebalanceCallback[+F[_], +A]
 
 object RebalanceCallback extends RebalanceCallbackMonadInstances0 {
 
-  /**
-    * Will do nothing just like [[org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener]]
-    */
-  def noOp: RebalanceCallback[Nothing, Unit] = pure(())
+  val empty: RebalanceCallback[Nothing, Unit] = pure(())
 
   def pure[A](a: A): RebalanceCallback[Nothing, A] = Pure(a)
 
@@ -327,10 +324,13 @@ abstract private[consumer] class RebalanceCallbackMonadInstances0 {
       def F = F0
     }
 
-  implicit def catsApplicativeForRebalanceCallback[F[_]](implicit F0: Applicative[F]): Applicative[RebalanceCallback[F, *]] =
+  implicit def catsApplicativeForRebalanceCallback[F[_]](
+    implicit F0: Applicative[F]
+  ): Applicative[RebalanceCallback[F, *]] =
     new RebalanceCallbackApplicative[F] {
       def F = F0
-      def ap[A, B](ff: RebalanceCallback[F, A => B])(fa: RebalanceCallback[F, A]): RebalanceCallback[F, B] = ???
+      def ap[A, B](ff: RebalanceCallback[F, A => B])(fa: RebalanceCallback[F, A]): RebalanceCallback[F, B] =
+        ???
     }
 }
 

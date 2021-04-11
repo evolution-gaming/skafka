@@ -6,7 +6,7 @@ import java.util.{Map => MapJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import cats.{Applicative, Monad, ~>}
+import cats.{Monad, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
@@ -64,7 +64,7 @@ import scala.util.{Failure, Success, Try}
   */
 sealed trait RebalanceCallback[+F[_], +A]
 
-object RebalanceCallback extends RebalanceCallbackMonadInstances0 {
+object RebalanceCallback extends RebalanceCallbackInstances {
 
   val empty: RebalanceCallback[Nothing, Unit] = pure(())
 
@@ -318,39 +318,17 @@ object RebalanceCallback extends RebalanceCallbackMonadInstances0 {
 
 }
 
-abstract private[consumer] class RebalanceCallbackMonadInstances0 {
-  implicit def catsMonadForRebalanceCallback[F[_]](implicit F0: Monad[F]): Monad[RebalanceCallback[F, *]] =
-    new RebalanceCallbackMonad[F] {
-      def F = F0
+abstract private[consumer] class RebalanceCallbackInstances {
+  implicit def catsMonadForRebalanceCallback[F[_]]: Monad[RebalanceCallback[F, *]] =
+    new Monad[RebalanceCallback[F, *]] {
+
+      def pure[A](a: A): RebalanceCallback[F, A] =
+        RebalanceCallback.pure(a)
+
+      def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
+        fa.flatMap(f)
+
+      def tailRecM[A, B](a: A)(f: A => RebalanceCallback[F, Either[A, B]]): RebalanceCallback[F, B] =
+        ??? //RebalanceCallback.tailRecM(a)(f)
     }
-
-  implicit def catsApplicativeForRebalanceCallback[F[_]](
-    implicit F0: Applicative[F]
-  ): Applicative[RebalanceCallback[F, *]] =
-    new RebalanceCallbackApplicative[F] {
-      def F = F0
-      def ap[A, B](ff: RebalanceCallback[F, A => B])(fa: RebalanceCallback[F, A]): RebalanceCallback[F, B] =
-        ???
-    }
-}
-
-abstract private[consumer] class RebalanceCallbackMonad[F[_]] extends Monad[RebalanceCallback[F, *]] {
-  implicit protected def F: Monad[F]
-
-  def pure[A](a: A): RebalanceCallback[F, A] =
-    RebalanceCallback.pure(a)
-
-  def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
-    fa.flatMap(f)
-
-  def tailRecM[A, B](a: A)(f: A => RebalanceCallback[F, Either[A, B]]): RebalanceCallback[F, B] =
-    ??? //RebalanceCallback.tailRecM(a)(f)
-}
-
-abstract private[consumer] class RebalanceCallbackApplicative[F[_]] extends Applicative[RebalanceCallback[F, *]] {
-  implicit protected def F: Applicative[F]
-
-  def pure[A](a: A): RebalanceCallback[F, A] =
-    RebalanceCallback.pure(a)
-
 }

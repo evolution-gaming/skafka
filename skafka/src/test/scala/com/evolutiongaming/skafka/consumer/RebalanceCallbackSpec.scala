@@ -189,6 +189,26 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         tryRun(rc, null) mustBe Try(())
       }
 
+      "cats traverse is working" in {
+        @volatile var seekResult: List[String] = List.empty
+        val consumer = new ExplodingConsumer {
+          override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
+            seekResult = seekResult :+ partition.topic()
+          }
+        }
+
+        import cats.implicits._
+        val topics = List(1, 2, 3)
+        val rc: RebalanceCallback[IO, Unit] = for {
+          _ <- topics.traverse_(i =>
+            seek(TopicPartition(s"$i", Partition.min), Offset.min): RebalanceCallback[IO, Unit]
+          )
+        } yield ()
+
+        RebalanceCallback.run(rc, consumer) mustBe Try(())
+        seekResult mustBe topics.map(_.toString)
+      }
+
     }
 
   }

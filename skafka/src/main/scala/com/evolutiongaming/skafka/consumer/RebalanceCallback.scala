@@ -6,7 +6,7 @@ import java.util.{Map => MapJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import cats.{Monad, ~>}
+import cats.{StackSafeMonad, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
@@ -272,6 +272,9 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 
     def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(self, f)
 
+    // needed to avoid StackOverflowError in cats.FlatMap$Ops.flatMap
+    def flatMap2[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(self, f)
+
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {
       self match {
         case Pure(a)          => Pure(a)
@@ -319,16 +322,14 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 }
 
 abstract private[consumer] class RebalanceCallbackInstances {
-  implicit def catsMonadForRebalanceCallback[F[_]]: Monad[RebalanceCallback[F, *]] =
-    new Monad[RebalanceCallback[F, *]] {
+  implicit def catsMonadForRebalanceCallback[F[_]]: StackSafeMonad[RebalanceCallback[F, *]] =
+    new StackSafeMonad[RebalanceCallback[F, *]] {
 
       def pure[A](a: A): RebalanceCallback[F, A] =
         RebalanceCallback.pure(a)
 
       def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
-        fa.flatMap(f)
+        fa.flatMap2(f)
 
-      def tailRecM[A, B](a: A)(f: A => RebalanceCallback[F, Either[A, B]]): RebalanceCallback[F, B] =
-        ??? //RebalanceCallback.tailRecM(a)(f)
     }
 }

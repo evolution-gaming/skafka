@@ -38,8 +38,10 @@ trait Consumer[F[_], K, V] {
 
   def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit]
 
+  @deprecated("please use subscribe with RebalanceListener1", "11.1.0")
   def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
 
+  @deprecated("please use subscribe with RebalanceListener1", "11.1.0")
   def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]): F[Unit]
 
   def subscription: F[Set[Topic]]

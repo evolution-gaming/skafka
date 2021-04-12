@@ -1,9 +1,10 @@
 package com.evolutiongaming.skafka.consumer
 
+import java.lang.{Long => LongJ}
 import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.Concurrent
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
@@ -106,7 +107,7 @@ object ConsumerConverters {
         val result = partitions
           .asScala
           .toList
-          .traverse {_.asScala[F]}
+          .traverse { _.asScala[F] }
           .map { partitions =>
             partitions
               .toSortedSet
@@ -260,5 +261,9 @@ object ConsumerConverters {
 
   def offsetsAndTimestampsMapF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, OffsetAndTimestampJ]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
     mapJ.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
+  }
+
+  def timestampsToSearchJ(nem: Nem[TopicPartition, Instant]): MapJ[TopicPartitionJ, LongJ] = {
+    nem.toSortedMap.asJavaMap(_.asJava, _.toEpochMilli)
   }
 }

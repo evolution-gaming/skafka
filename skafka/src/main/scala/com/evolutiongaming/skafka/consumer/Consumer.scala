@@ -376,10 +376,8 @@ object Consumer {
         val assignment = {
           for {
             result <- serialNonBlocking { consumer.assignment() }
-            result <- result.asScala.toList.traverse { _.asScala[F] }
-          } yield {
-            result.toSet
-          }
+            result <- topicPartitionsSetF[F](result)
+          } yield result
         }
 
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
@@ -522,10 +520,8 @@ object Consumer {
         val paused = {
           for {
             result <- serialNonBlocking { consumer.paused() }
-            result <- result.asScala.toList.traverse { _.asScala[F] }
-          } yield {
-            result.toSet
-          }
+            result <- topicPartitionsSetF[F](result)
+          } yield result
         }
 
         def resume(partitions: Nes[TopicPartition]) = {

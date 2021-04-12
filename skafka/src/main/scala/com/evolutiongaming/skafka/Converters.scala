@@ -240,4 +240,10 @@ object Converters {
   def partitionsInfoMapF[F[_]: MonadThrowable](mapJ: MapJ[Topic, ListJ[PartitionInfoJ]]): F[Map[Topic, List[PartitionInfo]]] = {
     mapJ.asScalaMap(_.pure[F], partitionsInfoListF[F])
   }
+
+  def topicPartitionsSetF[F[_] : ApplicativeThrowable](setJ: SetJ[TopicPartitionJ]): F[Set[TopicPartition]] = {
+    for {
+      r <- setJ.asScala.toList.traverse { _.asScala[F] }
+    } yield r.toSet
+  }
 }

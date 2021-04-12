@@ -14,7 +14,7 @@ import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOps
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
+import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.annotation.tailrec
@@ -83,8 +83,8 @@ object RebalanceCallback extends RebalanceCallbackInstances {
   def assignment: RebalanceCallback[Nothing, Set[TopicPartition]] =
     for {
       result <- WithConsumer(_.assignment())
-      result <- fromTry(result.asScala.toList.traverse { _.asScala[Try] })
-    } yield result.toSet
+      result <- fromTry(topicPartitionsSetF[Try](result))
+    } yield result
 
   def beginningOffsets(
     partitions: Nes[TopicPartition]
@@ -115,13 +115,13 @@ object RebalanceCallback extends RebalanceCallbackInstances {
   def committed(
     partitions: Nes[TopicPartition]
   ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] =
-    committed1(partitions, none)
+    committed1(_.committed(partitions.asJava))
 
   def committed(
     partitions: Nes[TopicPartition],
     timeout: FiniteDuration
   ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] =
-    committed1(partitions, timeout.some)
+    committed1(_.committed(partitions.asJava, timeout.asJava))
 
   def endOffsets(
     partitions: Nes[TopicPartition]
@@ -183,13 +183,13 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 
   def paused: RebalanceCallback[Nothing, Set[TopicPartition]] =
     for {
-      result <- WithConsumer(c => c.paused())
-      result <- fromTry(result.asScala.toList.traverse { _.asScala[Try] })
-    } yield result.toSet
+      result <- WithConsumer(_.paused())
+      result <- fromTry(topicPartitionsSetF[Try](result))
+    } yield result
 
   def position(tp: TopicPartition): RebalanceCallback[Nothing, Offset] =
     for {
-      result <- WithConsumer(c => c.position(tp.asJava))
+      result <- WithConsumer(_.position(tp.asJava))
       result <- fromTry(Offset.of[Try](result))
     } yield result
 
@@ -295,16 +295,10 @@ object RebalanceCallback extends RebalanceCallbackInstances {
   private[consumer] object Helpers {
 
     def committed1(
-      partitions: Nes[TopicPartition],
-      timeout: Option[FiniteDuration]
+      f: ConsumerJ[_, _] => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
     ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] = {
       for {
-        result <- WithConsumer { c =>
-          timeout match {
-            case Some(value) => c.committed(partitions.asJava, value.asJava)
-            case None        => c.committed(partitions.asJava)
-          }
-        }
+        result <- WithConsumer(f)
         result <- fromTry(committedOffsetsF[Try](result))
       } yield result
     }
@@ -316,10 +310,6 @@ object RebalanceCallback extends RebalanceCallbackInstances {
         result <- WithConsumer(f)
         result <- fromTry(offsetsMapF[Try](result))
       } yield result
-    }
-
-    def timestampsToSearchJ(nem: Nem[TopicPartition, Instant]): MapJ[TopicPartitionJ, LongJ] = {
-      nem.toSortedMap.asJavaMap(_.asJava, _.toEpochMilli)
     }
 
   }

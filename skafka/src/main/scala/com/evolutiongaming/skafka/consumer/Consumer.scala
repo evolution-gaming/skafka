@@ -36,7 +36,11 @@ trait Consumer[F[_], K, V] {
 
   def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit]
 
+  def subscribe(topics: Nes[Topic]): F[Unit]
+
   def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit]
+
+  def subscribe(pattern: Pattern): F[Unit]
 
   @deprecated("please use subscribe with RebalanceListener1", "11.1.0")
   def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
@@ -137,7 +141,11 @@ object Consumer {
 
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit] = empty
 
+      def subscribe(topics: Nes[Topic]): F[Unit] = empty
+
       def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit] = empty
+
+      def subscribe(pattern: Pattern): F[Unit] = empty
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = empty
 
@@ -380,9 +388,18 @@ object Consumer {
           serialNonBlocking { consumer.subscribe(topicsJ, listenerJ) }
         }
 
+        def subscribe(topics: Nes[Topic]) = {
+          val topicsJ = topics.toSortedSet.asJava
+          serialNonBlocking { consumer.subscribe(topicsJ, new NoOpConsumerRebalanceListener) }
+        }
+
         def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
           val listenerJ = listener.asJava(consumer)
           serialNonBlocking { consumer.subscribe(pattern, listenerJ) }
+        }
+
+        def subscribe(pattern: Pattern) = {
+          serialNonBlocking { consumer.subscribe(pattern, new NoOpConsumerRebalanceListener) }
         }
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
@@ -651,8 +668,22 @@ object Consumer {
         // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = self.subscribe(topics, listener)
 
+        def subscribe(topics: Nes[Topic]) = {
+          for {
+            _ <- count("subscribe", topics.toList)
+            r <- self.subscribe(topics)
+          } yield r
+        }
+
         // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
         def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = self.subscribe(pattern, listener)
+
+        def subscribe(pattern: Pattern) = {
+          for {
+            _ <- count("subscribe", List("pattern"))
+            r <- self.subscribe(pattern)
+          } yield r
+        }
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
@@ -904,9 +935,17 @@ object Consumer {
         fg(self.subscribe(topics, listener1))
       }
 
+      def subscribe(topics: Nes[Topic]) = {
+        fg(self.subscribe(topics))
+      }
+
       def subscribe(pattern: Pattern, listener: RebalanceListener1[G]) = {
         val listener1 = listener.mapK(gf)
         fg(self.subscribe(pattern, listener1))
+      }
+
+      def subscribe(pattern: Pattern) = {
+        fg(self.subscribe(pattern))
       }
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {

@@ -13,6 +13,7 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
+import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOps
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
@@ -266,14 +267,11 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 
   private final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
 
-  implicit class ListenerConsumerOps[F[_], A](val self: RebalanceCallback[F, A]) extends AnyVal {
+  implicit class RebalanceCallbackOps[F[_], A](val self: RebalanceCallback[F, A]) extends AnyVal {
 
     def map[B](f: A => B): RebalanceCallback[F, B] = flatMap(a => pure(f(a)))
 
     def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(self, f)
-
-    // needed to avoid StackOverflowError in cats.FlatMap$Ops.flatMap
-    def flatMap2[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(self, f)
 
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {
       self match {
@@ -329,7 +327,7 @@ abstract private[consumer] class RebalanceCallbackInstances {
         RebalanceCallback.pure(a)
 
       def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
-        fa.flatMap2(f)
+        new RebalanceCallbackOps(fa).flatMap(f)
 
     }
 }

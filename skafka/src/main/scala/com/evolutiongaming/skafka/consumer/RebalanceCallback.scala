@@ -285,6 +285,11 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 
   }
 
+  implicit class RebalanceCallbackNothingOps[A](val self: RebalanceCallback[Nothing, A]) extends AnyVal {
+    def effectAs[F[_]]: RebalanceCallback[F, A] = self
+    def apply[F[_]]: RebalanceCallback[F, A]    = effectAs
+  }
+
   private[consumer] object Helpers {
 
     def committed1(
@@ -320,6 +325,9 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 }
 
 abstract private[consumer] class RebalanceCallbackInstances {
+  implicit val catsMonadForRebalanceCallbackWithNoEffect: StackSafeMonad[RebalanceCallback[Nothing, *]] =
+    catsMonadForRebalanceCallback[Nothing]
+
   implicit def catsMonadForRebalanceCallback[F[_]]: StackSafeMonad[RebalanceCallback[F, *]] =
     new StackSafeMonad[RebalanceCallback[F, *]] {
 

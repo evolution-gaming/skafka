@@ -200,9 +200,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         import cats.implicits._
         val topics = List(1, 2, 3)
         val rc: RebalanceCallback[IO, Unit] = for {
-          _ <- topics.traverse_(i =>
-            seek(TopicPartition(s"$i", Partition.min), Offset.min): RebalanceCallback[IO, Unit]
-          )
+          _ <- topics.traverse_(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))
         } yield ()
 
         RebalanceCallback.run(rc, consumer) mustBe Try(())

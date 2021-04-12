@@ -25,18 +25,22 @@ import scala.util.{Failure, Success, Try}
 /**
   * Describes computations in callback methods of [[RebalanceListener1]].
   *
-  * All consumer related methods are executed on a `poll` thread.
+  * `RebalanceCallback` is just a data structure (a description of things to be done),
+  * so calling `RebalanceCallback.seek(...)` for example does not execute the `seek` right away.
+  *
+  * However all consumer related methods are executed on a `poll` thread,
+  * at the time of interpretation/execution of the `RebalanceCallback` data structure.
   *
   * The computations' result is awaited on a `poll` thread,
-  * just as it would with blocking java API of ConsumerRebalanceListener.
+  * just as it would with blocking java API of `ConsumerRebalanceListener`.
   *
-  *  Errors from consumer-related methods are thrown in a `poll` thread,
-  *  and currently there's no way to provide recovering code inside [[RebalanceCallback]].
+  * Errors from consumer related methods are thrown in a `poll` thread,
+  * and currently there's no way to provide recovering code inside [[RebalanceCallback]].
   *
-  *  Unhandled errors from lifted computations are thrown in a `poll` thread,
-  *  currently it's only possible to handle those errors from within lifted F[_] context.
+  * Unhandled errors from lifted computations are thrown in a `poll` thread,
+  * currently it's only possible to handle those errors from within lifted F[_] context.
   *
-  *  Usage:
+  * Usage:
   * {{{
   * new RebalanceListener1[IO] {
   *
@@ -45,23 +49,21 @@ import scala.util.{Failure, Success, Try}
   *  def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
   *    for {
   *      state <- lift(restoreStateFor(partitions))
-  *      offsets = state.offsets
-  *      _ <- seek(tbd....
+  *      _     <- state.offsets.traverse_(o => seek(o.partition, o.offset))
   *    } yield ()
   *  }
   *
   *  def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
   *    for {
-  *      committed <- committed(partitions)
-  *      offset = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
-  *      _ <- lift(offsets.update(_ :+ offset))
-  *      _ <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
+  *      offsets <- lift(committableOffsetsFor(partitions))
+  *      _       <- commit(offsets)
   *    } yield ()
   *
-  *  def onPartitionsLost(partitions: Nes[TopicPartition]) = noOp
+  *  def onPartitionsLost(partitions: Nes[TopicPartition]) = empty
   * }
   * }}}
   * @see [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+  * @see [[RebalanceListener1]]
   */
 sealed trait RebalanceCallback[+F[_], +A]
 

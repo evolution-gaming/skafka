@@ -22,8 +22,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
   "RebalanceCallback" - {
 
     "consumer unrelated methods do nothing with consumer" - {
-      val consumer: RebalanceConsumerJ =
-        null // null to verify zero interactions with consumer, otherwise there would be an NPE
+      val consumer = new ExplodingConsumer
 
       "empty just returns Unit" in {
         tryRun(RebalanceCallback.empty, consumer) mustBe Try(())
@@ -176,7 +175,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield ()
 
-          RebalanceCallback.run(rcOk, null) mustBe Try(())
+          RebalanceCallback.run(rcOk, new ExplodingConsumer) mustBe Try(())
           list.get() mustBe List("one", "two", "3")
         }
 
@@ -197,7 +196,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             .fill(stackOverflowErrorDepth)(RebalanceCallback.empty)
             .fold(RebalanceCallback.empty) { (agg, e) => agg.flatMap(_ => e) }
 
-          tryRun(rc, null) mustBe Try(())
+          tryRun(rc, new ExplodingConsumer) mustBe Try(())
         }
 
       }

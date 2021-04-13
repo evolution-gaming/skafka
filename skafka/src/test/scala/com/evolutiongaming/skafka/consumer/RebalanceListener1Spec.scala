@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
+import java.util.concurrent.atomic.AtomicReference
 
 import cats.Applicative
 import cats.data.{NonEmptySet => Nes}
@@ -9,22 +10,22 @@ import cats.implicits._
 import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec._
 import com.evolutiongaming.skafka.{Offset, TopicPartition}
+import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
-import scala.util.Try
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
   "scala version of ConsumerRebalanceListener's documentation example is working" in {
-    @volatile var seekResult: List[String] = List.empty
+    val seekResult: AtomicReference[List[String]] = new AtomicReference(List.empty)
 
     val listener1 = new SaveOffsetsOnRebalance[IO]
 
     val consumer = new ExplodingConsumer {
       override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
-        seekResult = seekResult :+ partition.toString
+        val _ = seekResult.getAndUpdate(_ :+ partition.toString)
       }
 
       override def position(partition: TopicPartitionJ): LongJ = {
@@ -36,7 +37,7 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
       listener1.onPartitionsAssigned(partitions.s),
       consumer
     ) mustBe Try(())
-    seekResult must contain theSameElementsAs partitions.j.asScala.map(_.toString)
+    seekResult.get() must contain theSameElementsAs partitions.j.asScala.map(_.toString)
 
     RebalanceCallback.run(
       listener1.onPartitionsRevoked(partitions.s),

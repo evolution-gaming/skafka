@@ -2,6 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
+import java.util.concurrent.atomic.AtomicReference
 import java.util.{Collection => CollectionJ, Map => MapJ, Set => SetJ}
 
 import cats.effect.IO
@@ -86,112 +87,126 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
     "composability" - {
 
-      "flatMap" in {
-        val expected               = partitions.s
-        var a: Set[TopicPartition] = Set.empty
-        var b: String              = "unchanged"
-        var c: String              = "unchanged"
+      "flatMap" - {
+        "result from consumer method is visible to lifted computation" in {
+          val expected = partitions.s
 
-        val consumer = new ExplodingConsumer {
-          override def assignment(): SetJ[TopicPartitionJ] = partitions.j
+          val consumer = new ExplodingConsumer {
+            override def assignment(): SetJ[TopicPartitionJ] = partitions.j
 
-          override def paused(): SetJ[TopicPartitionJ] = throw TestError2
+            override def paused(): SetJ[TopicPartitionJ] = throw TestError2
+          }
+
+          val rcOk = for {
+            _      <- RebalanceCallback.empty
+            result <- assignment
+            _       = lift(IO.raiseError[Unit](TestError)) // should have no effect
+            _       = paused // throws TestError2 but should have no effect
+            a      <- lift(IO.delay { result })
+          } yield a
+
+          RebalanceCallback.run(rcOk, consumer) mustBe Try(expected)
         }
 
-        val rcOk = for {
-          _      <- RebalanceCallback.empty
-          result <- assignment
-          _       = lift(IO.raiseError[Unit](TestError)) // should have no effect
-          _       = paused // throws TestError2 but should have no effect
-          a <- lift(IO.delay {
-            a = result
-          })
-        } yield a
+        "error from lifted computation" in {
+          val a: AtomicReference[String] = new AtomicReference("unchanged")
+          val b: AtomicReference[String] = new AtomicReference("unchanged")
 
-        val rcError1 = for {
-          _ <- lift(IO.delay {
-            c = "rcError1"
-          })
-          _ <- lift(IO.raiseError[Unit](TestError)) // should fail the execution
-          _ <- paused // paused throws TestError2, should not overwrite first error from lift
-          a <- lift(IO.delay {
-            b = "this change should not happen"
-          })
-        } yield a
+          val consumer = new ExplodingConsumer {
+            override def paused(): SetJ[TopicPartitionJ] = throw TestError2
+          }
 
-        val rcError2 = for {
-          _ <- lift(IO.delay {
-            c = "rcError2"
-          })
-          _ <- paused // throws TestError2
-          _ <- lift(
-            IO.raiseError[Unit](TestError)
-          ) // execution is failed already, should not overwrite first error from paused
-          a <- lift(IO.delay {
-            b = "this change should not happen 2"
-          })
-        } yield a
+          val rcError1 = for {
+            _ <- lift(IO.delay {
+              a.getAndUpdate(_ => "step-before-rcError1")
+            })
+            _ <- lift(IO.raiseError[Unit](TestError)) // should fail the execution
+            _ <- paused // paused throws TestError2, should not overwrite first error from lift
+            _ <- lift(IO.delay {
+              b.getAndUpdate(_ => "this change should not happen")
+            })
+          } yield ()
 
-        val ok = RebalanceCallback.run(rcOk, consumer)
-        ok mustBe Try(())
-        a mustBe expected
-        c mustBe "unchanged"
+          val Failure(error) = RebalanceCallback.run(rcError1, consumer)
+          error mustBe TestError
+          a.get() mustBe "step-before-rcError1"
+          b.get() mustBe "unchanged"
 
-        val Failure(error) = RebalanceCallback.run(rcError1, consumer)
-        error mustBe TestError
-        b mustBe "unchanged"
-        c mustBe "rcError1"
-
-        val Failure(error2) = RebalanceCallback.run(rcError2, consumer)
-        error2 mustBe TestError2
-        b mustBe "unchanged"
-        c mustBe "rcError2"
-      }
-
-      "flatMap correct execution order" in {
-        var list: List[String] = List.empty
-
-        val rcOk = for {
-          _ <- lift(IO.delay {
-            list = list :+ "one"
-          })
-          _ <- lift(IO.delay {
-            list = list :+ "two"
-          })
-          a <- lift(IO.delay {
-            list = list :+ "3"
-          })
-        } yield a
-
-        RebalanceCallback.run(rcOk, null) mustBe Try(())
-        list mustBe List("one", "two", "3")
-      }
-
-      "flatMap is free from StackOverflowError" in {
-        val stackOverflowErrorDepth = 1000000
-        // check that deep enough recursion results in StackOverflowError with current JVM settings
-        try {
-          // trigger SOE with given stackOverflowErrorDepth
-          triggerStackOverflowError(stackOverflowErrorDepth)
-          fail(
-            s"expected a StackOverflowError from $stackOverflowErrorDepth-deep recursion, consider increasing the depth in test"
-          )
-        } catch {
-          case _: StackOverflowError => // stackOverflowErrorDepth has correct value
         }
 
-        val rc = List
-          .fill(stackOverflowErrorDepth)(RebalanceCallback.empty)
-          .fold(RebalanceCallback.empty) { (agg, e) => agg.flatMap(_ => e) }
+        "error from consumer method" in {
+          val a: AtomicReference[String] = new AtomicReference("unchanged")
+          val b: AtomicReference[String] = new AtomicReference("unchanged")
 
-        tryRun(rc, null) mustBe Try(())
+          val consumer = new ExplodingConsumer {
+            override def paused(): SetJ[TopicPartitionJ] = throw TestError2
+          }
+
+          val rcError2 = for {
+            _ <- lift(IO.delay {
+              a.getAndUpdate(_ => "step-before-rcError2")
+            })
+            _ <- paused // throws TestError2
+            _ <- lift(
+              IO.raiseError[Unit](TestError)
+            ) // execution is failed already, should not overwrite first error from paused
+            _ <- lift(IO.delay {
+              b.getAndUpdate(_ => "this change should not happen 2")
+            })
+          } yield ()
+
+          val Failure(error2) = RebalanceCallback.run(rcError2, consumer)
+          error2 mustBe TestError2
+          a.get() mustBe "step-before-rcError2"
+          b.get() mustBe "unchanged"
+        }
+
+        "correct execution order" in {
+          val list: AtomicReference[List[String]] = new AtomicReference(List.empty)
+
+          val rcOk = for {
+            _ <- lift(IO.delay {
+              list.getAndUpdate(_ :+ "one")
+            })
+            _ <- lift(IO.delay {
+              list.getAndUpdate(_ :+ "two")
+            })
+            _ <- lift(IO.delay {
+              list.getAndUpdate(_ :+ "3")
+            })
+          } yield ()
+
+          RebalanceCallback.run(rcOk, null) mustBe Try(())
+          list.get() mustBe List("one", "two", "3")
+        }
+
+        "free from StackOverflowError" in {
+          val stackOverflowErrorDepth = 1000000
+          // check that deep enough recursion results in StackOverflowError with current JVM settings
+          try {
+            // trigger SOE with given stackOverflowErrorDepth
+            triggerStackOverflowError(stackOverflowErrorDepth)
+            fail(
+              s"expected a StackOverflowError from $stackOverflowErrorDepth-deep recursion, consider increasing the depth in test"
+            )
+          } catch {
+            case _: StackOverflowError => // stackOverflowErrorDepth has correct value
+          }
+
+          val rc = List
+            .fill(stackOverflowErrorDepth)(RebalanceCallback.empty)
+            .fold(RebalanceCallback.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+          tryRun(rc, null) mustBe Try(())
+        }
+
       }
 
       "cats traverse is working" in {
-        @volatile var seekResult: List[String] = List.empty
+        val seekResult: AtomicReference[List[String]] = new AtomicReference(List.empty)
         val consumer = new ExplodingConsumer {
           override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
-            seekResult = seekResult :+ partition.topic()
+            val _ = seekResult.getAndUpdate(_ :+ partition.topic())
           }
         }
 
@@ -202,7 +217,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         } yield a
 
         RebalanceCallback.run(rc, consumer) mustBe Try(())
-        seekResult mustBe topics.map(_.toString)
+        seekResult.get() mustBe topics.map(_.toString)
       }
 
     }

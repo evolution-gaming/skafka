@@ -38,8 +38,17 @@ object ConsumerLogging {
         } yield a
       }
 
-      // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
-      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = consumer.subscribe(topics, listener)
+      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
+        // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
+        val listenerLogging = listener //.withLogging(log)
+
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.subscribe(topics, listenerLogging)
+          d <- d
+          _ <- log.debug(s"subscribe in ${ d.toMillis }ms, topics: ${ topics.mkString_(", ") }, listener1: true")
+        } yield a
+      }
 
       def subscribe(topics: Nes[Topic]) = {
         for {
@@ -50,8 +59,17 @@ object ConsumerLogging {
         } yield a
       }
 
-      // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
-      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = consumer.subscribe(pattern, listener)
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
+        // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
+        val listenerLogging = listener //.withLogging(log)
+
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.subscribe(pattern, listenerLogging)
+          d <- d
+          _ <- log.debug(s"subscribe in ${ d.toMillis }ms, pattern: $pattern, listener1: true")
+        } yield a
+      }
 
       def subscribe(pattern: Pattern) = {
         for {

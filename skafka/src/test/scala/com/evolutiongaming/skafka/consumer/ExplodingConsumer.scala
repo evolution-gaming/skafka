@@ -2,18 +2,15 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
-import java.util.concurrent.{TimeUnit => TimeUnitJ}
-import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
-import org.apache.kafka.clients.consumer
 import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener,
-  OffsetAndMetadata,
-  OffsetCommitCallback
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo, TopicPartition => TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
 
@@ -28,39 +25,17 @@ class ExplodingConsumer extends RebalanceConsumerJ {
 
   def subscription(): SetJ[String] = notImplemented
 
-  def subscribe(topics: CollectionJ[String]): Unit = notImplemented
-
-  def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListener): Unit = notImplemented
-
-  def assign(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
-
-  def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit = notImplemented
-
-  def subscribe(pattern: Pattern): Unit = notImplemented
-
-  def unsubscribe(): Unit = notImplemented
-
-  def poll(timeout: LongJ): consumer.ConsumerRecords[String, String] = notImplemented
-
-  def poll(timeout: DurationJ): consumer.ConsumerRecords[String, String] = notImplemented
-
   def commitSync(): Unit = notImplemented
 
   def commitSync(timeout: DurationJ): Unit = notImplemented
 
-  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata]): Unit = notImplemented
+  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): Unit = notImplemented
 
-  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], timeout: DurationJ): Unit = notImplemented
-
-  def commitAsync(): Unit = notImplemented
-
-  def commitAsync(callback: OffsetCommitCallback): Unit = notImplemented
-
-  def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], callback: OffsetCommitCallback): Unit = notImplemented
+  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ): Unit = notImplemented
 
   def seek(partition: TopicPartitionJ, offset: LongJ): Unit = notImplemented
 
-  def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadata): Unit = notImplemented
+  def seek(partition: TopicPartitionJ, OffsetAndMetadataJ: OffsetAndMetadataJ): Unit = notImplemented
 
   def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
@@ -70,18 +45,12 @@ class ExplodingConsumer extends RebalanceConsumerJ {
 
   def position(partition: TopicPartitionJ, timeout: DurationJ): LongJ = notImplemented
 
-  def committed(partition: TopicPartitionJ): OffsetAndMetadata = notImplemented
-
-  def committed(partition: TopicPartitionJ, timeout: DurationJ): OffsetAndMetadata = notImplemented
-
-  def committed(partitions: SetJ[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadata] = notImplemented
+  def committed(partitions: SetJ[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = notImplemented
 
   def committed(
     partitions: SetJ[TopicPartitionJ],
     timeout: DurationJ
-  ): MapJ[TopicPartitionJ, OffsetAndMetadata] = notImplemented
-
-  def metrics(): MapJ[MetricName, _ <: Metric] = notImplemented
+  ): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = notImplemented
 
   def partitionsFor(topic: String): ListJ[PartitionInfo] = notImplemented
 
@@ -93,18 +62,14 @@ class ExplodingConsumer extends RebalanceConsumerJ {
 
   def paused(): SetJ[TopicPartitionJ] = notImplemented
 
-  def pause(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
-
-  def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
-
   def offsetsForTimes(
     timestampsToSearch: MapJ[TopicPartitionJ, LongJ]
-  ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = notImplemented
+  ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = notImplemented
 
   def offsetsForTimes(
     timestampsToSearch: MapJ[TopicPartitionJ, LongJ],
     timeout: DurationJ
-  ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = notImplemented
+  ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = notImplemented
 
   def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = notImplemented
 
@@ -120,15 +85,8 @@ class ExplodingConsumer extends RebalanceConsumerJ {
     timeout: DurationJ
   ): MapJ[TopicPartitionJ, LongJ] = notImplemented
 
-  def groupMetadata(): consumer.ConsumerGroupMetadata = notImplemented
+  def groupMetadata(): ConsumerGroupMetadataJ = notImplemented
 
-  def close(): Unit = notImplemented
-
-  def close(timeout: Long, unit: TimeUnitJ): Unit = notImplemented
-
-  def close(timeout: DurationJ): Unit = notImplemented
-
-  def wakeup(): Unit = notImplemented
 }
 
 object ExplodingConsumer {

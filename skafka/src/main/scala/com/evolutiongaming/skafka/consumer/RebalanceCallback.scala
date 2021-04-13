@@ -105,13 +105,13 @@ object RebalanceCallback extends RebalanceCallbackInstances {
     WithConsumer(_.commitSync(timeout.asJava))
 
   def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.commitSync(asOffsetsJ(offsets)))
+    WithConsumer(_.commitSync(asOffsetsAndMetadataJ(offsets)))
 
   def commit(
     offsets: Nem[TopicPartition, OffsetAndMetadata],
     timeout: FiniteDuration
   ): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.commitSync(asOffsetsJ(offsets), timeout.asJava))
+    WithConsumer(_.commitSync(asOffsetsAndMetadataJ(offsets), timeout.asJava))
 
   def committed(
     partitions: Nes[TopicPartition]

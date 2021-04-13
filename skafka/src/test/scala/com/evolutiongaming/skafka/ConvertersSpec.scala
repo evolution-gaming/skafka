@@ -1,12 +1,17 @@
 package com.evolutiongaming.skafka
 
+import java.lang.{Long => LongJ}
+
 import cats.Id
+import cats.data.{NonEmptySet => Nes}
 import cats.implicits._
 import com.evolutiongaming.skafka.Converters._
-import org.apache.kafka.common.Node
+import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
+import scala.jdk.CollectionConverters._
 import scala.util.Try
 
 
@@ -42,6 +47,22 @@ class ConvertersSpec extends AnyWordSpec with Matchers {
       val deserializer = FromBytes.bytesFromBytes[Id].asJava
       deserializer.deserialize("topic", Bytes.empty) shouldEqual Bytes.empty
       deserializer.asScala[Id].apply(Bytes.empty, "topic") shouldEqual Bytes.empty
+    }
+
+    "asOffsetsAndMetadataJ" in {
+      val scala = Nes
+        .of(
+          TopicPartition("topic", Partition.unsafe(3))   -> OffsetAndMetadata(Offset.unsafe(39), "meta"),
+          TopicPartition("topicc", Partition.unsafe(42)) -> OffsetAndMetadata(Offset.unsafe(71), "data")
+        )
+        .toNonEmptyList
+        .toNem
+      val expected = Set(
+        new TopicPartitionJ("topic", 3)   -> new OffsetAndMetadataJ(39, "meta"),
+        new TopicPartitionJ("topicc", 42) -> new OffsetAndMetadataJ(71, "data")
+      ).toMap.asJava
+
+      asOffsetsAndMetadataJ(scala) shouldEqual expected
     }
   }
 }

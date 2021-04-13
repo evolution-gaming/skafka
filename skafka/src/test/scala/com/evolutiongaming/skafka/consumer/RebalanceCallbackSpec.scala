@@ -3,17 +3,20 @@ package com.evolutiongaming.skafka.consumer
 import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
 import java.util.concurrent.atomic.AtomicReference
-import java.util.{Collection => CollectionJ, Map => MapJ, Set => SetJ}
+import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
 import cats.effect.IO
+import com.evolutiongaming.skafka.Converters.{SkafkaOffsetAndMetadataOpsConverters, TopicPartitionOps}
+import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
-import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
+import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Try}
 
@@ -49,37 +52,241 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     "consumer related methods delegating the call correctly" - {
 
       "assignment" in {
-        val expected = partitions.s
+        val output = partitions.s
 
         val consumer = new ExplodingConsumer {
           override def assignment(): SetJ[TopicPartitionJ] = partitions.j
         }
 
-        tryRun(assignment, consumer) mustBe Try(expected)
+        tryRun(assignment, consumer) mustBe Try(output)
       }
 
       "beginningOffsets" in {
-        val input    = partitions.s
-        val expected = offsetsMap.s
-
+        val input  = partitions
+        val output = offsetsMap
         val consumer = new ExplodingConsumer {
           override def beginningOffsets(p: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
-            if (p == partitions.j) {
-              offsetsMap.j
-            } else fail("wrong input params")
+            p mustBe input.j
+            output.j
           }
+
           override def beginningOffsets(
             p: CollectionJ[TopicPartitionJ],
             timeout: DurationJ
           ): MapJ[TopicPartitionJ, LongJ] = {
-            if (p == partitions.j && timeout == timeouts.j) {
-              offsetsMap.j
-            } else fail("wrong input params")
+            p mustBe input.j
+            timeout mustBe timeouts.j
+            output.j
           }
         }
 
-        tryRun(beginningOffsets(input), consumer) mustBe Try(expected)
-        tryRun(beginningOffsets(input, timeouts.s), consumer) mustBe Try(expected)
+        tryRun(beginningOffsets(input.s), consumer) mustBe Try(output.s)
+        tryRun(beginningOffsets(input.s, timeouts.s), consumer) mustBe Try(output.s)
+      }
+
+      "commit" in {
+        val input = offsetsAndMetadataMap
+        val consumer = new ExplodingConsumer {
+          override def commitSync(): Unit = ()
+
+          override def commitSync(timeout: DurationJ): Unit = {
+            val _ = timeout mustBe timeouts.j
+          }
+
+          override def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): Unit = {
+            val _ = offsets mustBe input.j
+          }
+
+          override def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ): Unit = {
+            val _ = timeout mustBe timeouts.j
+            offsets mustBe input.j
+            ()
+          }
+        }
+
+        tryRun(commit, consumer) mustBe Try(())
+        tryRun(commit(timeouts.s), consumer) mustBe Try(())
+        tryRun(commit(input.s), consumer) mustBe Try(())
+        tryRun(commit(input.s, timeouts.s), consumer) mustBe Try(())
+      }
+
+      "committed" in {
+        val input  = partitions
+        val output = offsetsAndMetadataMap
+        val consumer = new ExplodingConsumer {
+          override def committed(p: SetJ[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
+            p mustBe input.j
+            output.j
+          }
+
+          override def committed(
+            p: SetJ[TopicPartitionJ],
+            timeout: DurationJ
+          ): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
+            timeout mustBe timeouts.j
+            p mustBe input.j
+            output.j
+          }
+        }
+
+        tryRun(committed(input.s), consumer) mustBe Try(output.s)
+        tryRun(committed(input.s, timeouts.s), consumer) mustBe Try(output.s)
+      }
+
+      "endOffsets" in {
+        val input  = partitions
+        val output = offsetsMap
+        val consumer = new ExplodingConsumer {
+          override def endOffsets(p: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
+            p mustBe input.j
+            output.j
+          }
+
+          override def endOffsets(
+            p: CollectionJ[TopicPartitionJ],
+            timeout: DurationJ
+          ): MapJ[TopicPartitionJ, LongJ] = {
+            timeout mustBe timeouts.j
+            p mustBe input.j
+            output.j
+          }
+        }
+
+        tryRun(endOffsets(input.s), consumer) mustBe Try(output.s)
+        tryRun(endOffsets(input.s, timeouts.s), consumer) mustBe Try(output.s)
+      }
+
+      "groupMetadata" in {
+        val output = consumerGroupMetadata
+
+        val consumer = new ExplodingConsumer {
+          override def groupMetadata(): ConsumerGroupMetadataJ = output.j
+        }
+
+        tryRun(groupMetadata, consumer) mustBe Try(output.s)
+      }
+
+      "topics" in {
+        val output = partitionInfoMap
+
+        val consumer = new ExplodingConsumer {
+          override def listTopics(): MapJ[Topic, ListJ[PartitionInfoJ]] = output.j
+          override def listTopics(timeout: DurationJ): MapJ[Topic, ListJ[PartitionInfoJ]] = {
+            timeout mustBe timeouts.j
+            output.j
+          }
+        }
+
+        tryRun(topics, consumer) mustBe Try(output.s)
+        tryRun(topics(timeouts.s), consumer) mustBe Try(output.s)
+      }
+
+      "partitionsFor" in {
+        val input  = partitionInfo.s.topic
+        val output = partitionInfoList
+
+        val consumer = new ExplodingConsumer {
+          override def partitionsFor(topic: String): ListJ[PartitionInfoJ] = {
+            topic mustBe input
+            output.j
+          }
+          override def partitionsFor(topic: String, timeout: DurationJ): ListJ[PartitionInfoJ] = {
+            timeout mustBe timeouts.j
+            topic mustBe input
+            output.j
+          }
+        }
+
+        tryRun(partitionsFor(input), consumer) mustBe Try(output.s)
+        tryRun(partitionsFor(input, timeouts.s), consumer) mustBe Try(output.s)
+      }
+
+      "paused" in {
+        val output = partitions
+
+        val consumer = new ExplodingConsumer {
+          override def paused(): SetJ[TopicPartitionJ] = output.j
+        }
+
+        tryRun(paused, consumer) mustBe Try(output.s)
+      }
+
+      "position" in {
+        val input  = partitions.s.head
+        val output = Offset.unsafe(323)
+
+        val consumer = new ExplodingConsumer {
+          override def position(p: TopicPartitionJ): LongJ = {
+            p mustBe input.asJava
+            output.value
+          }
+          override def position(p: TopicPartitionJ, timeout: DurationJ): LongJ = {
+            timeout mustBe timeouts.j
+            p mustBe input.asJava
+            output.value
+          }
+        }
+
+        tryRun(position(input), consumer) mustBe Try(output)
+        tryRun(position(input, timeouts.s), consumer) mustBe Try(output)
+      }
+
+      "seek" in {
+        val input                  = partitions.s.head
+        val inputOffset            = Offset.unsafe(423)
+        val inputOffsetAndMetadata = OffsetAndMetadata(inputOffset)
+        val output                 = ()
+
+        val consumer = new ExplodingConsumer {
+          override def seek(p: TopicPartitionJ, offset: LongJ): Unit = {
+            val _ = p mustBe input.asJava
+          }
+
+          override def seek(p: TopicPartitionJ, offsetAndMetadataJ: OffsetAndMetadataJ): Unit = {
+            p mustBe input.asJava
+            val _ = offsetAndMetadataJ mustBe inputOffsetAndMetadata.asJava
+          }
+
+        }
+
+        tryRun(seek(input, inputOffset), consumer) mustBe Try(output)
+        tryRun(seek(input, inputOffsetAndMetadata), consumer) mustBe Try(output)
+      }
+
+      "seekToBeginning" in {
+        val input  = partitions
+        val output = ()
+
+        val consumer = new ExplodingConsumer {
+          override def seekToBeginning(p: CollectionJ[TopicPartitionJ]): Unit = {
+            val _ = p mustBe input.j
+          }
+        }
+
+        tryRun(seekToBeginning(input.s), consumer) mustBe Try(output)
+      }
+
+      "seekToEnd" in {
+        val input  = partitions
+        val output = ()
+
+        val consumer = new ExplodingConsumer {
+          override def seekToEnd(p: CollectionJ[TopicPartitionJ]): Unit = {
+            val _ = p mustBe input.j
+          }
+        }
+
+        tryRun(seekToEnd(input.s), consumer) mustBe Try(output)
+      }
+
+      "subscription" in {
+        val output = partitions.s.map(_.topic).toSortedSet
+
+        val consumer = new ExplodingConsumer {
+          override def subscription(): SetJ[String] = output.asJava
+        }
+
+        tryRun(subscription, consumer) mustBe Try(output)
       }
 
     }

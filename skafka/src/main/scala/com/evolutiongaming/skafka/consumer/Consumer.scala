@@ -438,12 +438,12 @@ object Consumer {
         }
 
         def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
-          val offsetsJ = asOffsetsJ(offsets)
+          val offsetsJ = asOffsetsAndMetadataJ(offsets)
           serialBlocking { consumer.commitSync(offsetsJ) }
         }
 
         def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-          val offsetsJ = asOffsetsJ(offsets)
+          val offsetsJ = asOffsetsAndMetadataJ(offsets)
           val timeoutJ = timeout.asJava
           serialBlocking { consumer.commitSync(offsetsJ, timeoutJ) }
         }

@@ -229,7 +229,7 @@ object Converters {
     mapJ.asScalaMap(_.asScala[F], a => Offset.of[F](a))
   }
 
-  def asOffsetsJ(offsets: Nem[TopicPartition, OffsetAndMetadata]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
+  def asOffsetsAndMetadataJ(offsets: Nem[TopicPartition, OffsetAndMetadata]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
     offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
   }
 

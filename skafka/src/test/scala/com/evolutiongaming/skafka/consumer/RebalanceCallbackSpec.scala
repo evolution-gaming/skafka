@@ -117,12 +117,12 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
           val rcError1 = for {
             _ <- lift(IO.delay {
-              a.getAndUpdate(_ => "step-before-rcError1")
+              a.set("step-before-rcError1")
             })
             _ <- lift(IO.raiseError[Unit](TestError)) // should fail the execution
             _ <- paused // paused throws TestError2, should not overwrite first error from lift
             _ <- lift(IO.delay {
-              b.getAndUpdate(_ => "this change should not happen")
+              b.set("this change should not happen")
             })
           } yield ()
 
@@ -143,14 +143,14 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
           val rcError2 = for {
             _ <- lift(IO.delay {
-              a.getAndUpdate(_ => "step-before-rcError2")
+              a.set("step-before-rcError2")
             })
             _ <- paused // throws TestError2
             _ <- lift(
               IO.raiseError[Unit](TestError)
             ) // execution is failed already, should not overwrite first error from paused
             _ <- lift(IO.delay {
-              b.getAndUpdate(_ => "this change should not happen 2")
+              b.set("this change should not happen 2")
             })
           } yield ()
 

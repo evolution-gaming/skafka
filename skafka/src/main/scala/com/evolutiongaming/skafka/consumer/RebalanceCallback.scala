@@ -47,20 +47,20 @@ import scala.util.{Failure, Success, Try}
   *
   *  import RebalanceCallback._
   *
-  *  def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+  *  def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) = {
   *    for {
   *      state <- lift(restoreStateFor(partitions))
   *      a     <- state.offsets.foldMapM(o => seek(o.partition, o.offset))
   *    } yield a
   *  }
   *
-  *  def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+  *  def onPartitionsRevoked(partitions: NonEmptySet[TopicPartition]) =
   *    for {
   *      offsets <- lift(committableOffsetsFor(partitions))
   *      a       <- commit(offsets)
   *    } yield a
   *
-  *  def onPartitionsLost(partitions: Nes[TopicPartition]) = empty
+  *  def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = empty
   * }
   * }}}
   * @see [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]

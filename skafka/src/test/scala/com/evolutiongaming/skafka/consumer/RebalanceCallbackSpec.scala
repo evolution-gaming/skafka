@@ -58,7 +58,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           override def beginningOffsets(p: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
             if (p == partitions.j) {
               offsetsMap.j
-            } else ???
+            } else fail("wrong input params")
           }
           override def beginningOffsets(
             p: CollectionJ[TopicPartitionJ],
@@ -66,7 +66,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           ): MapJ[TopicPartitionJ, LongJ] = {
             if (p == partitions.j && timeout == timeouts.j) {
               offsetsMap.j
-            } else ???
+            } else fail("wrong input params")
           }
         }
 

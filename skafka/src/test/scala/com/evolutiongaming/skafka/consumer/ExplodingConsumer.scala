@@ -6,6 +6,7 @@ import java.util.concurrent.{TimeUnit => TimeUnitJ}
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
+import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
 import org.apache.kafka.clients.consumer
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
@@ -15,116 +16,125 @@ import org.apache.kafka.clients.consumer.{
 }
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 
+import scala.util.control.NoStackTrace
+
 /**
-  * It is intentional to have all methods as `???` (throws NotImplementedError)
+  * It is intentional to have all methods as `notImplemented` (throws NotImplementedOnPurpose)
   *
   * It is used to verify the only expected interaction in corresponding tests
   * by implementing the only expected method to be called in test
   */
 class ExplodingConsumer extends ConsumerJ[String, String] {
-  def assignment(): SetJ[TopicPartitionJ] = ???
+  def assignment(): SetJ[TopicPartitionJ] = notImplemented
 
-  def subscription(): SetJ[String] = ???
+  def subscription(): SetJ[String] = notImplemented
 
-  def subscribe(topics: CollectionJ[String]): Unit = ???
+  def subscribe(topics: CollectionJ[String]): Unit = notImplemented
 
-  def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListener): Unit = ???
+  def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListener): Unit = notImplemented
 
-  def assign(partitions: CollectionJ[TopicPartitionJ]): Unit = ???
+  def assign(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
-  def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit = ???
+  def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit = notImplemented
 
-  def subscribe(pattern: Pattern): Unit = ???
+  def subscribe(pattern: Pattern): Unit = notImplemented
 
-  def unsubscribe(): Unit = ???
+  def unsubscribe(): Unit = notImplemented
 
-  def poll(timeout: Long): consumer.ConsumerRecords[String, String] = ???
+  def poll(timeout: Long): consumer.ConsumerRecords[String, String] = notImplemented
 
-  def poll(timeout: DurationJ): consumer.ConsumerRecords[String, String] = ???
+  def poll(timeout: DurationJ): consumer.ConsumerRecords[String, String] = notImplemented
 
-  def commitSync(): Unit = ???
+  def commitSync(): Unit = notImplemented
 
-  def commitSync(timeout: DurationJ): Unit = ???
+  def commitSync(timeout: DurationJ): Unit = notImplemented
 
-  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata]): Unit = ???
+  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata]): Unit = notImplemented
 
-  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], timeout: DurationJ): Unit = ???
+  def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], timeout: DurationJ): Unit = notImplemented
 
-  def commitAsync(): Unit = ???
+  def commitAsync(): Unit = notImplemented
 
-  def commitAsync(callback: OffsetCommitCallback): Unit = ???
+  def commitAsync(callback: OffsetCommitCallback): Unit = notImplemented
 
-  def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], callback: OffsetCommitCallback): Unit = ???
+  def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], callback: OffsetCommitCallback): Unit = notImplemented
 
-  def seek(partition: TopicPartitionJ, offset: Long): Unit = ???
+  def seek(partition: TopicPartitionJ, offset: Long): Unit = notImplemented
 
-  def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadata): Unit = ???
+  def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadata): Unit = notImplemented
 
-  def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]): Unit = ???
+  def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
-  def seekToEnd(partitions: CollectionJ[TopicPartitionJ]): Unit = ???
+  def seekToEnd(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
-  def position(partition: TopicPartitionJ): Long = ???
+  def position(partition: TopicPartitionJ): Long = notImplemented
 
-  def position(partition: TopicPartitionJ, timeout: DurationJ): Long = ???
+  def position(partition: TopicPartitionJ, timeout: DurationJ): Long = notImplemented
 
-  def committed(partition: TopicPartitionJ): OffsetAndMetadata = ???
+  def committed(partition: TopicPartitionJ): OffsetAndMetadata = notImplemented
 
-  def committed(partition: TopicPartitionJ, timeout: DurationJ): OffsetAndMetadata = ???
+  def committed(partition: TopicPartitionJ, timeout: DurationJ): OffsetAndMetadata = notImplemented
 
-  def committed(partitions: SetJ[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadata] = ???
+  def committed(partitions: SetJ[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadata] = notImplemented
 
   def committed(
     partitions: SetJ[TopicPartitionJ],
     timeout: DurationJ
-  ): MapJ[TopicPartitionJ, OffsetAndMetadata] = ???
+  ): MapJ[TopicPartitionJ, OffsetAndMetadata] = notImplemented
 
-  def metrics(): MapJ[MetricName, _ <: Metric] = ???
+  def metrics(): MapJ[MetricName, _ <: Metric] = notImplemented
 
-  def partitionsFor(topic: String): ListJ[PartitionInfo] = ???
+  def partitionsFor(topic: String): ListJ[PartitionInfo] = notImplemented
 
-  def partitionsFor(topic: String, timeout: DurationJ): ListJ[PartitionInfo] = ???
+  def partitionsFor(topic: String, timeout: DurationJ): ListJ[PartitionInfo] = notImplemented
 
-  def listTopics(): MapJ[String, ListJ[PartitionInfo]] = ???
+  def listTopics(): MapJ[String, ListJ[PartitionInfo]] = notImplemented
 
-  def listTopics(timeout: DurationJ): MapJ[String, ListJ[PartitionInfo]] = ???
+  def listTopics(timeout: DurationJ): MapJ[String, ListJ[PartitionInfo]] = notImplemented
 
-  def paused(): SetJ[TopicPartitionJ] = ???
+  def paused(): SetJ[TopicPartitionJ] = notImplemented
 
-  def pause(partitions: CollectionJ[TopicPartitionJ]): Unit = ???
+  def pause(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
-  def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = ???
+  def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
   def offsetsForTimes(
     timestampsToSearch: MapJ[TopicPartitionJ, LongJ]
-  ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = ???
+  ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = notImplemented
 
   def offsetsForTimes(
     timestampsToSearch: MapJ[TopicPartitionJ, LongJ],
     timeout: DurationJ
-  ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = ???
+  ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = notImplemented
 
-  def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = ???
+  def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = notImplemented
 
   def beginningOffsets(
     partitions: CollectionJ[TopicPartitionJ],
     timeout: DurationJ
-  ): MapJ[TopicPartitionJ, LongJ] = ???
+  ): MapJ[TopicPartitionJ, LongJ] = notImplemented
 
-  def endOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = ???
+  def endOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = notImplemented
 
   def endOffsets(
     partitions: CollectionJ[TopicPartitionJ],
     timeout: DurationJ
-  ): MapJ[TopicPartitionJ, LongJ] = ???
+  ): MapJ[TopicPartitionJ, LongJ] = notImplemented
 
-  def groupMetadata(): consumer.ConsumerGroupMetadata = ???
+  def groupMetadata(): consumer.ConsumerGroupMetadata = notImplemented
 
-  def close(): Unit = ???
+  def close(): Unit = notImplemented
 
-  def close(timeout: Long, unit: TimeUnitJ): Unit = ???
+  def close(timeout: Long, unit: TimeUnitJ): Unit = notImplemented
 
-  def close(timeout: DurationJ): Unit = ???
+  def close(timeout: DurationJ): Unit = notImplemented
 
-  def wakeup(): Unit = ???
+  def wakeup(): Unit = notImplemented
+}
+
+object ExplodingConsumer {
+
+  def notImplemented: Nothing = throw NotImplementedOnPurpose
+
+  case object NotImplementedOnPurpose extends NoStackTrace
 }

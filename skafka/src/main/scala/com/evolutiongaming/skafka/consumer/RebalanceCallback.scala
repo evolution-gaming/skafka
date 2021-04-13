@@ -35,7 +35,8 @@ import scala.util.{Failure, Success, Try}
   * just as it would with blocking java API of `ConsumerRebalanceListener`.
   *
   * Errors from consumer related methods are thrown in a `poll` thread,
-  * and currently there's no way to provide recovering code for [[RebalanceCallback]].
+  * and currently there's no way to provide recovering code for [[RebalanceCallback]],
+  * but it's planned to be [[https://github.com/evolution-gaming/skafka/issues/128 added]].
   *
   * Unhandled errors from lifted computations are thrown in a `poll` thread,
   * currently it's only possible to handle those errors from within lifted F[_] context.

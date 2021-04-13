@@ -11,8 +11,7 @@ import org.apache.kafka.clients.consumer
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
   OffsetAndMetadata,
-  OffsetCommitCallback,
-  Consumer => ConsumerJ
+  OffsetCommitCallback
 }
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 
@@ -24,7 +23,7 @@ import scala.util.control.NoStackTrace
   * It is used to verify the only expected interaction in corresponding tests
   * by implementing the only expected method to be called in test
   */
-class ExplodingConsumer extends ConsumerJ[String, String] {
+class ExplodingConsumer extends RebalanceConsumerJ {
   def assignment(): SetJ[TopicPartitionJ] = notImplemented
 
   def subscription(): SetJ[String] = notImplemented
@@ -41,7 +40,7 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
 
   def unsubscribe(): Unit = notImplemented
 
-  def poll(timeout: Long): consumer.ConsumerRecords[String, String] = notImplemented
+  def poll(timeout: LongJ): consumer.ConsumerRecords[String, String] = notImplemented
 
   def poll(timeout: DurationJ): consumer.ConsumerRecords[String, String] = notImplemented
 
@@ -59,7 +58,7 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
 
   def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadata], callback: OffsetCommitCallback): Unit = notImplemented
 
-  def seek(partition: TopicPartitionJ, offset: Long): Unit = notImplemented
+  def seek(partition: TopicPartitionJ, offset: LongJ): Unit = notImplemented
 
   def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadata): Unit = notImplemented
 
@@ -67,9 +66,9 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
 
   def seekToEnd(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
 
-  def position(partition: TopicPartitionJ): Long = notImplemented
+  def position(partition: TopicPartitionJ): LongJ = notImplemented
 
-  def position(partition: TopicPartitionJ, timeout: DurationJ): Long = notImplemented
+  def position(partition: TopicPartitionJ, timeout: DurationJ): LongJ = notImplemented
 
   def committed(partition: TopicPartitionJ): OffsetAndMetadata = notImplemented
 

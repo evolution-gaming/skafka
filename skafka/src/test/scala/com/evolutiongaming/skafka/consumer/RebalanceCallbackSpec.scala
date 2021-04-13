@@ -9,7 +9,6 @@ import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -22,7 +21,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
   "RebalanceCallback" - {
 
     "consumer unrelated methods do nothing with consumer" - {
-      val consumer: ConsumerJ[_, _] =
+      val consumer: RebalanceConsumerJ =
         null // null to verify zero interactions with consumer, otherwise there would be an NPE
 
       "empty just returns Unit" in {
@@ -182,7 +181,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       "cats traverse is working" in {
         @volatile var seekResult: List[String] = List.empty
         val consumer = new ExplodingConsumer {
-          override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
+          override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
             seekResult = seekResult :+ partition.topic()
           }
         }
@@ -204,7 +203,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
 object RebalanceCallbackSpec {
 
-  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: ConsumerJ[_, _]): Try[Any] = {
+  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: RebalanceConsumerJ): Try[Any] = {
     RebalanceCallback.run[Try, A](rc, consumer)
   }
 

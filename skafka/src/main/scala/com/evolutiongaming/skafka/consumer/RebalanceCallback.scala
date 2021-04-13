@@ -14,7 +14,7 @@ import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOps
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.annotation.tailrec
@@ -216,7 +216,7 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 
   private[consumer] def run[F[_]: ToTry, A](
     rebalanceCallback: RebalanceCallback[F, A],
-    consumer: ConsumerJ[_, _]
+    consumer: RebalanceConsumerJ
   ): Try[A] = {
     type S = Any => RebalanceCallback[F, Any]
 
@@ -266,7 +266,7 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 
   private final case class Lift[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
 
-  private final case class WithConsumer[+A](f: ConsumerJ[_, _] => A) extends RebalanceCallback[Nothing, A]
+  private final case class WithConsumer[+A](f: RebalanceConsumerJ => A) extends RebalanceCallback[Nothing, A]
 
   private final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
 
@@ -296,7 +296,7 @@ object RebalanceCallback extends RebalanceCallbackInstances {
   private[consumer] object Helpers {
 
     def committed1(
-      f: ConsumerJ[_, _] => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
+      f: RebalanceConsumerJ => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
     ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] = {
       for {
         result <- WithConsumer(f)
@@ -305,7 +305,7 @@ object RebalanceCallback extends RebalanceCallbackInstances {
     }
 
     def offsets1(
-      f: ConsumerJ[_, _] => MapJ[TopicPartitionJ, LongJ]
+      f: RebalanceConsumerJ => MapJ[TopicPartitionJ, LongJ]
     ): RebalanceCallback[Nothing, Map[TopicPartition, Offset]] = {
       for {
         result <- WithConsumer(f)

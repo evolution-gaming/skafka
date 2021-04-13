@@ -1,5 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
+import java.lang.{Long => LongJ}
+
 import cats.Applicative
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.IO
@@ -21,11 +23,11 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
     val listener1 = new SaveOffsetsOnRebalance[IO]
 
     val consumer = new ExplodingConsumer {
-      override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
+      override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
         seekResult = seekResult :+ partition.toString
       }
 
-      override def position(partition: TopicPartitionJ): Long = {
+      override def position(partition: TopicPartitionJ): LongJ = {
         offsetsMap.j.get(partition)
       }
     }
@@ -109,8 +111,8 @@ object RebalanceListener1Spec {
       .pure[F]
   }
 
-  def saveOffsetsInExternalStore[F[_]: Applicative](offsets: Map[TopicPartition, Offset]) = {
-    if (offsets == offsetsMap.s.toSortedMap) offsets.as(()).pure[F]
+  def saveOffsetsInExternalStore[F[_]: Applicative](offsets: Map[TopicPartition, Offset]): F[Unit] = {
+    if (offsets == offsetsMap.s.toSortedMap) ().pure[F]
     else sys.error("saving wrong offsets")
   }
 

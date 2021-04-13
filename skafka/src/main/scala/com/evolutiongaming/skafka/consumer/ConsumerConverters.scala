@@ -18,7 +18,6 @@ import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
-import scala.util.Try
 
 object ConsumerConverters {
 
@@ -114,10 +113,8 @@ object ConsumerConverters {
               .toNes
           }
           .toTry
-          .flatMap { nesOpt =>
-            nesOpt.map {
-              nes => RebalanceCallback.run(call(nes), consumer)
-            }.getOrElse(().pure[Try])
+          .flatMap {
+            _.foldMapM { partitions => RebalanceCallback.run(call(partitions), consumer) }
           }
         result.fold(throw _, _ => ())
       }

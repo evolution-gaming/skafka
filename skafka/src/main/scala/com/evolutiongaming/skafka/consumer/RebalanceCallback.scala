@@ -49,15 +49,15 @@ import scala.util.{Failure, Success, Try}
   *  def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
   *    for {
   *      state <- lift(restoreStateFor(partitions))
-  *      _     <- state.offsets.traverse_(o => seek(o.partition, o.offset))
-  *    } yield ()
+  *      a     <- state.offsets.foldMapM(o => seek(o.partition, o.offset))
+  *    } yield a
   *  }
   *
   *  def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
   *    for {
   *      offsets <- lift(committableOffsetsFor(partitions))
-  *      _       <- commit(offsets)
-  *    } yield ()
+  *      a       <- commit(offsets)
+  *    } yield a
   *
   *  def onPartitionsLost(partitions: Nes[TopicPartition]) = empty
   * }

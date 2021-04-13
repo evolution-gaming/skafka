@@ -24,8 +24,8 @@ import com.evolutiongaming.skafka.TopicPartition
   *    for {
   *      // read the offsets from an external store using some custom code not described here
   *      offsets <- lift(readOffsetsFromExternalStore[F](partitions))
-  *      _       <- offsets.toList.traverse_ { case (partition, offset) => seek(partition, offset) }
-  *    } yield ()
+  *      a       <- offsets.toList.foldMapM { case (partition, offset) => seek(partition, offset) }
+  *    } yield a
   *
   * def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
   *    for {
@@ -36,8 +36,8 @@ import com.evolutiongaming.skafka.TopicPartition
   *          } yield offsets + (partition -> position)
   *      }
   *      // save the offsets in an external store using some custom code not described here
-  *      _ <- lift(saveOffsetsInExternalStore[F](positions))
-  *    } yield ()
+  *      a <- lift(saveOffsetsInExternalStore[F](positions))
+  *    } yield a
   *
   *  // do not need to save the offsets since these partitions are probably owned by other consumers already
   *  def onPartitionsLost(partitions: Nes[TopicPartition]) = empty

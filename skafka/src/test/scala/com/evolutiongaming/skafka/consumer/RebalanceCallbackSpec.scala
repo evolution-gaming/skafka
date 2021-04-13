@@ -95,10 +95,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           result <- assignment
           _       = lift(IO.raiseError[Unit](TestError)) // should have no effect
           _       = paused // throws TestError2 but should have no effect
-          _ <- lift(IO.delay {
+          a <- lift(IO.delay {
             a = result
           })
-        } yield ()
+        } yield a
 
         val rcError1 = for {
           _ <- lift(IO.delay {
@@ -106,10 +106,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           })
           _ <- lift(IO.raiseError[Unit](TestError)) // should fail the execution
           _ <- paused // paused throws TestError2, should not overwrite first error from lift
-          _ <- lift(IO.delay {
+          a <- lift(IO.delay {
             b = "this change should not happen"
           })
-        } yield ()
+        } yield a
 
         val rcError2 = for {
           _ <- lift(IO.delay {
@@ -119,10 +119,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           _ <- lift(
             IO.raiseError[Unit](TestError)
           ) // execution is failed already, should not overwrite first error from paused
-          _ <- lift(IO.delay {
+          a <- lift(IO.delay {
             b = "this change should not happen 2"
           })
-        } yield ()
+        } yield a
 
         val ok = RebalanceCallback.run(rcOk, consumer)
         ok mustBe Try(())
@@ -150,10 +150,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           _ <- lift(IO.delay {
             list = list :+ "two"
           })
-          _ <- lift(IO.delay {
+          a <- lift(IO.delay {
             list = list :+ "3"
           })
-        } yield ()
+        } yield a
 
         RebalanceCallback.run(rcOk, null) mustBe Try(())
         list mustBe List("one", "two", "3")
@@ -190,8 +190,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         import cats.implicits._
         val topics = List(1, 2, 3)
         val rc: RebalanceCallback[IO, Unit] = for {
-          _ <- topics.traverse_(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))
-        } yield ()
+          a <- topics.foldMapM(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))
+        } yield a
 
         RebalanceCallback.run(rc, consumer) mustBe Try(())
         seekResult mustBe topics.map(_.toString)

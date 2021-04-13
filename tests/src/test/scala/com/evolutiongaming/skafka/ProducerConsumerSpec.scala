@@ -223,8 +223,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           poll = {
               consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) })
           }
-          _ <- (IO.cancelBoundary *> poll).foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
-        } yield ()
+          a <- (IO.cancelBoundary *> poll).foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
+        } yield a
         x.use(_ => assigned.get.timeout(10.seconds))
       }
 
@@ -280,8 +280,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
             committed <- committed(partitions)
             offset = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
             _ <- lift(offsets.update(_ :+ offset))
-            _ <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
-          } yield ()
+            a <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
+          } yield a
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
       }
@@ -350,7 +350,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         import RebalanceCallback._
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
-          partitions.traverse_(seek(_, Offset.unsafe(1)))
+          partitions.foldMapM(seek(_, Offset.unsafe(1)))
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
 

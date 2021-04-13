@@ -47,7 +47,7 @@ import com.evolutiongaming.skafka.TopicPartition
   * @see [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   * @see [[com.evolutiongaming.skafka.consumer.RebalanceCallback]]
   */
-trait RebalanceListener1[F[_]] { self =>
+trait RebalanceListener1[F[_]] {
 
   def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]): RebalanceCallback[F, Unit]
 

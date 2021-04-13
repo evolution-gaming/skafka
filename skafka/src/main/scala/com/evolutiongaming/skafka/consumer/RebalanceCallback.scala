@@ -6,7 +6,7 @@ import java.util.{Map => MapJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import cats.{StackSafeMonad, ~>}
+import cats.{Monad, StackSafeMonad, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
@@ -317,10 +317,10 @@ object RebalanceCallback extends RebalanceCallbackInstances {
 }
 
 abstract private[consumer] class RebalanceCallbackInstances {
-  implicit val catsMonadForRebalanceCallbackWithNoEffect: StackSafeMonad[RebalanceCallback[Nothing, *]] =
+  implicit val catsMonadForRebalanceCallbackWithNoEffect: Monad[RebalanceCallback[Nothing, *]] =
     catsMonadForRebalanceCallback[Nothing]
 
-  implicit def catsMonadForRebalanceCallback[F[_]]: StackSafeMonad[RebalanceCallback[F, *]] =
+  implicit def catsMonadForRebalanceCallback[F[_]]: Monad[RebalanceCallback[F, *]] =
     new StackSafeMonad[RebalanceCallback[F, *]] {
 
       def pure[A](a: A): RebalanceCallback[F, A] =

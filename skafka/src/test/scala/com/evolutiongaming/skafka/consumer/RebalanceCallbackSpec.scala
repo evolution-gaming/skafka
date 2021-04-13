@@ -34,6 +34,15 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       "lift just returns the result of lifted computation" in {
         tryRun(lift(Try("ok")), consumer) mustBe Try("ok")
+        RebalanceCallback.run(lift(IO.delay("can" + " do" + " stuff")), consumer) mustBe Try("can do stuff")
+      }
+
+      "fromTry just returns the result - Success" in {
+        tryRun(fromTry(Try("ok")), consumer) mustBe Try("ok")
+      }
+
+      "fromTry just returns the result - Failure" in {
+        tryRun(fromTry(Try(throw TestError)), consumer) mustBe Failure(TestError)
       }
     }
 

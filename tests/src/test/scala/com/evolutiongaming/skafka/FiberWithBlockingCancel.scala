@@ -8,7 +8,7 @@ import cats.effect.{Concurrent, Fiber, Resource, Timer}
 import scala.concurrent.duration.FiniteDuration
 
 object FiberWithBlockingCancel {
-  implicit class Ops[F[_], A](val self: F[A]) extends AnyVal {
+  implicit class FiberWithBlockingCancelOps[F[_], A](val self: F[A]) extends AnyVal {
     def startAwaitExit(implicit c: Concurrent[F]): F[Fiber[F, A]] = {
       for {
         deferred <- Deferred[F, Unit]

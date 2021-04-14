@@ -661,8 +661,13 @@ object Consumer {
 
         val assignment = self.assignment
 
-        // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
-        def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = self.subscribe(topics, listener)
+        def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
+          // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
+          for {
+            _ <- count("subscribe", topics.toList)
+            r <- self.subscribe(topics, listener)
+          } yield r
+        }
 
         def subscribe(topics: Nes[Topic]) = {
           for {
@@ -671,8 +676,13 @@ object Consumer {
           } yield r
         }
 
-        // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
-        def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = self.subscribe(pattern, listener)
+        def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
+          // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
+          for {
+            _ <- count("subscribe", List("pattern"))
+            r <- self.subscribe(pattern, listener)
+          } yield r
+        }
 
         def subscribe(pattern: Pattern) = {
           for {

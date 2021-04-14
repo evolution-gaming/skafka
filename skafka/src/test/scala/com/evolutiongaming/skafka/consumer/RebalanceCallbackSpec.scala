@@ -11,7 +11,11 @@ import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -179,6 +183,31 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(topics, consumer) mustBe Try(output.s)
         tryRun(topics(timeouts.s), consumer) mustBe Try(output.s)
+      }
+
+      "offsetsForTimes" in {
+        val input = timeStampsToSearchMap
+        val output = offsetsForTimesResponse
+
+        val consumer = new ExplodingConsumer {
+          override def offsetsForTimes(
+            timestampsToSearch: MapJ[TopicPartitionJ, LongJ]
+          ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
+            timestampsToSearch mustBe input.j
+            output.j
+          }
+          override def offsetsForTimes(
+            timestampsToSearch: MapJ[TopicPartitionJ, LongJ],
+            timeout: DurationJ
+          ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
+            timeout mustBe timeouts.j
+            timestampsToSearch mustBe input.j
+            output.j
+          }
+        }
+
+        tryRun(offsetsForTimes(input.s), consumer) mustBe Try(output.s)
+        tryRun(offsetsForTimes(input.s, timeouts.s), consumer) mustBe Try(output.s)
       }
 
       "partitionsFor" in {

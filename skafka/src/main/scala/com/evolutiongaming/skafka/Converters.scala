@@ -101,11 +101,11 @@ object Converters {
 
   implicit class MapJOps[K, V](val self: MapJ[K, V]) extends AnyVal {
 
-    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
+    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B], keepNullValues: Boolean): F[Map[A, B]] = {
       self
         .asScala
         .toList
-        .collect { case (k, v) if k != null && v != null =>
+        .collect { case (k, v) if k != null && (keepNullValues || v != null) =>
           for {
             a <- ka(k)
             b <- vb(v)
@@ -113,6 +113,10 @@ object Converters {
         }
         .sequence
         .map { _.toMap }
+    }
+
+    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
+      asScalaMap(ka, vb, keepNullValues = false)
     }
   }
 

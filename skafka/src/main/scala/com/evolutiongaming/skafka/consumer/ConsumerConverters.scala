@@ -257,7 +257,7 @@ object ConsumerConverters {
   }
 
   def offsetsAndTimestampsMapF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, OffsetAndTimestampJ]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
-    mapJ.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
+    mapJ.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] }, keepNullValues = true)
   }
 
   def timestampsToSearchJ(nem: Nem[TopicPartition, Instant]): MapJ[TopicPartitionJ, LongJ] = {

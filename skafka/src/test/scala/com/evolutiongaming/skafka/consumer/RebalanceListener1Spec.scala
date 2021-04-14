@@ -44,6 +44,11 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
       consumer
     ) mustBe Try(())
 
+    RebalanceCallback.run(
+      listener1.onPartitionsLost(partitions.s).effectAs[IO],
+      consumer
+    ) mustBe Try(())
+
   }
 }
 

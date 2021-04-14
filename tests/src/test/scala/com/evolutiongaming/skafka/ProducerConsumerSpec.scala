@@ -223,6 +223,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           poll = {
               consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) })
           }
+          // without IO.cancelBoundary consumer.poll is called after consumer was closed
+          // https://github.com/typelevel/cats-effect/issues/326#issuecomment-416925044
           a <- (IO.cancelBoundary *> poll).foreverM.backgroundAwaitExit.withTimeoutRelease(5.seconds)
         } yield a
         x.use(_ => assigned.get.timeout(10.seconds))

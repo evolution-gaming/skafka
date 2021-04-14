@@ -1,12 +1,14 @@
 package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, Duration => DurationJ}
 import java.util.{Optional, List => ListJ, Map => MapJ, Set => SetJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.consumer.ConsumerConverters.OffsetAndTimestampOps
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata => OffsetAndMetadataJ
@@ -20,26 +22,44 @@ object DataPoints {
 
   final case class JavaScala[J, S](j: J, s: S)
 
+  val partition1 = {
+    val topicName = "topic"
+    val partition = Partition.unsafe(3)
+    JavaScala(
+      new TopicPartitionJ(topicName, partition.value),
+      TopicPartition(topicName, partition)
+    )
+  }
+
+  val partition2 = {
+    val topicName = "topic2"
+    val partition = Partition.unsafe(42)
+    JavaScala(
+      new TopicPartitionJ(topicName, partition.value),
+      TopicPartition(topicName, partition)
+    )
+  }
+
   val partitions: JavaScala[SetJ[TopicPartitionJ], Nes[TopicPartition]] = JavaScala(
     Set(
-      new TopicPartitionJ("topic", 3),
-      new TopicPartitionJ("topicc", 42)
+      partition1.j,
+      partition2.j
     ).asJava,
     Nes.of(
-      TopicPartition("topic", Partition.unsafe(3)),
-      TopicPartition("topicc", Partition.unsafe(42))
+      partition1.s,
+      partition2.s
     )
   )
 
   val offsetsMap: JavaScala[MapJ[TopicPartitionJ, LongJ], Nem[TopicPartition, Offset]] = JavaScala(
     Set(
-      new TopicPartitionJ("topic", 3)   -> LongJ.valueOf(39L),
-      new TopicPartitionJ("topicc", 42) -> LongJ.valueOf(71L)
+      partition1.j -> LongJ.valueOf(39L),
+      partition2.j -> LongJ.valueOf(71L)
     ).toMap.asJava,
     Nes
       .of(
-        TopicPartition("topic", Partition.unsafe(3))   -> Offset.unsafe(39),
-        TopicPartition("topicc", Partition.unsafe(42)) -> Offset.unsafe(71)
+        partition1.s -> Offset.unsafe(39),
+        partition2.s -> Offset.unsafe(71)
       )
       .toNonEmptyList
       .toNem
@@ -87,6 +107,32 @@ object DataPoints {
     MapJ.of(partitionInfo.j.topic(), partitionInfoList.j),
     Map(partitionInfo.s.topic -> partitionInfoList.s)
   )
+
+  val (timeStampsToSearchMap, offsetsForTimesResponse) = {
+    // truncation to millis is needed as we operate with millis precision in transform functions (asJava/asScala)
+    val instant1           = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+    val instant2           = instant1.plusSeconds(31)
+    val timestamp1         = instant1.toEpochMilli
+    val timestamp2         = instant2.toEpochMilli
+    val offsetAndTimestamp = OffsetAndTimestamp(Offset.unsafe(23), instant1)
+    (
+      JavaScala(
+        MapJ.of(partition1.j, timestamp1, partition2.j, timestamp2),
+        Nem.of(
+          partition1.s -> instant1,
+          partition2.s -> instant2,
+        )
+      ),
+      JavaScala(
+        // MapJ.of(...) does not allow `null` values/keys, so using scala Map instead
+        Map(partition1.j -> offsetAndTimestamp.asJava, partition2.j -> null).asJavaMap(identity, identity),
+        Nem.of(
+          partition1.s -> Some(offsetAndTimestamp),
+          partition2.s -> Option.empty,
+        )
+      )
+    )
+  }
 
   val timeouts: JavaScala[DurationJ, FiniteDuration] = JavaScala(
     DurationJ.ofSeconds(7),

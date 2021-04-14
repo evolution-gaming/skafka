@@ -34,6 +34,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
   private val partition = Partition.min
   private val offset = Offset.min
   private val topicPartition = TopicPartition(topic, partition)
+  private val topicPartition2 = TopicPartition("topic2", partition)
   private val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
   private val offsets = Nem.of((topicPartition, offsetAndMetadata))
   private val partitions = Nes.of(topicPartition)
@@ -207,11 +208,23 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "offsetsForTimes" in new Scope {
-      consumer.offsetsForTimes(Map((topicPartition, offset))) should produce(Map((topicPartition, Option(offsetAndTimestamp))))
+      val timestampsToSearch = Map((topicPartition, offset), (topicPartition2, offset))
+      val expected = Map(
+        (topicPartition, Option(offsetAndTimestamp)),
+        (topicPartition2, Option.empty)
+      )
+
+      consumer.offsetsForTimes(timestampsToSearch) should produce(expected)
     }
 
     "offsetsForTimes with timeout" in new Scope {
-      consumer.offsetsForTimes(Map((topicPartition, offset)), 1.second) should produce(Map((topicPartition, Option(offsetAndTimestamp))))
+      val timestampsToSearch = Map((topicPartition, offset), (topicPartition2, offset))
+      val expected = Map(
+        (topicPartition, Option(offsetAndTimestamp)),
+        (topicPartition2, Option.empty)
+      )
+
+      consumer.offsetsForTimes(timestampsToSearch, 1.second) should produce(expected)
     }
 
     "beginningOffsets" in new Scope {
@@ -419,7 +432,12 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       }
 
       def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ]) = {
-        Map((topicPartition, offsetAndTimestamp)).asJavaMap(_.asJava, _.asJava)
+        val mapJ = Map((topicPartition, offsetAndTimestamp)).asJavaMap(_.asJava, _.asJava)
+        // By contract/implementation KafkaConsumer always return map with the same number of keys as timestampsToSearch
+        // if offset cannot be found for given TopicPartitionJ and timestamp, it's reflected as `null` value
+        // which skafka API exposes as Option[OffsetAndTimestamp]
+        mapJ.put(topicPartition2.asJava, null)
+        mapJ
       }
 
       def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ], timeout: DurationJ) = {

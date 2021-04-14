@@ -1,7 +1,5 @@
 package com.evolutiongaming.skafka
 
-import java.lang.{Long => LongJ}
-
 import cats.Id
 import cats.data.{NonEmptySet => Nes}
 import cats.implicits._
@@ -12,7 +10,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import scala.jdk.CollectionConverters._
-import scala.util.Try
+import scala.util.{Failure, Try}
 
 
 class ConvertersSpec extends AnyWordSpec with Matchers {
@@ -63,6 +61,51 @@ class ConvertersSpec extends AnyWordSpec with Matchers {
       ).toMap.asJava
 
       asOffsetsAndMetadataJ(scala) shouldEqual expected
+    }
+
+    "asScalaMap" in {
+      val scalaMap: Map[String, (Int, Int)] = Map(
+        ("a_keyWithValue", (1, 2)),
+        (null, (3, 4)),
+        ("b_keyWithNull", null),
+        (null, null)
+      )
+
+      // skips null keys and values by default
+      scalaMap
+        .asJava
+        .asScalaMap(
+          k => Option(k.charAt(0)),
+          v => Option(v._1)
+        ) shouldBe Map(('a', 1)).some
+
+      // skips null keys by default and values on demand
+      scalaMap
+        .asJava
+        .asScalaMap(
+          k => Option(k.charAt(0)),
+          v => Option(v._1),
+          keepNullValues = false
+        ) shouldBe Map(('a', 1)).some
+
+      // skips null keys by default but can keep null values if requested
+      scalaMap
+        .asJava
+        .asScalaMap(
+          k => Try(k.charAt(0)),
+          v => Try(Option(v).map(_._1)),
+          keepNullValues = true
+        ) shouldBe Try(Map(('a', 1.some), ('b', none)))
+
+      // fails with NPE if not handled properly by user function
+      val Failure(exception) = scalaMap
+        .asJava
+        .asScalaMap(
+          k => Try(k.charAt(0)),
+          v => Try(v._1),
+          keepNullValues = true
+        )
+      exception shouldBe a [NullPointerException]
     }
   }
 }

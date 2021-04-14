@@ -48,5 +48,9 @@ class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
         consumerRecord.pure[Try] shouldEqual consumerRecord.asJava.asScala[Try]
       }
     }
+
+    "timestampsToSearchJ" in {
+      timestampsToSearchJ(DataPoints.timeStampsToSearchMap.s) shouldEqual DataPoints.timeStampsToSearchMap.j
+    }
   }
 }

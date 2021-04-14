@@ -1,13 +1,14 @@
 package com.evolutiongaming.skafka
 
+import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
-import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ}
+import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ, List => ListJ}
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
+import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes, NonEmptyMap => Nem}
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, ToTry}
+import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header => HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
@@ -100,11 +101,11 @@ object Converters {
 
   implicit class MapJOps[K, V](val self: MapJ[K, V]) extends AnyVal {
 
-    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
+    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B], keepNullValues: Boolean): F[Map[A, B]] = {
       self
         .asScala
         .toList
-        .collect { case (k, v) if k != null && v != null =>
+        .collect { case (k, v) if k != null && (keepNullValues || v != null) =>
           for {
             a <- ka(k)
             b <- vb(v)
@@ -112,6 +113,10 @@ object Converters {
         }
         .sequence
         .map { _.toMap }
+    }
+
+    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
+      asScalaMap(ka, vb, keepNullValues = false)
     }
   }
 
@@ -214,5 +219,35 @@ object Converters {
   implicit class OptionOpsConverters[A](val self: Option[A]) extends AnyVal {
 
     def toOptional: Optional[A] = self.fold(Optional.empty[A]()) { a => Optional.of(a) }
+  }
+
+  def committedOffsetsF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): F[Map[TopicPartition, OffsetAndMetadata]] = {
+    Option(mapJ).fold {
+      Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+    } {
+      _.asScalaMap(_.asScala[F], _.asScala[F])
+    }
+  }
+
+  def offsetsMapF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, LongJ]): F[Map[TopicPartition, Offset]] = {
+    mapJ.asScalaMap(_.asScala[F], a => Offset.of[F](a))
+  }
+
+  def asOffsetsAndMetadataJ(offsets: Nem[TopicPartition, OffsetAndMetadata]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
+    offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
+  }
+
+  def partitionsInfoListF[F[_]: ApplicativeThrowable](listJ: ListJ[PartitionInfoJ]): F[List[PartitionInfo]] = {
+    listJ.asScala.toList.traverse { _.asScala[F] }
+  }
+
+  def partitionsInfoMapF[F[_]: MonadThrowable](mapJ: MapJ[Topic, ListJ[PartitionInfoJ]]): F[Map[Topic, List[PartitionInfo]]] = {
+    mapJ.asScalaMap(_.pure[F], partitionsInfoListF[F])
+  }
+
+  def topicPartitionsSetF[F[_] : ApplicativeThrowable](setJ: SetJ[TopicPartitionJ]): F[Set[TopicPartition]] = {
+    for {
+      r <- setJ.asScala.toList.traverse { _.asScala[F] }
+    } yield r.toSet
   }
 }

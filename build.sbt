@@ -1,4 +1,5 @@
 import Dependencies._
+import com.typesafe.tools.mima.core._
 
 lazy val commonSettings = Seq(
   organization := "com.evolutiongaming",
@@ -14,11 +15,24 @@ lazy val commonSettings = Seq(
   releaseCrossBuild := true,
   scalacOptions in(Compile, doc) += "-no-link-warnings",
   libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary),
-  scalacOptsFailOnWarn := Some(false))
+  scalacOptsFailOnWarn := Some(false),
+  // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
+  mimaPreviousArtifacts.withRank(KeyRanks.Invisible) := {
+    val versions = List(
+      "11.0.0",
+    )
+    versions.map(organization.value %% moduleName.value % _).toSet
+  },
+  mimaBinaryIssueFilters ++= Seq(
+    ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.subscribe"),
+    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.Converters#MapJOps.asScalaMap$extension")
+  )
+)
 
 
 lazy val root = (project
   in file(".")
+  disablePlugins (MimaPlugin)
   settings (name := "skafka")
   settings commonSettings
   settings (skip in publish := true)
@@ -50,6 +64,7 @@ lazy val `play-json` = (project
   settings (libraryDependencies ++= Seq(Dependencies.`play-json-jsoniter`, scalatest % Test)))
 
 lazy val tests = (project in file("tests")
+  disablePlugins (MimaPlugin)
   settings (name := "skafka-tests")
   settings commonSettings
   settings Seq(

@@ -45,7 +45,11 @@ import scala.util.{Failure, Success, Try}
   * {{{
   * new RebalanceListener1[IO] {
   *
+  *  // one way is to import all methods, and then do `seek(...)`/`position(...)`/etc
   *  import RebalanceCallback._
+  *
+  *  // or assign it to a `val` and write code like `consumer.commit(offsets)`
+  *  val consumer = RebalanceCallback
   *
   *  def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) = {
   *    for {
@@ -57,7 +61,7 @@ import scala.util.{Failure, Success, Try}
   *  def onPartitionsRevoked(partitions: NonEmptySet[TopicPartition]) =
   *    for {
   *      offsets <- lift(committableOffsetsFor(partitions))
-  *      a       <- commit(offsets)
+  *      a       <- consumer.commit(offsets)
   *    } yield a
   *
   *  def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = empty

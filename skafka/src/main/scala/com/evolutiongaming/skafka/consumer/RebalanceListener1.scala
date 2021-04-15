@@ -13,12 +13,16 @@ import com.evolutiongaming.skafka.TopicPartition
   *
   * Below is an example inspired by [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]] documentation.
   *
-  * Compiling and working example is available [[https://github.com/evolution-gaming/skafka/blob/d2af038b012523533f2b73d432721d6d1e7cebbe/skafka/src/test/scala/com/evolutiongaming/skafka/consumer/RebalanceListener1Spec.scala here]]:
-  * TODO: replace with shorter github link after merge of https://github.com/evolution-gaming/skafka/pull/122
+  * Compiling and working example is available [[https://github.com/evolution-gaming/skafka/blob/master/skafka/src/test/scala/com/evolutiongaming/skafka/consumer/RebalanceListener1Spec.scala here]]
   * {{{
   *
   * class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1[F] {
-  *  import RebalanceCallback._
+  *
+  *   // one way is to import all methods, and then do `seek(...)`/`position(...)`/etc
+  *   import RebalanceCallback._
+  *
+  *   // or assign it to a `val` and write code like `consumer.position(partition)`
+  *   val consumer = RebalanceCallback
   *
   *  def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) =
   *    for {
@@ -32,7 +36,7 @@ import com.evolutiongaming.skafka.TopicPartition
   *      positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
   *        case (offsets, partition) =>
   *          for {
-  *            position <- position(partition)
+  *            position <- consumer.position(partition)
   *          } yield offsets + (partition -> position)
   *      }
   *      // save the offsets in an external store using some custom code not described here

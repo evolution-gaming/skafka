@@ -82,7 +82,11 @@ object RebalanceListener1Spec {
    */
   class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1[F] {
 
+    // one way is to import all methods, and then do `seek(...)`/`position(...)`/etc
     import RebalanceCallback._
+
+    // or assign it to a `val` and write code like `consumer.position(partition)`
+    val consumer = RebalanceCallback
 
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
       for {
@@ -96,7 +100,7 @@ object RebalanceListener1Spec {
         positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
           case (offsets, partition) =>
             for {
-              position <- position(partition)
+              position <- consumer.position(partition)
             } yield offsets + (partition -> position)
         }
         // save the offsets in an external store using some custom code not described here

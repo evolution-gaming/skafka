@@ -14,6 +14,7 @@ lazy val commonSettings = Seq(
   Compile / doc / scalacOptions += "-no-link-warnings",
   libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary),
   scalacOptsFailOnWarn := Some(false),
+  publishTo := Some(Resolver.evolutionReleases),
   // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
   mimaPreviousArtifacts.withRank(KeyRanks.Invisible) := {
     val versions = List(

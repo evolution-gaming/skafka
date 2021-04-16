@@ -1,8 +1,8 @@
 # Skafka
 [![Build Status](https://github.com/evolution-gaming/skafka/workflows/CI/badge.svg)](https://github.com/evolution-gaming/skafka/actions?query=workflow%3ACI)
-[![Coverage Status](https://coveralls.io/repos/evolution-gaming/skafka/badge.svg)](https://coveralls.io/r/evolution-gaming/skafka)
+[![Coverage Status](https://coveralls.io/repos/github/evolution-gaming/skafka/badge.svg?branch=master)](https://coveralls.io/github/evolution-gaming/skafka?branch=master)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/faac7c4d0b924320b60ce9eefc360b12)](https://www.codacy.com/app/evolution-gaming/skafka?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=evolution-gaming/skafka&amp;utm_campaign=Badge_Grade)
-[![version](https://api.bintray.com/packages/evolutiongaming/maven/skafka/images/download.svg)](https://bintray.com/evolutiongaming/maven/skafka/_latestVersion)
+[![Version](https://img.shields.io/badge/version-click-blue)](https://evolution.jfrog.io/artifactory/api/search/latestVersion?g=com.evolutiongaming&a=skafka_2.13&repos=public)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
 
 Scala wrapper for [kafka-clients v2.5.0](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/2.5.0)
@@ -45,7 +45,7 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 ## Setup
 
 ```scala
-resolvers += Resolver.bintrayRepo("evolutiongaming", "maven")
+addSbtPlugin("com.evolution" % "sbt-artifactory-plugin" % "0.0.2")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "10.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "11.0.0"
 ``` 

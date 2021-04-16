@@ -1,9 +1,10 @@
 package com.evolutiongaming.skafka.consumer
 
+import java.lang.{Long => LongJ}
 import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.Concurrent
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
@@ -11,7 +12,7 @@ import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => RebalanceListenerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
@@ -83,6 +84,52 @@ object ConsumerConverters {
         }
 
         override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]) = {
+          onPartitions(partitions, self.onPartitionsLost)
+        }
+      }
+    }
+  }
+
+  implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
+
+    def asJava(consumer: ConsumerJ[_, _])(implicit
+      F: Concurrent[F],
+      toTry: ToTry[F],
+    ): RebalanceListenerJ = {
+
+      def onPartitions(
+        partitions: CollectionJ[TopicPartitionJ],
+        call: Nes[TopicPartition] => RebalanceCallback[F, Unit]
+      ): Unit = {
+        // If you're thinking about deriving ToTry timeout based on ConsumerConfig.maxPollInterval
+        // please have a look on https://github.com/evolution-gaming/skafka/issues/125
+        val result = partitions
+          .asScala
+          .toList
+          .traverse { _.asScala[F] }
+          .map { partitions =>
+            partitions
+              .toSortedSet
+              .toNes
+          }
+          .toTry
+          .flatMap {
+            _.foldMapM { partitions => RebalanceCallback.run(call(partitions), RebalanceConsumerJ(consumer)) }
+          }
+        result.fold(throw _, _ => ())
+      }
+
+      new RebalanceListenerJ {
+
+        def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]): Unit = {
+          onPartitions(partitions, self.onPartitionsAssigned)
+        }
+
+        def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]): Unit = {
+          onPartitions(partitions, self.onPartitionsRevoked)
+        }
+
+        override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]): Unit = {
           onPartitions(partitions, self.onPartitionsLost)
         }
       }
@@ -207,5 +254,13 @@ object ConsumerConverters {
         self.memberId,
         self.groupInstanceId.toOptional)
     }
+  }
+
+  def offsetsAndTimestampsMapF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, OffsetAndTimestampJ]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+    mapJ.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] }, keepNullValues = true)
+  }
+
+  def timestampsToSearchJ(nem: Nem[TopicPartition, Instant]): MapJ[TopicPartitionJ, LongJ] = {
+    nem.toSortedMap.asJavaMap(_.asJava, _.toEpochMilli)
   }
 }

@@ -18,7 +18,7 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import scala.concurrent.ExecutionContext
@@ -34,9 +34,18 @@ trait Consumer[F[_], K, V] {
 
   def assignment: F[Set[TopicPartition]]
 
+  def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit]
 
+  def subscribe(topics: Nes[Topic]): F[Unit]
+
+  def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit]
+
+  def subscribe(pattern: Pattern): F[Unit]
+
+  @deprecated("please use subscribe with RebalanceListener1", "11.1.0")
   def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]): F[Unit]
 
+  @deprecated("please use subscribe with RebalanceListener1", "11.1.0")
   def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]): F[Unit]
 
   def subscription: F[Set[Topic]]
@@ -129,6 +138,14 @@ object Consumer {
       def assign(partitions: Nes[TopicPartition]) = empty
 
       val assignment = Set.empty[TopicPartition].pure[F]
+
+      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit] = empty
+
+      def subscribe(topics: Nes[Topic]): F[Unit] = empty
+
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit] = empty
+
+      def subscribe(pattern: Pattern): F[Unit] = empty
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = empty
 
@@ -287,7 +304,7 @@ object Consumer {
       }
 
       def listenerOf(listener: Option[RebalanceListener[F]]) = {
-        listener.fold[ConsumerRebalanceListener] {
+        listener.fold[ConsumerRebalanceListenerJ] {
           new NoOpConsumerRebalanceListener
         } { listener =>
           listener.asJava(serialListeners)
@@ -309,25 +326,21 @@ object Consumer {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
-          result <- Option(result).fold {
-            Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
-          } {
-            _.asScalaMap(_.asScala[F], _.asScala[F])
-          }
+          result <- committedOffsetsF[F](result)
         } yield result
       }
 
       def partitions1(f: => ListJ[PartitionInfoJ]) = {
         for {
           result <- serialBlocking { f }
-          result <- result.asScala.toList.traverse { _.asScala[F] }
+          result <- partitionsInfoListF[F](result)
         } yield result
       }
 
       def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
         for {
           result <- serialBlocking { f }
-          result <- result.asScalaMap(_.pure[F], _.asScala.toList.traverse { _.asScala[F] })
+          result <- partitionsInfoMapF[F](result)
         } yield result
       }
 
@@ -338,7 +351,7 @@ object Consumer {
         val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
         for {
           result <- serialBlocking { f(timestampsJ) }
-          result <- result.asScalaMap(_.asScala[F], v => Option(v).traverse { _.asScala[F] })
+          result <- offsetsAndTimestampsMapF[F](result)
         } yield result
       }
 
@@ -349,7 +362,7 @@ object Consumer {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
-          result <- result.asScalaMap(_.asScala[F], a => Offset.of[F](a))
+          result <- offsetsMapF[F](result)
         } yield result
       }
 
@@ -363,10 +376,28 @@ object Consumer {
         val assignment = {
           for {
             result <- serialNonBlocking { consumer.assignment() }
-            result <- result.asScala.toList.traverse { _.asScala[F] }
-          } yield {
-            result.toSet
-          }
+            result <- topicPartitionsSetF[F](result)
+          } yield result
+        }
+
+        def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
+          val topicsJ = topics.toSortedSet.asJava
+          val listenerJ = listener.asJava(consumer)
+          serialNonBlocking { consumer.subscribe(topicsJ, listenerJ) }
+        }
+
+        def subscribe(topics: Nes[Topic]) = {
+          val topicsJ = topics.toSortedSet.asJava
+          serialNonBlocking { consumer.subscribe(topicsJ, new NoOpConsumerRebalanceListener) }
+        }
+
+        def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
+          val listenerJ = listener.asJava(consumer)
+          serialNonBlocking { consumer.subscribe(pattern, listenerJ) }
+        }
+
+        def subscribe(pattern: Pattern) = {
+          serialNonBlocking { consumer.subscribe(pattern, new NoOpConsumerRebalanceListener) }
         }
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
@@ -407,16 +438,12 @@ object Consumer {
         }
 
         def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
+          val offsetsJ = asOffsetsAndMetadataJ(offsets)
           serialBlocking { consumer.commitSync(offsetsJ) }
         }
 
         def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
+          val offsetsJ = asOffsetsAndMetadataJ(offsets)
           val timeoutJ = timeout.asJava
           serialBlocking { consumer.commitSync(offsetsJ, timeoutJ) }
         }
@@ -493,10 +520,8 @@ object Consumer {
         val paused = {
           for {
             result <- serialNonBlocking { consumer.paused() }
-            result <- result.asScala.toList.traverse { _.asScala[F] }
-          } yield {
-            result.toSet
-          }
+            result <- topicPartitionsSetF[F](result)
+          } yield result
         }
 
         def resume(partitions: Nes[TopicPartition]) = {
@@ -635,6 +660,36 @@ object Consumer {
         }
 
         val assignment = self.assignment
+
+        def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
+          // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
+          for {
+            _ <- count("subscribe", topics.toList)
+            r <- self.subscribe(topics, listener)
+          } yield r
+        }
+
+        def subscribe(topics: Nes[Topic]) = {
+          for {
+            _ <- count("subscribe", topics.toList)
+            r <- self.subscribe(topics)
+          } yield r
+        }
+
+        def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
+          // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
+          for {
+            _ <- count("subscribe", List("pattern"))
+            r <- self.subscribe(pattern, listener)
+          } yield r
+        }
+
+        def subscribe(pattern: Pattern) = {
+          for {
+            _ <- count("subscribe", List("pattern"))
+            r <- self.subscribe(pattern)
+          } yield r
+        }
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
@@ -880,6 +935,24 @@ object Consumer {
       def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))
 
       def assignment = fg(self.assignment)
+
+      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[G]) = {
+        val listener1 = listener.mapK(gf)
+        fg(self.subscribe(topics, listener1))
+      }
+
+      def subscribe(topics: Nes[Topic]) = {
+        fg(self.subscribe(topics))
+      }
+
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[G]) = {
+        val listener1 = listener.mapK(gf)
+        fg(self.subscribe(pattern, listener1))
+      }
+
+      def subscribe(pattern: Pattern) = {
+        fg(self.subscribe(pattern))
+      }
 
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {
         val listener1 = listener.map(_.mapK(gf))

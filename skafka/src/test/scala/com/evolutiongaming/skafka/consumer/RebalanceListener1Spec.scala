@@ -85,8 +85,9 @@ object RebalanceListener1Spec {
     // one way is to import all methods, and then do `seek(...)`/`position(...)`/etc
     import RebalanceCallback._
 
+    val consumer = RebalanceCallback.api[F]
+
     // or assign it to a `val` and write code like `consumer.position(partition)`
-    val consumer = RebalanceCallback
 
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
       for {

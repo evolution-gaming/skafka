@@ -12,11 +12,10 @@ import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.skafka.consumer.RebalanceCallback.Helpers._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOps
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
-
+import DataModel._
 import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -72,213 +71,64 @@ import scala.util.{Failure, Success, Try}
   */
 sealed trait RebalanceCallback[+F[_], +A]
 
-object RebalanceCallback extends RebalanceCallbackInstances {
+object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallbackApi[Nothing] {
 
-  val empty: RebalanceCallback[Nothing, Unit] = pure(())
-
-  def pure[A](a: A): RebalanceCallback[Nothing, A] = Pure(a)
-
-  def lift[F[_], A](fa: F[A]): RebalanceCallback[F, A] = Lift(fa)
-
-  def fromTry[A](fa: Try[A]): RebalanceCallback[Nothing, A] = fa match {
-    case Success(value)     => pure(value)
-    case Failure(exception) => Error(exception)
-  }
-
-  def assignment: RebalanceCallback[Nothing, Set[TopicPartition]] =
-    for {
-      result <- WithConsumer(_.assignment())
-      result <- fromTry(topicPartitionsSetF[Try](result))
-    } yield result
-
-  def beginningOffsets(
-    partitions: Nes[TopicPartition]
-  ): RebalanceCallback[Nothing, Map[TopicPartition, Offset]] =
-    offsets1(_.beginningOffsets(partitions.asJava))
-
-  def beginningOffsets(
-    partitions: Nes[TopicPartition],
-    timeout: FiniteDuration
-  ): RebalanceCallback[Nothing, Map[TopicPartition, Offset]] =
-    offsets1(_.beginningOffsets(partitions.asJava, timeout.asJava))
-
-  def commit: RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.commitSync())
-
-  def commit(timeout: FiniteDuration): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.commitSync(timeout.asJava))
-
-  def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.commitSync(asOffsetsAndMetadataJ(offsets)))
-
-  def commit(
-    offsets: Nem[TopicPartition, OffsetAndMetadata],
-    timeout: FiniteDuration
-  ): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.commitSync(asOffsetsAndMetadataJ(offsets), timeout.asJava))
-
-  def committed(
-    partitions: Nes[TopicPartition]
-  ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] =
-    committed1(_.committed(partitions.asJava))
-
-  def committed(
-    partitions: Nes[TopicPartition],
-    timeout: FiniteDuration
-  ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] =
-    committed1(_.committed(partitions.asJava, timeout.asJava))
-
-  def endOffsets(
-    partitions: Nes[TopicPartition]
-  ): RebalanceCallback[Nothing, Map[TopicPartition, Offset]] =
-    offsets1(_.endOffsets(partitions.asJava))
-
-  def endOffsets(
-    partitions: Nes[TopicPartition],
-    timeout: FiniteDuration
-  ): RebalanceCallback[Nothing, Map[TopicPartition, Offset]] =
-    offsets1(_.endOffsets(partitions.asJava, timeout.asJava))
-
-  def groupMetadata: RebalanceCallback[Nothing, ConsumerGroupMetadata] =
-    WithConsumer(_.groupMetadata().asScala)
-
-  def topics: RebalanceCallback[Nothing, Map[Topic, List[PartitionInfo]]] =
-    for {
-      result <- WithConsumer(_.listTopics())
-      result <- fromTry(partitionsInfoMapF[Try](result))
-    } yield result
-
-  def topics(timeout: FiniteDuration): RebalanceCallback[Nothing, Map[Topic, List[PartitionInfo]]] =
-    for {
-      result <- WithConsumer(_.listTopics(timeout.asJava))
-      result <- fromTry(partitionsInfoMapF[Try](result))
-    } yield result
-
-  def offsetsForTimes(
-    timestampsToSearch: Nem[TopicPartition, Instant]
-  ): RebalanceCallback[Nothing, Map[TopicPartition, Option[OffsetAndTimestamp]]] =
-    for {
-      result <- WithConsumer(_.offsetsForTimes(timestampsToSearchJ(timestampsToSearch)))
-      result <- fromTry(offsetsAndTimestampsMapF[Try](result))
-    } yield result
-
-  def offsetsForTimes(
-    timestampsToSearch: Nem[TopicPartition, Instant],
-    timeout: FiniteDuration
-  ): RebalanceCallback[Nothing, Map[TopicPartition, Option[OffsetAndTimestamp]]] =
-    for {
-      result <- WithConsumer(_.offsetsForTimes(timestampsToSearchJ(timestampsToSearch), timeout.asJava))
-      result <- fromTry(offsetsAndTimestampsMapF[Try](result))
-    } yield result
-
-  def partitionsFor(topic: Topic): RebalanceCallback[Nothing, List[PartitionInfo]] =
-    for {
-      result <- WithConsumer(_.partitionsFor(topic))
-      result <- fromTry(partitionsInfoListF[Try](result))
-    } yield result
-
-  def partitionsFor(
-    topic: Topic,
-    timeout: FiniteDuration
-  ): RebalanceCallback[Nothing, List[PartitionInfo]] =
-    for {
-      result <- WithConsumer(_.partitionsFor(topic, timeout.asJava))
-      result <- fromTry(partitionsInfoListF[Try](result))
-    } yield result
-
-  def paused: RebalanceCallback[Nothing, Set[TopicPartition]] =
-    for {
-      result <- WithConsumer(_.paused())
-      result <- fromTry(topicPartitionsSetF[Try](result))
-    } yield result
-
-  def position(tp: TopicPartition): RebalanceCallback[Nothing, Offset] =
-    for {
-      result <- WithConsumer(_.position(tp.asJava))
-      result <- fromTry(Offset.of[Try](result))
-    } yield result
-
-  def position(tp: TopicPartition, timeout: FiniteDuration): RebalanceCallback[Nothing, Offset] =
-    for {
-      result <- WithConsumer(_.position(tp.asJava, timeout.asJava))
-      result <- fromTry(Offset.of[Try](result))
-    } yield result
-
-  def seek(partition: TopicPartition, offset: Offset): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.seek(partition.asJava, offset.value))
-
-  def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.seek(partition.asJava, offsetAndMetadata.asJava))
-
-  def seekToBeginning(partitions: Nes[TopicPartition]): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.seekToBeginning(partitions.asJava))
-
-  def seekToEnd(partitions: Nes[TopicPartition]): RebalanceCallback[Nothing, Unit] =
-    WithConsumer(_.seekToEnd(partitions.asJava))
-
-  def subscription: RebalanceCallback[Nothing, Set[Topic]] = WithConsumer(_.subscription().asScala.toSet)
+  def api[F[_]]: RebalanceCallbackApi[F] = new RebalanceCallbackApi[F] {}
 
   private[consumer] def run[F[_]: ToTry, A](
     rebalanceCallback: RebalanceCallback[F, A],
     consumer: RebalanceConsumerJ
-  ): Try[A] = {
-    type S = Any => RebalanceCallback[F, Any]
-
-    @tailrec
-    def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
-      c match {
-        case c: Pure[A1] =>
-          ss match {
-            case Nil     => c.a.pure[Try]
-            case s :: ss => loop(s(c.a), ss)
-          }
-        case c: Lift[F, A1] =>
-          c.fa.toTry match {
-            case Success(a) =>
-              ss match {
-                case Nil     => a.pure[Try]
-                case s :: ss => loop(s(a), ss)
-              }
-            case Failure(a) => a.raiseError[Try, A1]
-          }
-        case c: WithConsumer[A1] =>
-          Try { c.f(consumer) } match {
-            case Success(a) =>
-              ss match {
-                case Nil     => a.pure[Try]
-                case s :: ss => loop(s(a), ss)
-              }
-            case Failure(a) => a.raiseError[Try, A1]
-          }
-        case c: Bind[F, _, A1] =>
-          loop(c.source, c.fs.asInstanceOf[S] :: ss)
-        case Error(a) =>
-          a.raiseError[Try, A1]
-      }
-    }
-
-    for {
-      a <- loop(rebalanceCallback, List.empty)
-      a <- Try { a.asInstanceOf[A] }
-    } yield a
-  }
-
-  private final case class Pure[+A](a: A) extends RebalanceCallback[Nothing, A]
-
-  private final case class Bind[F[_], S, +A](source: RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
-      extends RebalanceCallback[F, A]
-
-  private final case class Lift[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
-
-  private final case class WithConsumer[+A](f: RebalanceConsumerJ => A) extends RebalanceCallback[Nothing, A]
-
-  private final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
+  ): Try[A] = rebalanceCallback.run(consumer)
 
   implicit class RebalanceCallbackOps[F[_], A](val self: RebalanceCallback[F, A]) extends AnyVal {
 
     def map[B](f: A => B): RebalanceCallback[F, B] = flatMap(a => pure(f(a)))
 
     def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(self, f)
+
+    def run(
+      consumer: RebalanceConsumerJ
+    )(implicit fToTry: ToTry[F]): Try[A] = {
+      type S = Any => RebalanceCallback[F, Any]
+
+      @tailrec
+      def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
+        c match {
+          case c: Pure[A1] =>
+            ss match {
+              case Nil     => c.a.pure[Try]
+              case s :: ss => loop(s(c.a), ss)
+            }
+          case c: Lift[F, A1] =>
+            c.fa.toTry match {
+              case Success(a) =>
+                ss match {
+                  case Nil     => a.pure[Try]
+                  case s :: ss => loop(s(a), ss)
+                }
+              case Failure(a) => a.raiseError[Try, A1]
+            }
+          case c: WithConsumer[A1] =>
+            Try { c.f(consumer) } match {
+              case Success(a) =>
+                ss match {
+                  case Nil     => a.pure[Try]
+                  case s :: ss => loop(s(a), ss)
+                }
+              case Failure(a) => a.raiseError[Try, A1]
+            }
+          case c: Bind[F, _, A1] =>
+            loop(c.source, c.fs.asInstanceOf[S] :: ss)
+          case Error(a) =>
+            a.raiseError[Try, A1]
+        }
+      }
+
+      for {
+        a <- loop(self, List.empty)
+        a <- Try { a.asInstanceOf[A] }
+      } yield a
+    }
 
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {
       self match {
@@ -297,28 +147,171 @@ object RebalanceCallback extends RebalanceCallbackInstances {
     def apply[F[_]]: RebalanceCallback[F, A]    = effectAs
   }
 
-  private[consumer] object Helpers {
+}
 
-    def committed1(
-      f: RebalanceConsumerJ => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
-    ): RebalanceCallback[Nothing, Map[TopicPartition, OffsetAndMetadata]] = {
-      for {
-        result <- WithConsumer(f)
-        result <- fromTry(committedOffsetsF[Try](result))
-      } yield result
-    }
+sealed trait RebalanceCallbackApi[F[_]] {
 
-    def offsets1(
-      f: RebalanceConsumerJ => MapJ[TopicPartitionJ, LongJ]
-    ): RebalanceCallback[Nothing, Map[TopicPartition, Offset]] = {
-      for {
-        result <- WithConsumer(f)
-        result <- fromTry(offsetsMapF[Try](result))
-      } yield result
-    }
+  final val empty: RebalanceCallback[F, Unit] = pure(())
 
+  final def pure[A](a: A): RebalanceCallback[F, A] = Pure(a)
+
+  final def lift[F1[_], A](fa: F1[A]): RebalanceCallback[F1, A] = Lift(fa)
+
+  final def fromTry[A](fa: Try[A]): RebalanceCallback[F, A] = fa match {
+    case Success(value)     => pure(value)
+    case Failure(exception) => Error(exception)
   }
 
+  final def assignment: RebalanceCallback[F, Set[TopicPartition]] =
+    for {
+      result <- WithConsumer(_.assignment())
+      result <- fromTry(topicPartitionsSetF[Try](result))
+    } yield result
+
+  final def beginningOffsets(
+    partitions: Nes[TopicPartition]
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.beginningOffsets(partitions.asJava))
+
+  final def beginningOffsets(
+    partitions: Nes[TopicPartition],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.beginningOffsets(partitions.asJava, timeout.asJava))
+
+  final def commit: RebalanceCallback[F, Unit] =
+    WithConsumer(_.commitSync())
+
+  final def commit(timeout: FiniteDuration): RebalanceCallback[F, Unit] =
+    WithConsumer(_.commitSync(timeout.asJava))
+
+  final def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]): RebalanceCallback[F, Unit] =
+    WithConsumer(_.commitSync(asOffsetsAndMetadataJ(offsets)))
+
+  final def commit(
+    offsets: Nem[TopicPartition, OffsetAndMetadata],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Unit] =
+    WithConsumer(_.commitSync(asOffsetsAndMetadataJ(offsets), timeout.asJava))
+
+  final def committed(
+    partitions: Nes[TopicPartition]
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] =
+    committed1(_.committed(partitions.asJava))
+
+  final def committed(
+    partitions: Nes[TopicPartition],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] =
+    committed1(_.committed(partitions.asJava, timeout.asJava))
+
+  final def endOffsets(
+    partitions: Nes[TopicPartition]
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.endOffsets(partitions.asJava))
+
+  final def endOffsets(
+    partitions: Nes[TopicPartition],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] =
+    offsets1(_.endOffsets(partitions.asJava, timeout.asJava))
+
+  final def groupMetadata: RebalanceCallback[F, ConsumerGroupMetadata] =
+    WithConsumer(_.groupMetadata().asScala)
+
+  final def topics: RebalanceCallback[F, Map[Topic, List[PartitionInfo]]] =
+    for {
+      result <- WithConsumer(_.listTopics())
+      result <- fromTry(partitionsInfoMapF[Try](result))
+    } yield result
+
+  final def topics(timeout: FiniteDuration): RebalanceCallback[F, Map[Topic, List[PartitionInfo]]] =
+    for {
+      result <- WithConsumer(_.listTopics(timeout.asJava))
+      result <- fromTry(partitionsInfoMapF[Try](result))
+    } yield result
+
+  final def offsetsForTimes(
+    timestampsToSearch: Nem[TopicPartition, Instant]
+  ): RebalanceCallback[F, Map[TopicPartition, Option[OffsetAndTimestamp]]] =
+    for {
+      result <- WithConsumer(_.offsetsForTimes(timestampsToSearchJ(timestampsToSearch)))
+      result <- fromTry(offsetsAndTimestampsMapF[Try](result))
+    } yield result
+
+  final def offsetsForTimes(
+    timestampsToSearch: Nem[TopicPartition, Instant],
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, Map[TopicPartition, Option[OffsetAndTimestamp]]] =
+    for {
+      result <- WithConsumer(_.offsetsForTimes(timestampsToSearchJ(timestampsToSearch), timeout.asJava))
+      result <- fromTry(offsetsAndTimestampsMapF[Try](result))
+    } yield result
+
+  final def partitionsFor(topic: Topic): RebalanceCallback[F, List[PartitionInfo]] =
+    for {
+      result <- WithConsumer(_.partitionsFor(topic))
+      result <- fromTry(partitionsInfoListF[Try](result))
+    } yield result
+
+  final def partitionsFor(
+    topic: Topic,
+    timeout: FiniteDuration
+  ): RebalanceCallback[F, List[PartitionInfo]] =
+    for {
+      result <- WithConsumer(_.partitionsFor(topic, timeout.asJava))
+      result <- fromTry(partitionsInfoListF[Try](result))
+    } yield result
+
+  final def paused: RebalanceCallback[F, Set[TopicPartition]] =
+    for {
+      result <- WithConsumer(_.paused())
+      result <- fromTry(topicPartitionsSetF[Try](result))
+    } yield result
+
+  final def position(tp: TopicPartition): RebalanceCallback[F, Offset] =
+    for {
+      result <- WithConsumer(_.position(tp.asJava))
+      result <- fromTry(Offset.of[Try](result))
+    } yield result
+
+  final def position(tp: TopicPartition, timeout: FiniteDuration): RebalanceCallback[F, Offset] =
+    for {
+      result <- WithConsumer(_.position(tp.asJava, timeout.asJava))
+      result <- fromTry(Offset.of[Try](result))
+    } yield result
+
+  final def seek(partition: TopicPartition, offset: Offset): RebalanceCallback[F, Unit] =
+    WithConsumer(_.seek(partition.asJava, offset.value))
+
+  final def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): RebalanceCallback[F, Unit] =
+    WithConsumer(_.seek(partition.asJava, offsetAndMetadata.asJava))
+
+  final def seekToBeginning(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
+    WithConsumer(_.seekToBeginning(partitions.asJava))
+
+  final def seekToEnd(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
+    WithConsumer(_.seekToEnd(partitions.asJava))
+
+  final def subscription: RebalanceCallback[F, Set[Topic]] = WithConsumer(_.subscription().asScala.toSet)
+
+  private def committed1(
+    f: RebalanceConsumerJ => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
+  ): RebalanceCallback[F, Map[TopicPartition, OffsetAndMetadata]] = {
+    for {
+      result <- WithConsumer(f)
+      result <- fromTry(committedOffsetsF[Try](result))
+    } yield result
+  }
+
+  private def offsets1(
+    f: RebalanceConsumerJ => MapJ[TopicPartitionJ, LongJ]
+  ): RebalanceCallback[F, Map[TopicPartition, Offset]] = {
+    for {
+      result <- WithConsumer(f)
+      result <- fromTry(offsetsMapF[Try](result))
+    } yield result
+  }
 }
 
 abstract private[consumer] class RebalanceCallbackInstances {
@@ -335,4 +328,18 @@ abstract private[consumer] class RebalanceCallbackInstances {
         new RebalanceCallbackOps(fa).flatMap(f)
 
     }
+}
+
+private[consumer] object DataModel {
+  final case class Pure[+A](a: A) extends RebalanceCallback[Nothing, A]
+
+  final case class Bind[F[_], S, +A](source: RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
+      extends RebalanceCallback[F, A]
+
+  final case class Lift[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
+
+  final case class WithConsumer[+A](f: RebalanceConsumerJ => A) extends RebalanceCallback[Nothing, A]
+
+  final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
+
 }

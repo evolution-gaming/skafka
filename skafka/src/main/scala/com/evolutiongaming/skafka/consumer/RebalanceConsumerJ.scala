@@ -61,7 +61,7 @@ import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition 
   * If you want to support more methods, please double check kafka documentation and implementation about
   * consumer group rebalance protocol.
   */
-private[consumer] trait RebalanceConsumerJ {
+trait RebalanceConsumerJ {
 
   def assignment(): util.Set[TopicPartitionJ]
 

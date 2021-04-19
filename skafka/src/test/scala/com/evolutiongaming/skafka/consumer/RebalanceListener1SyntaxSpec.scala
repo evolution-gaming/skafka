@@ -39,10 +39,6 @@ object RebalanceListener1SyntaxSpec {
   // TODO: add complex example show casing better type inference with RebalanceCallback.api[F]
   class TfRebalanceListener1[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
 
-    def someF: F[Unit]          = ().pure[F]
-    def someF2(a: Any): F[Unit] = a.pure[F] *> ().pure[F]
-    def someFO: F[Option[Unit]] = ().some.pure[F]
-
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
       for {
         _ <- someF.lift
@@ -71,6 +67,10 @@ object RebalanceListener1SyntaxSpec {
       topicPartitions: Nes[TopicPartition]
     ): NonEmptyList[(Topic, Nes[TopicPartition])] =
       topicPartitions.groupBy(_.topic).toNel
+
+    def someF: F[Unit]          = ().pure[F]
+    def someF2(a: Any): F[Unit] = a.pure[F] *> ().pure[F]
+    def someFO: F[Option[Unit]] = ().some.pure[F]
 
   }
 }

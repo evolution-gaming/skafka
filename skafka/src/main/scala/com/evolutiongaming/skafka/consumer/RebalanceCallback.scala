@@ -147,6 +147,12 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
     def apply[F[_]]: RebalanceCallback[F, A]    = effectAs
   }
 
+  object implicits {
+    implicit class RebalanceCallbackSyntaxOps[F[_], A](val self: F[A]) extends AnyVal {
+      def lift: RebalanceCallback[F, A] = RebalanceCallback.lift(self)
+    }
+  }
+
 }
 
 sealed trait RebalanceCallbackApi[F[_]] {

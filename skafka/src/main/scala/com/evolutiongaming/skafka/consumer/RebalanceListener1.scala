@@ -61,6 +61,35 @@ trait RebalanceListener1[F[_]] {
 
 }
 
+/**
+  * Same as [[RebalanceListener1]] but with a `consumer` to allow a better type inference.
+  *
+  * {{{
+  *    import RebalanceCallback.implicits._ // to allow writing `someF.lift` instead of `lift(someF)`
+  *
+  *    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
+  *      groupByTopic(partitions) traverse_ {
+  *        case (_, partitions) =>
+  *          for {
+  *            _ <- someF.lift
+  *            partitionsOffsets <- partitions.toNonEmptyList traverse { partition =>
+  *              // fails to compile with `RebalanceCallback.position` variant at
+  *              // _ <- someF2(partitionsOffsets).lift
+  *              // expected type RebalanceCallback[Nothing,?] but found RebalanceCallback[F,Unit]
+  *              consumer.position(partition) map (partition -> _)
+  *            }
+  *            _ <- someF2(partitionsOffsets).lift
+  *          } yield ()
+  *      }
+  *    }
+  *    def someF: F[Unit] = ???
+  *    def someF2(a: Any): F[Unit] = ???
+  * }}}
+  */
+trait RebalanceListener1WithConsumer[F[_]] extends RebalanceListener1[F] {
+  final def consumer: RebalanceCallbackApi[F] = RebalanceCallback.api[F]
+}
+
 object RebalanceListener1 {
 
   def empty[F[_]]: RebalanceListener1[F] = const(RebalanceCallback.pure(()))

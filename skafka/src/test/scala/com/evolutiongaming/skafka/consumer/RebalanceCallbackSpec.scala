@@ -347,9 +347,6 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           RebalanceCallback.run(rcOk, consumer) mustBe Try(expected)
         }
 
-        "TODO two lifts one run loop" in {
-        }
-
         "error from lifted computation" in {
           val a: AtomicReference[String] = new AtomicReference("unchanged")
           val b: AtomicReference[String] = new AtomicReference("unchanged")
@@ -403,22 +400,25 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           b.get() mustBe "unchanged"
         }
 
-        "correct execution order" in {
+        "correct and complete order of execution" in {
           val list: AtomicReference[List[String]] = new AtomicReference(List.empty)
 
           val rcOk = for {
-            _ <- lift(IO.delay {
+            two <- lift(IO.delay {
               list.getAndUpdate(_ :+ "one")
+              "two"
             })
-            _ <- lift(IO.delay {
-              list.getAndUpdate(_ :+ "two")
+            three <- lift(IO.delay {
+              list.getAndUpdate(_ :+ two)
+              "3"
             })
-            _ <- lift(IO.delay {
-              list.getAndUpdate(_ :+ "3")
+            a <- lift(IO.delay {
+              list.getAndUpdate(_ :+ three)
+              42
             })
-          } yield ()
+          } yield a
 
-          RebalanceCallback.run(rcOk, new ExplodingConsumer) mustBe Try(())
+          RebalanceCallback.run(rcOk, new ExplodingConsumer)
           list.get() mustBe List("one", "two", "3")
         }
 

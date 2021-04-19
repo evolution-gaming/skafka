@@ -2,10 +2,11 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
 import cats.effect.IO
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters.{SkafkaOffsetAndMetadataOpsConverters, TopicPartitionOps}
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.DataPoints._
@@ -190,7 +191,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "offsetsForTimes" in {
-        val input = timeStampsToSearchMap
+        val input  = timeStampsToSearchMap
         val output = offsetsForTimesResponse
 
         val consumer = new ExplodingConsumer {
@@ -462,6 +463,23 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         seekResult.get() mustBe topics.map(_.toString)
       }
 
+    }
+
+    "consumer method call is lazy if F[_] is lazy" in {
+      val consumerTouched: AtomicBoolean = new AtomicBoolean(false)
+
+      val consumer = new ExplodingConsumer {
+        override def commitSync(): Unit = consumerTouched.set(true)
+      }
+
+      val rc = RebalanceCallback.api[IO].commit
+
+      val io: IO[Unit] = rc.run2(consumer)
+      // IO is lazy, so consumer should not have been called at this point
+      consumerTouched.get() mustBe false
+      io.toTry mustBe Try(())
+      // but after running it we should observe the usage of consumer
+      consumerTouched.get() mustBe true
     }
 
   }

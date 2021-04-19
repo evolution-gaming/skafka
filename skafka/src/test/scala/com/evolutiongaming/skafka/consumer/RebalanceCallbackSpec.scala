@@ -135,6 +135,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(committed(input.s), consumer) mustBe Try(output.s)
         tryRun(committed(input.s, timeouts.s), consumer) mustBe Try(output.s)
+
+        // TODO review and move tests
+        RebalanceCallback.api[Try].committed(input.s).run2(consumer) mustBe Try(output.s)
+        RebalanceCallback.api[IO].committed(input.s).run2(consumer).unsafeRunSync() mustBe output.s
       }
 
       "endOffsets" in {
@@ -341,6 +345,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           } yield a
 
           RebalanceCallback.run(rcOk, consumer) mustBe Try(expected)
+        }
+
+        "TODO two lifts one run loop" in {
         }
 
         "error from lifted computation" in {

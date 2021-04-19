@@ -7,16 +7,15 @@ import java.util.{Map => MapJ}
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Monad, StackSafeMonad, ~>}
-import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.ToTry
+import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
+import com.evolutiongaming.skafka.consumer.DataModel._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOps
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
-import DataModel._
-import scala.annotation.tailrec
+
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
@@ -88,46 +87,57 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def run(
       consumer: RebalanceConsumerJ
-    )(implicit fToTry: ToTry[F]): Try[A] = {
+    )(implicit fToTry: ToTry[F]): Try[A] = self.mapK(ToTry.functionK).run2(consumer)
+
+    def run2(
+      consumer: RebalanceConsumerJ
+    )(implicit appp: MonadThrowable[F]): F[A] = {
       type S = Any => RebalanceCallback[F, Any]
 
-      @tailrec
-      def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
+//      @tailrec
+      def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): F[Any] = {
         c match {
           case c: Pure[A1] =>
             ss match {
-              case Nil     => c.a.pure[Try]
+              case Nil     => c.a.pure[F].asInstanceOf[F[Any]]
               case s :: ss => loop(s(c.a), ss)
             }
           case c: Lift[F, A1] =>
-            c.fa.toTry match {
-              case Success(a) =>
-                ss match {
-                  case Nil     => a.pure[Try]
-                  case s :: ss => loop(s(a), ss)
-                }
-              case Failure(a) => a.raiseError[Try, A1]
+//            c.fa.toTry match {
+//              case Success(a) =>
+//                ss match {
+//                  case Nil     => a.pure[Try]
+//                  case s :: ss => loop(s(a), ss)
+//                }
+//              case Failure(a) => a.raiseError[Try, A1]
+//            }
+//            c.fa.asInstanceOf[F[Any]]
+
+            c.fa.asInstanceOf[F[Any]].flatMap { a =>
+              ss match {
+                case Nil     => a.pure[F]
+                case s :: ss => loop(s(a), ss)
+              }
             }
           case c: WithConsumer[A1] =>
             Try { c.f(consumer) } match {
               case Success(a) =>
                 ss match {
-                  case Nil     => a.pure[Try]
+                  case Nil     => a.pure[F].asInstanceOf[F[Any]]
                   case s :: ss => loop(s(a), ss)
                 }
-              case Failure(a) => a.raiseError[Try, A1]
+              case Failure(a) => a.raiseError[F, A1].asInstanceOf[F[Any]]
             }
           case c: Bind[F, _, A1] =>
             loop(c.source, c.fs.asInstanceOf[S] :: ss)
           case Error(a) =>
-            a.raiseError[Try, A1]
+            a.raiseError[F, A1].asInstanceOf[F[Any]]
         }
       }
 
       for {
         a <- loop(self, List.empty)
-        a <- Try { a.asInstanceOf[A] }
-      } yield a
+      } yield a.asInstanceOf[A]
     }
 
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {

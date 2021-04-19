@@ -99,7 +99,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
         c match {
           case c: Pure[A1] =>
             ss match {
-              case Nil     => c.a.pure[F].asInstanceOf[F[Any]]
+              case Nil     => c.a.pure[F].widen
               case s :: ss => loop(s(c.a), ss)
             }
           case c: Lift[F, A1] =>
@@ -111,11 +111,11 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 //                }
 //              case Failure(a) => a.raiseError[Try, A1]
 //            }
-//            c.fa.asInstanceOf[F[Any]]
+//            c.fa.widen
 
-            c.fa.asInstanceOf[F[Any]].flatMap { a =>
+            c.fa.widen.flatMap { a =>
               ss match {
-                case Nil     => a.pure[F]
+                case Nil     => a.pure[F].widen
                 case s :: ss => loop(s(a), ss)
               }
             }
@@ -123,15 +123,15 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
             Try { c.f(consumer) } match {
               case Success(a) =>
                 ss match {
-                  case Nil     => a.pure[F].asInstanceOf[F[Any]]
+                  case Nil     => a.pure[F].widen
                   case s :: ss => loop(s(a), ss)
                 }
-              case Failure(a) => a.raiseError[F, A1].asInstanceOf[F[Any]]
+              case Failure(a) => a.raiseError[F, A1].widen
             }
           case c: Bind[F, _, A1] =>
             loop(c.source, c.fs.asInstanceOf[S] :: ss)
           case Error(a) =>
-            a.raiseError[F, A1].asInstanceOf[F[Any]]
+            a.raiseError[F, A1].widen
         }
       }
 

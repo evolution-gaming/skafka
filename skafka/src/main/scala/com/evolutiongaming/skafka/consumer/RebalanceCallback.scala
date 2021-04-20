@@ -8,6 +8,7 @@ import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Monad, StackSafeMonad, ~>}
 import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
@@ -88,7 +89,47 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def run(
       consumer: RebalanceConsumerJ
-    )(implicit fToTry: ToTry[F]): Try[A] = self.mapK(ToTry.functionK).run2(consumer)
+    )(implicit fToTry: ToTry[F]): Try[A] = {
+      type S = Any => RebalanceCallback[F, Any]
+
+      @tailrec
+      def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
+        c match {
+          case c: Pure[A1] =>
+            ss match {
+              case Nil     => c.a.pure[Try]
+              case s :: ss => loop(s(c.a), ss)
+            }
+          case c: Lift[F, A1] =>
+            c.fa.toTry match {
+              case Success(a) =>
+                ss match {
+                  case Nil     => a.pure[Try]
+                  case s :: ss => loop(s(a), ss)
+                }
+              case Failure(a) => a.raiseError[Try, A1]
+            }
+          case c: WithConsumer[A1] =>
+            Try { c.f(consumer) } match {
+              case Success(a) =>
+                ss match {
+                  case Nil     => a.pure[Try]
+                  case s :: ss => loop(s(a), ss)
+                }
+              case Failure(a) => a.raiseError[Try, A1]
+            }
+          case c: Bind[F, _, A1] =>
+            loop(c.source(), c.fs.asInstanceOf[S] :: ss)
+          case Error(a) =>
+            a.raiseError[Try, A1]
+        }
+      }
+
+      for {
+        a <- loop(self, List.empty)
+        a <- Try { a.asInstanceOf[A] }
+      } yield a
+    }
 
     def run2(
       consumer: RebalanceConsumerJ

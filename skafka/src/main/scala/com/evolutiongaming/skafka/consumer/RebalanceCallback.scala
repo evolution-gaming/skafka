@@ -320,15 +320,15 @@ sealed trait RebalanceCallbackApi[F[_]] {
       result <- fromTry(topicPartitionsSetF[Try](result))
     } yield result
 
-  final def position(tp: TopicPartition): RebalanceCallback[F, Offset] =
+  final def position(partition: TopicPartition): RebalanceCallback[F, Offset] =
     for {
-      result <- WithConsumer(_.position(tp.asJava))
+      result <- WithConsumer(_.position(partition.asJava))
       result <- fromTry(Offset.of[Try](result))
     } yield result
 
-  final def position(tp: TopicPartition, timeout: FiniteDuration): RebalanceCallback[F, Offset] =
+  final def position(partition: TopicPartition, timeout: FiniteDuration): RebalanceCallback[F, Offset] =
     for {
-      result <- WithConsumer(_.position(tp.asJava, timeout.asJava))
+      result <- WithConsumer(_.position(partition.asJava, timeout.asJava))
       result <- fromTry(Offset.of[Try](result))
     } yield result
 

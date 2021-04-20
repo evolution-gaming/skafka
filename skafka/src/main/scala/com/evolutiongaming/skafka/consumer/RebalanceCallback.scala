@@ -16,6 +16,7 @@ import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOp
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
+import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
@@ -83,7 +84,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def map[B](f: A => B): RebalanceCallback[F, B] = flatMap(a => pure(f(a)))
 
-    def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(self, f)
+    def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(() => self, f)
 
     def run(
       consumer: RebalanceConsumerJ
@@ -94,7 +95,10 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
     )(implicit appp: MonadThrowable[F]): F[A] = {
       type S = Any => RebalanceCallback[F, Any]
 
-//      @tailrec
+      def continue[A1](c: RebalanceCallback[F, A1], ss: List[S]): F[Any] =
+        loop(c, ss)
+
+      @tailrec
       def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): F[Any] = {
         c match {
           case c: Pure[A1] =>
@@ -103,33 +107,20 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
               case s :: ss => loop(s(c.a), ss)
             }
           case c: Lift[F, A1] =>
-//            c.fa.toTry match {
-//              case Success(a) =>
-//                ss match {
-//                  case Nil     => a.pure[Try]
-//                  case s :: ss => loop(s(a), ss)
-//                }
-//              case Failure(a) => a.raiseError[Try, A1]
-//            }
-//            c.fa.widen
-
             c.fa.widen.flatMap { a =>
               ss match {
                 case Nil     => a.pure[F].widen
-                case s :: ss => loop(s(a), ss)
+                case s :: ss => continue(s(a), ss)
               }
             }
           case c: WithConsumer[A1] =>
-            Try { c.f(consumer) } match {
-              case Success(a) =>
-                ss match {
-                  case Nil     => a.pure[F].widen
-                  case s :: ss => loop(s(a), ss)
-                }
-              case Failure(a) => a.raiseError[F, A1].widen
-            }
+            val fa = for {
+              _ <- ().pure[F]
+              a <- c.f(consumer).pure[F]
+            } yield a
+            loop(Lift(fa), ss)
           case c: Bind[F, _, A1] =>
-            loop(c.source, c.fs.asInstanceOf[S] :: ss)
+            loop(c.source(), c.fs.asInstanceOf[S] :: ss)
           case Error(a) =>
             a.raiseError[F, A1].widen
         }
@@ -143,7 +134,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {
       self match {
         case Pure(a)          => Pure(a)
-        case Bind(source, f)  => Bind(source.mapK(fg), f andThen (_.mapK(fg)))
+        case Bind(source, f)  => Bind(() => source().mapK(fg), f andThen (_.mapK(fg)))
         case Lift(fa)         => Lift(fg(fa))
         case WithConsumer(f)  => WithConsumer(f)
         case Error(throwable) => Error(throwable)
@@ -349,7 +340,7 @@ abstract private[consumer] class RebalanceCallbackInstances {
 private[consumer] object DataModel {
   final case class Pure[+A](a: A) extends RebalanceCallback[Nothing, A]
 
-  final case class Bind[F[_], S, +A](source: RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
+  final case class Bind[F[_], S, +A](source: () => RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
       extends RebalanceCallback[F, A]
 
   final case class Lift[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]

@@ -92,7 +92,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def run2(
       consumer: RebalanceConsumerJ
-    )(implicit appp: MonadThrowable[F]): F[A] = {
+    )(implicit MT: MonadThrowable[F]): F[A] = {
       type S = Any => RebalanceCallback[F, Any]
 
       def continue[A1](c: RebalanceCallback[F, A1], ss: List[S]): F[Any] =
@@ -114,6 +114,9 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
               }
             }
           case c: WithConsumer[A1] =>
+            // a trick to make `c.f` lazy if F[_] is lazy
+            // by moving it into `flatMap`
+            // using this trick is it does not require Defer/Sync instances
             val fa = for {
               _ <- ().pure[F]
               a <- c.f(consumer).pure[F]

@@ -136,10 +136,6 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(committed(input.s), consumer) mustBe Try(output.s)
         tryRun(committed(input.s, timeouts.s), consumer) mustBe Try(output.s)
-
-        // TODO review and move tests
-        RebalanceCallback.api[Try].committed(input.s).run2(consumer) mustBe Try(output.s)
-        RebalanceCallback.api[IO].committed(input.s).run2(consumer).unsafeRunSync() mustBe output.s
       }
 
       "endOffsets" in {
@@ -403,8 +399,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         "correct and complete order of execution" in {
           val list: AtomicReference[List[String]] = new AtomicReference(List.empty)
+          val expected                            = List("one", "two", "3")
+          val consumer                            = new ExplodingConsumer
 
-          val rcOk = for {
+          val rc: RebalanceCallback[IO, Int] = for {
             two <- lift(IO.delay {
               list.getAndUpdate(_ :+ "one")
               "two"
@@ -419,33 +417,80 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield a
 
-          RebalanceCallback.run(rcOk, new ExplodingConsumer)
-          list.get() mustBe List("one", "two", "3")
+          val io: IO[Int] = rc.run2(consumer)
+          list.get() mustBe empty
+          io.unsafeRunSync() mustBe 42
+          list.get() mustBe expected
+
+          list.set(List.empty)
+
+          rc.run(consumer) mustBe Try(42)
+          list.get() mustBe expected
         }
 
-        "free from StackOverflowError" in {
+        "free from StackOverflowError" - {
           val stackOverflowErrorDepth = 1000000
-          // check that deep enough recursion results in StackOverflowError with current JVM settings
-          try {
-            // trigger SOE with given stackOverflowErrorDepth
-            triggerStackOverflowError(stackOverflowErrorDepth)
-            fail(
-              s"expected a StackOverflowError from $stackOverflowErrorDepth-deep recursion, consider increasing the depth in test"
-            )
-          } catch {
-            case _: StackOverflowError => // stackOverflowErrorDepth has correct value
+          s"SOE is reproducible with a depth of $stackOverflowErrorDepth" in {
+            // check that deep enough recursion results in StackOverflowError with current JVM settings
+            try {
+              // trigger SOE with given stackOverflowErrorDepth
+              triggerStackOverflowError(stackOverflowErrorDepth)
+              fail(
+                s"expected a StackOverflowError from $stackOverflowErrorDepth-deep recursion, consider increasing the depth in test"
+              )
+            } catch {
+              case _: StackOverflowError => // stackOverflowErrorDepth has correct value
+            }
           }
 
-          val rc = List
-            .fill(stackOverflowErrorDepth)(RebalanceCallback.empty)
-            .fold(RebalanceCallback.empty) { (agg, e) => agg.flatMap(_ => e) }
+          val consumer = new ExplodingConsumer {
+            override def commitSync(): Unit = ()
+          }
 
-          tryRun(rc, new ExplodingConsumer) mustBe Try(())
+          "with IO effect type" in {
+            val api = RebalanceCallback.api[IO]
+
+            val rc: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.empty)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            val rc1: RebalanceCallback[IO, Int] = Vector
+              .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
+              .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
+
+            val rc2: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.commit)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            rc.run2(consumer).unsafeRunSync() mustBe ()
+            rc1.run2(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
+            rc2.run2(consumer).unsafeRunSync() mustBe ()
+          }
+
+          "with Try effect type" in {
+            val api = RebalanceCallback
+
+            val rc: RebalanceCallback[Nothing, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.empty)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            val rc1: RebalanceCallback[IO, Int] = Vector
+              .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
+              .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
+
+            val rc2: RebalanceCallback[Nothing, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.commit)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            tryRun(rc, consumer) mustBe Try(())
+            rc1.run(consumer) mustBe Try(stackOverflowErrorDepth)
+            tryRun(rc2, consumer) mustBe Try(())
+          }
         }
 
       }
 
-      "cats traverse is working" in {
+      "cats traverse is working for RebalanceCallback[Nothing, *]" in {
         val seekResult: AtomicReference[List[String]] = new AtomicReference(List.empty)
         val consumer = new ExplodingConsumer {
           override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {

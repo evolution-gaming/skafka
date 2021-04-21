@@ -7,7 +7,7 @@ import cats.data.{NonEmptyList, NonEmptySet => Nes}
 import cats.effect.IO
 import cats.syntax.all._
 import com.evolutiongaming.skafka.consumer.DataPoints._
-import com.evolutiongaming.skafka.consumer.RebalanceCallback.implicits._
+import com.evolutiongaming.skafka.consumer.RebalanceCallback.syntax._
 import com.evolutiongaming.skafka.consumer.RebalanceListener1SyntaxSpec._
 import com.evolutiongaming.skafka.{Topic, TopicPartition}
 import org.apache.kafka.common

@@ -5,8 +5,10 @@ import java.time.{Duration => DurationJ}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
+import cats.arrow.FunctionK
 import cats.effect.IO
 import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters.{SkafkaOffsetAndMetadataOpsConverters, TopicPartitionOps}
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.DataPoints._
@@ -21,6 +23,8 @@ import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition 
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
+import scala.concurrent.{Await, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Try}
@@ -485,6 +489,73 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             tryRun(rc, consumer) mustBe Try(())
             rc1.run(consumer) mustBe Try(stackOverflowErrorDepth)
             tryRun(rc2, consumer) mustBe Try(())
+          }
+
+          "mapK with IO ~> Try" in {
+            val api = RebalanceCallback.api[IO]
+
+            val rc: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.empty)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            val rc1: RebalanceCallback[IO, Int] = Vector
+              .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
+              .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
+
+            val rc2: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.commit)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            rc.mapK(ToTry.functionK).run(consumer) mustBe Try(())
+            rc1.mapK(ToTry.functionK).run(consumer) mustBe Try(stackOverflowErrorDepth)
+            rc2.mapK(ToTry.functionK).run(consumer) mustBe Try(())
+          }
+
+          "mapK with IO ~> Future" in {
+            val api = RebalanceCallback.api[IO]
+
+            val rc: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.empty)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            val rc1: RebalanceCallback[IO, Int] = Vector
+              .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
+              .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
+
+            val rc2: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.commit)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            def futureToTry(timeout: FiniteDuration): ToTry[Future] = new ToTry[Future] {
+              def apply[A](fa: Future[A]) = {
+                Try { Await.result(fa, timeout) }
+              }
+            }
+            implicit val defaultFutureToTry: ToTry[Future] = futureToTry(30.seconds)
+
+            rc.mapK(ToFuture.functionK).run(consumer) mustBe Try(())
+            rc1.mapK(ToTry.functionK).run(consumer) mustBe Try(stackOverflowErrorDepth)
+            rc2.mapK(ToTry.functionK).run(consumer) mustBe Try(())
+          }
+
+          "mapK with IO ~> IO" in {
+            val api = RebalanceCallback.api[IO]
+
+            val rc: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.empty)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            val rc1: RebalanceCallback[IO, Int] = Vector
+              .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
+              .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
+
+            val rc2: RebalanceCallback[IO, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.commit)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            rc.mapK(FunctionK.id).run2(consumer).unsafeRunSync() mustBe ()
+            rc1.mapK(FunctionK.id).run2(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
+            rc2.mapK(FunctionK.id).run2(consumer).unsafeRunSync() mustBe ()
           }
         }
 

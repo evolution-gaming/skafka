@@ -38,23 +38,35 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       "empty just returns Unit" in {
         tryRun(RebalanceCallback.empty, consumer) mustBe Try(())
+        ioTests(_.empty, (), consumer)
       }
 
       "pure just returns containing value" in {
-        tryRun(RebalanceCallback.pure("value"), consumer) mustBe Try("value")
+        val expected = "value"
+
+        tryRun(RebalanceCallback.pure(expected), consumer) mustBe Try(expected)
+        ioTests(_.pure(expected), expected, consumer)
       }
 
       "lift just returns the result of lifted computation" in {
-        tryRun(lift(Try("ok")), consumer) mustBe Try("ok")
-        RebalanceCallback.run(lift(IO.delay("can" + " do" + " stuff")), consumer) mustBe Try("can do stuff")
+        val expected = "can do stuff"
+
+        tryRun(lift(Try(expected)), consumer) mustBe Try(expected)
+        ioTests(_.lift(IO.delay("can" + " do" + " stuff")), expected, consumer)
       }
 
       "fromTry just returns the result - Success" in {
-        tryRun(fromTry(Try("ok")), consumer) mustBe Try("ok")
+        val expected = "ok"
+
+        tryRun(fromTry(Try(expected)), consumer) mustBe Try(expected)
+        ioTests(_.fromTry(Try(expected)), expected, consumer)
       }
 
       "fromTry just returns the result - Failure" in {
-        tryRun(fromTry(Try(throw TestError)), consumer) mustBe Failure(TestError)
+        val input = Try(throw TestError)
+
+        tryRun(fromTry(input), consumer) mustBe Failure(TestError)
+        ioErrorTests(RebalanceCallback.api[IO].fromTry(input), TestError, consumer)
       }
     }
 
@@ -68,6 +80,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         tryRun(assignment, consumer) mustBe Try(output)
+        ioTests(_.assignment, output, consumer)
       }
 
       "beginningOffsets" in {
@@ -91,6 +104,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(beginningOffsets(input.s), consumer) mustBe Try(output.s)
         tryRun(beginningOffsets(input.s, timeouts.s), consumer) mustBe Try(output.s)
+        ioTests(_.beginningOffsets(input.s), output.s, consumer)
+        ioTests(_.beginningOffsets(input.s, timeouts.s), output.s, consumer)
       }
 
       "commit" in {
@@ -117,6 +132,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         tryRun(commit(timeouts.s), consumer) mustBe Try(())
         tryRun(commit(input.s), consumer) mustBe Try(())
         tryRun(commit(input.s, timeouts.s), consumer) mustBe Try(())
+        ioTests(_.commit, (), consumer)
+        ioTests(_.commit(timeouts.s), (), consumer)
+        ioTests(_.commit(input.s), (), consumer)
+        ioTests(_.commit(input.s, timeouts.s), (), consumer)
       }
 
       "committed" in {
@@ -140,6 +159,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(committed(input.s), consumer) mustBe Try(output.s)
         tryRun(committed(input.s, timeouts.s), consumer) mustBe Try(output.s)
+        ioTests(_.committed(input.s), output.s, consumer)
+        ioTests(_.committed(input.s, timeouts.s), output.s, consumer)
       }
 
       "endOffsets" in {
@@ -163,6 +184,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(endOffsets(input.s), consumer) mustBe Try(output.s)
         tryRun(endOffsets(input.s, timeouts.s), consumer) mustBe Try(output.s)
+        ioTests(_.endOffsets(input.s), output.s, consumer)
+        ioTests(_.endOffsets(input.s, timeouts.s), output.s, consumer)
       }
 
       "groupMetadata" in {
@@ -173,6 +196,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         tryRun(groupMetadata, consumer) mustBe Try(output.s)
+        ioTests(_.groupMetadata, output.s, consumer)
       }
 
       "topics" in {
@@ -188,6 +212,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(topics, consumer) mustBe Try(output.s)
         tryRun(topics(timeouts.s), consumer) mustBe Try(output.s)
+        ioTests(_.topics, output.s, consumer)
+        ioTests(_.topics(timeouts.s), output.s, consumer)
       }
 
       "offsetsForTimes" in {
@@ -213,6 +239,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(offsetsForTimes(input.s), consumer) mustBe Try(output.s)
         tryRun(offsetsForTimes(input.s, timeouts.s), consumer) mustBe Try(output.s)
+        ioTests(_.offsetsForTimes(input.s), output.s, consumer)
+        ioTests(_.offsetsForTimes(input.s, timeouts.s), output.s, consumer)
       }
 
       "partitionsFor" in {
@@ -233,6 +261,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(partitionsFor(input), consumer) mustBe Try(output.s)
         tryRun(partitionsFor(input, timeouts.s), consumer) mustBe Try(output.s)
+        ioTests(_.partitionsFor(input), output.s, consumer)
+        ioTests(_.partitionsFor(input, timeouts.s), output.s, consumer)
       }
 
       "paused" in {
@@ -243,6 +273,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         tryRun(paused, consumer) mustBe Try(output.s)
+        ioTests(_.paused, output.s, consumer)
       }
 
       "position" in {
@@ -263,6 +294,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(position(input), consumer) mustBe Try(output)
         tryRun(position(input, timeouts.s), consumer) mustBe Try(output)
+        ioTests(_.position(input), output, consumer)
+        ioTests(_.position(input, timeouts.s), output, consumer)
       }
 
       "seek" in {
@@ -285,6 +318,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(seek(input, inputOffset), consumer) mustBe Try(output)
         tryRun(seek(input, inputOffsetAndMetadata), consumer) mustBe Try(output)
+        ioTests(_.seek(input, inputOffset), output, consumer)
+        ioTests(_.seek(input, inputOffsetAndMetadata), output, consumer)
       }
 
       "seekToBeginning" in {
@@ -298,6 +333,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         tryRun(seekToBeginning(input.s), consumer) mustBe Try(output)
+        ioTests(_.seekToBeginning(input.s), output, consumer)
       }
 
       "seekToEnd" in {
@@ -311,6 +347,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         tryRun(seekToEnd(input.s), consumer) mustBe Try(output)
+        ioTests(_.seekToEnd(input.s), output, consumer)
       }
 
       "subscription" in {
@@ -321,6 +358,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         }
 
         tryRun(subscription, consumer) mustBe Try(output)
+        ioTests(_.subscription, output, consumer)
       }
 
     }
@@ -346,6 +384,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           } yield a
 
           RebalanceCallback.run(rcOk, consumer) mustBe Try(expected)
+          ioTests(_ => rcOk, expected, consumer)
         }
 
         "error from lifted computation" in {
@@ -367,11 +406,17 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield ()
 
-          val Failure(error) = RebalanceCallback.run(rcError1, consumer)
-          error mustBe TestError
-          a.get() mustBe "step-before-rcError1"
-          b.get() mustBe "unchanged"
+          val reset = () => {
+            a.set("unchanged")
+            b.set("unchanged")
+          }
+          val verifyResults = () => {
+            a.get() mustBe "step-before-rcError1"
+            b.get() mustBe "unchanged"
+            ()
+          }
 
+          ioErrorTests(rcError1, TestError, consumer, reset, verifyResults)
         }
 
         "error from consumer method" in {
@@ -395,10 +440,17 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield ()
 
-          val Failure(error2) = RebalanceCallback.run(rcError2, consumer)
-          error2 mustBe TestError2
-          a.get() mustBe "step-before-rcError2"
-          b.get() mustBe "unchanged"
+          val reset = () => {
+            a.set("unchanged")
+            b.set("unchanged")
+          }
+          val verifyResults = () => {
+            a.get() mustBe "step-before-rcError2"
+            b.get() mustBe "unchanged"
+            ()
+          }
+
+          ioErrorTests(rcError2, TestError2, consumer, reset, verifyResults)
         }
 
         "correct and complete order of execution" in {
@@ -421,15 +473,15 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield a
 
-          val io: IO[Int] = rc.run2(consumer)
-          list.get() mustBe empty
-          io.unsafeRunSync() mustBe 42
-          list.get() mustBe expected
+          val reset = () => {
+            list.set(List.empty)
+          }
+          val verifyResults = () => {
+            list.get() mustBe expected
+            ()
+          }
 
-          list.set(List.empty)
-
-          rc.run(consumer) mustBe Try(42)
-          list.get() mustBe expected
+          ioTests(_ => rc, 42, consumer, reset, verifyResults)
         }
 
         "free from StackOverflowError" - {
@@ -619,6 +671,48 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     }
 
   }
+
+  def ioTests[A](
+    rc: RebalanceCallbackApi[IO] => RebalanceCallback[IO, A],
+    expected: A,
+    consumer: RebalanceConsumerJ,
+    reset: () => ()              = () => (),
+    verifyOtherResults: () => () = () => ()
+  ): Unit = {
+    reset()
+    rc(RebalanceCallback.api).run(consumer) mustBe Try(expected)
+    verifyOtherResults()
+
+    reset()
+    rc(RebalanceCallback.api).mapK(ToTry.functionK).run(consumer) mustBe Try(expected)
+    verifyOtherResults()
+
+    reset()
+    rc(RebalanceCallback.api).run2(consumer).unsafeRunSync() mustBe expected
+    verifyOtherResults()
+  }
+
+  def ioErrorTests(
+    rc: RebalanceCallback[IO, Unit],
+    expected: Throwable,
+    consumer: RebalanceConsumerJ,
+    reset: () => ()              = () => (),
+    verifyOtherResults: () => () = () => ()
+  ): Unit = {
+    reset()
+    rc.run(consumer) mustBe Failure(expected)
+    verifyOtherResults()
+
+    reset()
+    rc.mapK(ToTry.functionK).run(consumer) mustBe Failure(expected)
+    verifyOtherResults()
+
+    reset()
+    val io = rc.run2(consumer)
+    Try(io.unsafeRunSync()) mustBe Failure(expected)
+    verifyOtherResults()
+  }
+
 }
 
 object RebalanceCallbackSpec {

@@ -384,6 +384,7 @@ abstract private[consumer] class RebalanceCallbackInstances {
 private[consumer] object DataModel {
   final case class Pure[+A](a: A) extends RebalanceCallback[Nothing, A]
 
+  // lazy source is needed to avoid StackOverflowError in mapK implementation
   final case class Bind[F[_], S, +A](source: () => RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
       extends RebalanceCallback[F, A]
 

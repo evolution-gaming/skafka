@@ -491,6 +491,26 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             tryRun(rc2, consumer) mustBe Try(())
           }
 
+          "mapK with Try ~> Try" in {
+            val api = RebalanceCallback
+
+            val rc: RebalanceCallback[Nothing, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.empty)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            val rc1: RebalanceCallback[IO, Int] = Vector
+              .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
+              .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
+
+            val rc2: RebalanceCallback[Nothing, Unit] = Vector
+              .fill(stackOverflowErrorDepth)(api.commit)
+              .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
+
+            tryRun(rc.mapK(FunctionK.id), consumer) mustBe Try(())
+            rc1.mapK(FunctionK.id).run(consumer) mustBe Try(stackOverflowErrorDepth)
+            tryRun(rc2.mapK(FunctionK.id), consumer) mustBe Try(())
+          }
+
           "mapK with IO ~> Try" in {
             val api = RebalanceCallback.api[IO]
 

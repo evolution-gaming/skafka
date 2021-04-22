@@ -23,14 +23,11 @@ class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {
     }
     val tfListener = new TfRebalanceListener1[IO]
 
-    RebalanceCallback
-      .run(tfListener.onPartitionsAssigned(partitions.s), consumer) mustBe Try(())
+    tfListener.onPartitionsAssigned(partitions.s).run(consumer) mustBe Try(())
 
-    RebalanceCallback
-      .run(tfListener.onPartitionsRevoked(partitions.s), consumer) mustBe Try(())
+    tfListener.onPartitionsRevoked(partitions.s).run(consumer) mustBe Try(())
 
-    RebalanceCallback
-      .run(tfListener.onPartitionsLost(partitions.s), consumer) mustBe Try(())
+    tfListener.onPartitionsLost(partitions.s).run(consumer) mustBe Try(())
   }
 
 }

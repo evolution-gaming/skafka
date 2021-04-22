@@ -76,11 +76,6 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
   def api[F[_]]: RebalanceCallbackApi[F] = new RebalanceCallbackApi[F] {}
 
-  private[consumer] def run[F[_]: ToTry, A](
-    rebalanceCallback: RebalanceCallback[F, A],
-    consumer: RebalanceConsumerJ
-  ): Try[A] = rebalanceCallback.run(consumer)
-
   implicit class RebalanceCallbackOps[F[_], A](val self: RebalanceCallback[F, A]) extends AnyVal {
 
     def map[B](f: A => B): RebalanceCallback[F, B] = flatMap(a => pure(f(a)))

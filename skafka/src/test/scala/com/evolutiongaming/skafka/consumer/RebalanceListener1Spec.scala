@@ -33,21 +33,12 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
       }
     }
 
-    RebalanceCallback.run(
-      listener1.onPartitionsAssigned(partitions.s),
-      consumer
-    ) mustBe Try(())
+    listener1.onPartitionsAssigned(partitions.s).run(consumer) mustBe Try(())
     seekResult.get() must contain theSameElementsAs partitions.j.asScala.map(_.toString)
 
-    RebalanceCallback.run(
-      listener1.onPartitionsRevoked(partitions.s),
-      consumer
-    ) mustBe Try(())
+    listener1.onPartitionsRevoked(partitions.s).run(consumer) mustBe Try(())
 
-    RebalanceCallback.run(
-      listener1.onPartitionsLost(partitions.s).effectAs[IO],
-      consumer
-    ) mustBe Try(())
+    listener1.onPartitionsLost(partitions.s).effectAs[IO].run(consumer) mustBe Try(())
 
   }
 }

@@ -383,7 +383,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             a      <- lift(IO.delay { result })
           } yield a
 
-          RebalanceCallback.run(rcOk, consumer) mustBe Try(expected)
+          rcOk.run(consumer) mustBe Try(expected)
           ioTests(_ => rcOk, expected, consumer)
         }
 
@@ -647,7 +647,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           a <- topics.foldMapM(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))
         } yield a
 
-        RebalanceCallback.run(rc, consumer) mustBe Try(())
+        rc.run(consumer) mustBe Try(())
         seekResult.get() mustBe topics.map(_.toString)
       }
 
@@ -718,7 +718,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 object RebalanceCallbackSpec {
 
   def tryRun[A](rc: RebalanceCallback[Try, A], consumer: RebalanceConsumerJ): Try[Any] = {
-    RebalanceCallback.run[Try, A](rc, consumer)
+    rc.run(consumer)
   }
 
   case object TestError extends NoStackTrace

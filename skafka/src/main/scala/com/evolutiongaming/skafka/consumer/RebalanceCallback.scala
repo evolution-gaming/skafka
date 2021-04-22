@@ -157,7 +157,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
           case c: WithConsumer[A1] =>
             // a trick to make `c.f` lazy if F[_] is lazy
             // by moving it into `flatMap`
-            // using this trick is it does not require Defer/Sync instances
+            // using this trick as it does not require Defer/Sync instances
             val fa = for {
               _ <- ().pure[F]
               a <- c.f(consumer).pure[F]

@@ -518,9 +518,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fill(stackOverflowErrorDepth)(api.commit)
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
-            rc.toF(consumer).unsafeRunSync() mustBe ()
+            rc.toF(consumer).unsafeRunSync() mustBe (())
             rc1.toF(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
-            rc2.toF(consumer).unsafeRunSync() mustBe ()
+            rc2.toF(consumer).unsafeRunSync() mustBe (())
           }
 
           "with Try effect type" in {
@@ -544,9 +544,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           }
 
           "mapK with Try ~> Try" in {
-            val api = RebalanceCallback
+            val api = RebalanceCallback.api[Try]
 
-            val rc: RebalanceCallback[Nothing, Unit] = Vector
+            val rc: RebalanceCallback[Try, Unit] = Vector
               .fill(stackOverflowErrorDepth)(api.empty)
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
@@ -554,7 +554,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fill(stackOverflowErrorDepth)(api.lift(IO.delay(1)))
               .fold(api.lift(IO.delay(0))) { (agg, e) => agg.flatMap(acc => e.map(_ + acc)) }
 
-            val rc2: RebalanceCallback[Nothing, Unit] = Vector
+            val rc2: RebalanceCallback[Try, Unit] = Vector
               .fill(stackOverflowErrorDepth)(api.commit)
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
@@ -625,9 +625,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fill(stackOverflowErrorDepth)(api.commit)
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
-            rc.mapK(FunctionK.id).toF(consumer).unsafeRunSync() mustBe ()
-            rc1.mapK(FunctionK.id).toF(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
-            rc2.mapK(FunctionK.id).toF(consumer).unsafeRunSync() mustBe ()
+            rc.mapK[IO](FunctionK.id).toF(consumer).unsafeRunSync() mustBe (())
+            rc1.mapK[IO](FunctionK.id).toF(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
+            rc2.mapK[IO](FunctionK.id).toF(consumer).unsafeRunSync() mustBe (())
           }
         }
 
@@ -676,43 +676,43 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     rc: RebalanceCallbackApi[IO] => RebalanceCallback[IO, A],
     expected: A,
     explodingConsumer: ExplodingConsumer,
-    reset: () => ()              = () => (),
-    verifyOtherResults: () => () = () => ()
+    reset: => Unit              = (),
+    verifyOtherResults: => Unit = ()
   ): Unit = {
     val consumer = explodingConsumer.asRebalanceConsumer
-    reset()
+    reset
     rc(RebalanceCallback.api).run(consumer) mustBe Try(expected)
-    verifyOtherResults()
+    verifyOtherResults
 
-    reset()
+    reset
     rc(RebalanceCallback.api).mapK(ToTry.functionK).run(consumer) mustBe Try(expected)
-    verifyOtherResults()
+    verifyOtherResults
 
-    reset()
+    reset
     rc(RebalanceCallback.api).toF(consumer).unsafeRunSync() mustBe expected
-    verifyOtherResults()
+    verifyOtherResults
   }
 
   def ioErrorTests(
     rc: RebalanceCallback[IO, Unit],
     expected: Throwable,
     explodingConsumer: ExplodingConsumer,
-    reset: () => ()              = () => (),
-    verifyOtherResults: () => () = () => ()
+    reset: => Unit              = (),
+    verifyOtherResults: => Unit = ()
   ): Unit = {
     val consumer = explodingConsumer.asRebalanceConsumer
-    reset()
+    reset
     rc.run(consumer) mustBe Failure(expected)
-    verifyOtherResults()
+    verifyOtherResults
 
-    reset()
+    reset
     rc.mapK(ToTry.functionK).run(consumer) mustBe Failure(expected)
-    verifyOtherResults()
+    verifyOtherResults
 
-    reset()
+    reset
     val io = rc.toF(consumer)
     Try(io.unsafeRunSync()) mustBe Failure(expected)
-    verifyOtherResults()
+    verifyOtherResults
   }
 
 }

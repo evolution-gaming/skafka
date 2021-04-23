@@ -1,7 +1,5 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
-
 import cats.Applicative
 import cats.data.{NonEmptyList, NonEmptySet => Nes}
 import cats.effect.IO
@@ -10,7 +8,7 @@ import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.syntax._
 import com.evolutiongaming.skafka.consumer.RebalanceListener1SyntaxSpec._
 import com.evolutiongaming.skafka.{Topic, TopicPartition}
-import org.apache.kafka.common
+import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
@@ -19,8 +17,8 @@ class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {
 
   "type inference to the max" in {
     val consumer = new ExplodingConsumer {
-      override def position(partition: common.TopicPartition): LongJ = 0L
-    }
+      override def position(partition: TopicPartitionJ): Long = 0L
+    }.asRebalanceConsumer
     val tfListener = new TfRebalanceListener1[IO]
 
     tfListener.onPartitionsAssigned(partitions.s).run(consumer) mustBe Try(())

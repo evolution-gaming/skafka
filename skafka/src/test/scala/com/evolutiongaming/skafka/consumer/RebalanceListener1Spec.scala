@@ -1,6 +1,5 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
 import java.util.concurrent.atomic.AtomicReference
 
 import cats.Applicative
@@ -24,14 +23,14 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
     val listener1 = new SaveOffsetsOnRebalance[IO]
 
     val consumer = new ExplodingConsumer {
-      override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
+      override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
         val _ = seekResult.getAndUpdate(_ :+ partition.toString)
       }
 
-      override def position(partition: TopicPartitionJ): LongJ = {
+      override def position(partition: TopicPartitionJ): Long = {
         offsetsMap.j.get(partition)
       }
-    }
+    }.asRebalanceConsumer
 
     listener1.onPartitionsAssigned(partitions.s).run(consumer) mustBe Try(())
     seekResult.get() must contain theSameElementsAs partitions.j.asScala.map(_.toString)

@@ -281,11 +281,11 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         val output = Offset.unsafe(323)
 
         val consumer = new ExplodingConsumer {
-          override def position(p: TopicPartitionJ): LongJ = {
+          override def position(p: TopicPartitionJ): Long = {
             p mustBe input.asJava
             output.value
           }
-          override def position(p: TopicPartitionJ, timeout: DurationJ): LongJ = {
+          override def position(p: TopicPartitionJ, timeout: DurationJ): Long = {
             timeout mustBe timeouts.j
             p mustBe input.asJava
             output.value
@@ -305,7 +305,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         val output                 = ()
 
         val consumer = new ExplodingConsumer {
-          override def seek(p: TopicPartitionJ, offset: LongJ): Unit = {
+          override def seek(p: TopicPartitionJ, offset: Long): Unit = {
             val _ = p mustBe input.asJava
           }
 
@@ -383,7 +383,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             a      <- lift(IO.delay { result })
           } yield a
 
-          rcOk.run(consumer) mustBe Try(expected)
+          rcOk.run(consumer.asRebalanceConsumer) mustBe Try(expected)
           ioTests(_ => rcOk, expected, consumer)
         }
 
@@ -501,7 +501,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
           val consumer = new ExplodingConsumer {
             override def commitSync(): Unit = ()
-          }
+          }.asRebalanceConsumer
 
           "with IO effect type" in {
             val api = RebalanceCallback.api[IO]
@@ -636,10 +636,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       "cats traverse is working for RebalanceCallback[Nothing, *]" in {
         val seekResult: AtomicReference[List[String]] = new AtomicReference(List.empty)
         val consumer = new ExplodingConsumer {
-          override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
+          override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
             val _ = seekResult.getAndUpdate(_ :+ partition.topic())
           }
-        }
+        }.asRebalanceConsumer
 
         import cats.implicits._
         val topics = List(1, 2, 3)
@@ -658,7 +658,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       val consumer = new ExplodingConsumer {
         override def commitSync(): Unit = consumerTouched.set(true)
-      }
+      }.asRebalanceConsumer
 
       val rc = RebalanceCallback.api[IO].commit
 
@@ -675,10 +675,11 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
   def ioTests[A](
     rc: RebalanceCallbackApi[IO] => RebalanceCallback[IO, A],
     expected: A,
-    consumer: RebalanceConsumerJ,
+    explodingConsumer: ExplodingConsumer,
     reset: () => ()              = () => (),
     verifyOtherResults: () => () = () => ()
   ): Unit = {
+    val consumer = explodingConsumer.asRebalanceConsumer
     reset()
     rc(RebalanceCallback.api).run(consumer) mustBe Try(expected)
     verifyOtherResults()
@@ -695,10 +696,11 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
   def ioErrorTests(
     rc: RebalanceCallback[IO, Unit],
     expected: Throwable,
-    consumer: RebalanceConsumerJ,
+    explodingConsumer: ExplodingConsumer,
     reset: () => ()              = () => (),
     verifyOtherResults: () => () = () => ()
   ): Unit = {
+    val consumer = explodingConsumer.asRebalanceConsumer
     reset()
     rc.run(consumer) mustBe Failure(expected)
     verifyOtherResults()
@@ -717,8 +719,12 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
 object RebalanceCallbackSpec {
 
-  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: RebalanceConsumerJ): Try[Any] = {
+  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: RebalanceConsumer): Try[Any] = {
     rc.run(consumer)
+  }
+
+  def tryRun[A](rc: RebalanceCallback[Try, A], consumer: ExplodingConsumer): Try[Any] = {
+    rc.run(consumer.asRebalanceConsumer)
   }
 
   case object TestError extends NoStackTrace

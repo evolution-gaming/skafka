@@ -126,7 +126,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
       } yield a
     }
 
-    def run2(
+    def toF(
       consumer: RebalanceConsumerJ
     )(implicit MT: MonadThrowable[F]): F[A] = {
       type S = Any => RebalanceCallback[F, Any]

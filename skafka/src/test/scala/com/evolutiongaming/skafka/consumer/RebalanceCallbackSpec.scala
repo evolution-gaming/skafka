@@ -518,9 +518,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fill(stackOverflowErrorDepth)(api.commit)
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
-            rc.run2(consumer).unsafeRunSync() mustBe ()
-            rc1.run2(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
-            rc2.run2(consumer).unsafeRunSync() mustBe ()
+            rc.toF(consumer).unsafeRunSync() mustBe ()
+            rc1.toF(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
+            rc2.toF(consumer).unsafeRunSync() mustBe ()
           }
 
           "with Try effect type" in {
@@ -625,9 +625,9 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fill(stackOverflowErrorDepth)(api.commit)
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
-            rc.mapK(FunctionK.id).run2(consumer).unsafeRunSync() mustBe ()
-            rc1.mapK(FunctionK.id).run2(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
-            rc2.mapK(FunctionK.id).run2(consumer).unsafeRunSync() mustBe ()
+            rc.mapK(FunctionK.id).toF(consumer).unsafeRunSync() mustBe ()
+            rc1.mapK(FunctionK.id).toF(consumer).unsafeRunSync() mustBe stackOverflowErrorDepth
+            rc2.mapK(FunctionK.id).toF(consumer).unsafeRunSync() mustBe ()
           }
         }
 
@@ -662,7 +662,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       val rc = RebalanceCallback.api[IO].commit
 
-      val io: IO[Unit] = rc.run2(consumer)
+      val io: IO[Unit] = rc.toF(consumer)
       // IO is lazy, so consumer should not have been called at this point
       consumerTouched.get() mustBe false
       io.toTry mustBe Try(())
@@ -688,7 +688,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     verifyOtherResults()
 
     reset()
-    rc(RebalanceCallback.api).run2(consumer).unsafeRunSync() mustBe expected
+    rc(RebalanceCallback.api).toF(consumer).unsafeRunSync() mustBe expected
     verifyOtherResults()
   }
 
@@ -708,7 +708,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     verifyOtherResults()
 
     reset()
-    val io = rc.run2(consumer)
+    val io = rc.toF(consumer)
     Try(io.unsafeRunSync()) mustBe Failure(expected)
     verifyOtherResults()
   }

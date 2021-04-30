@@ -263,16 +263,16 @@ object RebalanceCallback extends RebalanceCallbackInstances {
     } yield a
   }
 
-  private[consumer] final case class Pure[+A](a: A) extends RebalanceCallback[Nothing, A]
+  private final case class Pure[+A](a: A) extends RebalanceCallback[Nothing, A]
 
-  private[consumer] final case class Bind[F[_], S, +A](source: RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
+  private final case class Bind[F[_], S, +A](source: RebalanceCallback[F, S], fs: S => RebalanceCallback[F, A])
       extends RebalanceCallback[F, A]
 
-  private[consumer] final case class Lift[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
+  private final case class Lift[F[_], A](fa: F[A]) extends RebalanceCallback[F, A]
 
-  private[consumer] final case class WithConsumer[+A](f: RebalanceConsumerJ => A) extends RebalanceCallback[Nothing, A]
+  private final case class WithConsumer[+A](f: RebalanceConsumerJ => A) extends RebalanceCallback[Nothing, A]
 
-  private[consumer] final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
+  private final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
 
   implicit class RebalanceCallbackOps[F[_], A](val self: RebalanceCallback[F, A]) extends AnyVal {
 

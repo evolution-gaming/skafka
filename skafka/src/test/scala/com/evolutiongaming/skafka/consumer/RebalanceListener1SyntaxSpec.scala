@@ -31,7 +31,6 @@ class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {
 }
 
 object RebalanceListener1SyntaxSpec {
-  // TODO: add complex example show casing better type inference with RebalanceCallback.api[F]
   class TfRebalanceListener1[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
 
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =

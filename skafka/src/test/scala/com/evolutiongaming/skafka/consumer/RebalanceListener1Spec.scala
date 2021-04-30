@@ -70,21 +70,18 @@ object RebalanceListener1Spec {
    *   }
    * }
    */
-  class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1[F] {
+  class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
 
-    // one way is to import all methods, and then do `seek(...)`/`position(...)`/etc
-    import RebalanceCallback._
-
-    // TODO update example in docs when such way of usage is finalized in PR
-    val consumer = RebalanceCallback.api[F]
-
-    // or assign it to a `val` and write code like `consumer.position(partition)`
+    // import is needed to use `fa.lift` syntax where
+    // `fa: F[A]`
+    // `fa.lift: RebalanceCallback[F, A]`
+    import RebalanceCallback.syntax._
 
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
       for {
         // read the offsets from an external store using some custom code not described here
-        offsets <- lift(readOffsetsFromExternalStore[F](partitions))
-        a       <- offsets.toList.foldMapM { case (partition, offset) => seek(partition, offset) }
+        offsets <- readOffsetsFromExternalStore[F](partitions).lift
+        a       <- offsets.toList.foldMapM { case (partition, offset) => consumer.seek(partition, offset) }
       } yield a
 
     def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
@@ -96,11 +93,11 @@ object RebalanceListener1Spec {
             } yield offsets + (partition -> position)
         }
         // save the offsets in an external store using some custom code not described here
-        a <- lift(saveOffsetsInExternalStore[F](positions))
+        a <- saveOffsetsInExternalStore[F](positions).lift
       } yield a
 
     // do not need to save the offsets since these partitions are probably owned by other consumers already
-    def onPartitionsLost(partitions: Nes[TopicPartition]) = empty
+    def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
   }
 
   def readOffsetsFromExternalStore[F[_]: Applicative](

@@ -36,28 +36,27 @@ import scala.util.{Failure, Success, Try}
   *
   * Usage:
   * {{{
-  * new RebalanceListener1[IO] {
+  * new RebalanceListener1WithConsumer[IO] {
   *
-  *  // one way is to import all methods, and then do `seek(...)`/`position(...)`/etc
-  *  import RebalanceCallback._
-  *
-  *  // or assign it to a `val` and write code like `consumer.commit(offsets)`
-  *  val consumer = RebalanceCallback
+  *  // import is needed to use `fa.lift` syntax where
+  *  // `fa: F[A]`
+  *  // `fa.lift: RebalanceCallback[F, A]`
+  *  import RebalanceCallback.syntax._
   *
   *  def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) = {
   *    for {
-  *      state <- lift(restoreStateFor(partitions))
-  *      a     <- state.offsets.foldMapM(o => seek(o.partition, o.offset))
+  *      state <- restoreStateFor(partitions).lift
+  *      a     <- state.offsets.foldMapM(o => consumer.seek(o.partition, o.offset))
   *    } yield a
   *  }
   *
   *  def onPartitionsRevoked(partitions: NonEmptySet[TopicPartition]) =
   *    for {
-  *      offsets <- lift(committableOffsetsFor(partitions))
+  *      offsets <- committableOffsetsFor(partitions).lift
   *      a       <- consumer.commit(offsets)
   *    } yield a
   *
-  *  def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = empty
+  *  def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = RebalanceCallback.empty
   * }
   * }}}
   * @see [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]

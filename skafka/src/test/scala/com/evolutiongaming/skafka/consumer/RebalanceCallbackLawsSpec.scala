@@ -13,16 +13,14 @@ import org.typelevel.discipline.scalatest.FunSuiteDiscipline
 import scala.util.{Failure, Success, Try}
 
 class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike with Configuration {
-  // Generate each of ADT members. Where possible, generate a successful outcome as well as an unsuccessful one.
-  // Since ADT members are private, we can't create them directly and in some cases that makes us generate
-  // composite members (see generation for WithConsumer)
+  // Generate each of ADT's leaves. Where possible, generate a successful outcome as well as an unsuccessful one
   implicit def arbAny[A](implicit A: Arbitrary[A]): Arbitrary[RebalanceCallback[Try, A]] = Arbitrary(Gen.oneOf(
-    A.arbitrary.map(RebalanceCallback.pure), // Pure
-    A.arbitrary.map(a => RebalanceCallback.pure(a).flatMap(b => RebalanceCallback.pure(b))), // Bind
-    A.arbitrary.map(a => RebalanceCallback.lift(Success(a))), // Lift
-    Gen.const(RebalanceCallback.lift(Failure(new Exception("Lift fail")))), // Lift
-    A.arbitrary.map(a => RebalanceCallback.commit.map(_ => a)), // WithConsumer
-    Gen.const(RebalanceCallback.fromTry(Failure(new Exception("Test")))) // Error
+    A.arbitrary.map(RebalanceCallback.Pure.apply),
+    A.arbitrary.map(a => RebalanceCallback.Bind(RebalanceCallback.Pure(a), (_: A) => RebalanceCallback.Pure(a))),
+    A.arbitrary.map(a => RebalanceCallback.Lift(Success(a))),
+    Gen.const(RebalanceCallback.Lift(Failure(new Exception("Lift fail")))),
+    A.arbitrary.map(a => RebalanceCallback.WithConsumer(_ => a)),
+    Gen.const(RebalanceCallback.Error(new Exception("Test")))
   ))
 
   implicit def eq[A: Eq]: Eq[RebalanceCallback[Try, A]] = new Eq[RebalanceCallback[Try, A]] {

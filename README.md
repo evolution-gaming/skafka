@@ -47,5 +47,5 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 ```scala
 addSbtPlugin("com.evolution" % "sbt-artifactory-plugin" % "0.0.2")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "11.0.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "11.1.0"
 ``` 

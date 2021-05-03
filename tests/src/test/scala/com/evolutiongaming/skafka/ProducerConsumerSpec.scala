@@ -21,6 +21,7 @@ import com.evolutiongaming.smetrics.CollectorRegistry
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import RebalanceCallback.syntax._
 
 import scala.annotation.tailrec
 import scala.concurrent.Await
@@ -163,28 +164,26 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       rebalanceCounter: Ref[IO, Int],
       assigned: Deferred[IO, Unit]
     ): RebalanceListener1[IO] = {
-      new RebalanceListener1[IO] {
-        import RebalanceCallback._
-
+      new RebalanceListener1WithConsumer[IO] {
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- lift(IO.shift)
-            _ <- lift(
+            _ <- IO.shift.lift
+            _ <- (
               IO.shift *>
                 IO.delay(()) *>
                 IO.shift *>
                 IO.delay(())
-            )
+              ).lift
             // with IO.shift attempts we make sure that
             // kafka java consumer.position method would be called from the same thread as consumer.poll
             // otherwise kafka java consumer throws
             // ConcurrentModificationException("KafkaConsumer is not safe for multi-threaded access")
             // which in result would terminate current flatMap chain
             // and fail the test as positions (Set[Offset]) would be empty
-            position <- position(partitions.head)
-            _ <- lift(positions.update(_.+(position)))
-            _ <- lift(rebalanceCounter.update(_ + 1))
-            _ <- lift(assigned.complete(()))
+            position <- consumer.position(partitions.head)
+            _ <- positions.update(_.+(position)).lift
+            _ <- rebalanceCounter.update(_ + 1).lift
+            _ <- assigned.complete(()).lift
           } yield ()
         }
 
@@ -266,23 +265,21 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
                     rebalanceCounter: Ref[IO, Int],
                     assigned: Deferred[IO, Unit]
                   ): RebalanceListener1[IO] = {
-      new RebalanceListener1[IO] {
-
-        import RebalanceCallback._
+      new RebalanceListener1WithConsumer[IO] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- lift(rebalanceCounter.update(_ + 1))
-            _ <- lift(assigned.complete(()))
+            _ <- rebalanceCounter.update(_ + 1).lift
+            _ <- assigned.complete(()).lift
           } yield ()
         }
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
           for {
-            committed <- committed(partitions)
+            committed <- consumer.committed(partitions)
             offset = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
-            _ <- lift(offsets.update(_ :+ offset))
-            a <- commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
+            _ <- offsets.update(_ :+ offset).lift
+            a <- consumer.commit(partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem)
           } yield a
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
@@ -348,11 +345,10 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val topic = s"${instant.toEpochMilli}-rebalance-listener-correctness-seek"
 
     val listener: RebalanceListener1[IO] = {
-      new RebalanceListener1[IO] {
-        import RebalanceCallback._
+      new RebalanceListener1WithConsumer[IO] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
-          partitions.foldMapM(seek(_, Offset.unsafe(1)))
+          partitions.foldMapM(consumer.seek(_, Offset.unsafe(1)))
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
 

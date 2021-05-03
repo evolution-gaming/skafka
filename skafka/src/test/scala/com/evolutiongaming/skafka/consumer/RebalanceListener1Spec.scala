@@ -1,6 +1,5 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
 import java.util.concurrent.atomic.AtomicReference
 
 import cats.Applicative
@@ -24,30 +23,21 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
     val listener1 = new SaveOffsetsOnRebalance[IO]
 
     val consumer = new ExplodingConsumer {
-      override def seek(partition: TopicPartitionJ, offset: LongJ): Unit = {
+      override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
         val _ = seekResult.getAndUpdate(_ :+ partition.toString)
       }
 
-      override def position(partition: TopicPartitionJ): LongJ = {
+      override def position(partition: TopicPartitionJ): Long = {
         offsetsMap.j.get(partition)
       }
-    }
+    }.asRebalanceConsumer
 
-    RebalanceCallback.run(
-      listener1.onPartitionsAssigned(partitions.s),
-      consumer
-    ) mustBe Try(())
+    listener1.onPartitionsAssigned(partitions.s).run(consumer) mustBe Try(())
     seekResult.get() must contain theSameElementsAs partitions.j.asScala.map(_.toString)
 
-    RebalanceCallback.run(
-      listener1.onPartitionsRevoked(partitions.s),
-      consumer
-    ) mustBe Try(())
+    listener1.onPartitionsRevoked(partitions.s).run(consumer) mustBe Try(())
 
-    RebalanceCallback.run(
-      listener1.onPartitionsLost(partitions.s).effectAs[IO],
-      consumer
-    ) mustBe Try(())
+    listener1.onPartitionsLost(partitions.s).effectAs[IO].run(consumer) mustBe Try(())
 
   }
 }
@@ -80,15 +70,18 @@ object RebalanceListener1Spec {
    *   }
    * }
    */
-  class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1[F] {
+  class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
 
-    import RebalanceCallback._
+    // import is needed to use `fa.lift` syntax where
+    // `fa: F[A]`
+    // `fa.lift: RebalanceCallback[F, A]`
+    import RebalanceCallback.syntax._
 
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
       for {
         // read the offsets from an external store using some custom code not described here
-        offsets <- lift(readOffsetsFromExternalStore[F](partitions))
-        a       <- offsets.toList.foldMapM { case (partition, offset) => seek(partition, offset) }
+        offsets <- readOffsetsFromExternalStore[F](partitions).lift
+        a       <- offsets.toList.foldMapM { case (partition, offset) => consumer.seek(partition, offset) }
       } yield a
 
     def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
@@ -96,15 +89,15 @@ object RebalanceListener1Spec {
         positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
           case (offsets, partition) =>
             for {
-              position <- position(partition)
+              position <- consumer.position(partition)
             } yield offsets + (partition -> position)
         }
         // save the offsets in an external store using some custom code not described here
-        a <- lift(saveOffsetsInExternalStore[F](positions))
+        a <- saveOffsetsInExternalStore[F](positions).lift
       } yield a
 
     // do not need to save the offsets since these partitions are probably owned by other consumers already
-    def onPartitionsLost(partitions: Nes[TopicPartition]) = empty
+    def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
   }
 
   def readOffsetsFromExternalStore[F[_]: Applicative](

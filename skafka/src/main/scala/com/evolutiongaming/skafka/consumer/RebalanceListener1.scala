@@ -13,34 +13,37 @@ import com.evolutiongaming.skafka.TopicPartition
   *
   * Below is an example inspired by [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]] documentation.
   *
-  * Compiling and working example is available [[https://github.com/evolution-gaming/skafka/blob/d2af038b012523533f2b73d432721d6d1e7cebbe/skafka/src/test/scala/com/evolutiongaming/skafka/consumer/RebalanceListener1Spec.scala here]]:
-  * TODO: replace with shorter github link after merge of https://github.com/evolution-gaming/skafka/pull/122
+  * Compiling and working example is available [[https://github.com/evolution-gaming/skafka/blob/master/skafka/src/test/scala/com/evolutiongaming/skafka/consumer/RebalanceListener1Spec.scala here]]
   * {{{
   *
-  * class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1[F] {
-  *  import RebalanceCallback._
+  * class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
   *
-  *  def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) =
-  *    for {
-  *      // read the offsets from an external store using some custom code not described here
-  *      offsets <- lift(readOffsetsFromExternalStore[F](partitions))
-  *      a       <- offsets.toList.foldMapM { case (partition, offset) => seek(partition, offset) }
-  *    } yield a
+  *   // import is needed to use `fa.lift` syntax where
+  *   // `fa: F[A]`
+  *   // `fa.lift: RebalanceCallback[F, A]`
+  *   import RebalanceCallback.syntax._
   *
-  * def onPartitionsRevoked(partitions: NonEmptySet[TopicPartition]) =
-  *    for {
-  *      positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
-  *        case (offsets, partition) =>
-  *          for {
-  *            position <- position(partition)
-  *          } yield offsets + (partition -> position)
-  *      }
-  *      // save the offsets in an external store using some custom code not described here
-  *      a <- lift(saveOffsetsInExternalStore[F](positions))
-  *    } yield a
+  *   def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+  *     for {
+  *       // read the offsets from an external store using some custom code not described here
+  *       offsets <- readOffsetsFromExternalStore[F](partitions).lift
+  *       a       <- offsets.toList.foldMapM { case (partition, offset) => consumer.seek(partition, offset) }
+  *     } yield a
   *
-  *  // do not need to save the offsets since these partitions are probably owned by other consumers already
-  *  def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = empty
+  *   def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+  *     for {
+  *       positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
+  *         case (offsets, partition) =>
+  *           for {
+  *             position <- consumer.position(partition)
+  *           } yield offsets + (partition -> position)
+  *       }
+  *       // save the offsets in an external store using some custom code not described here
+  *       a <- saveOffsetsInExternalStore[F](positions).lift
+  *     } yield a
+  *
+  *   // do not need to save the offsets since these partitions are probably owned by other consumers already
+  *   def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
   * }
   *
   * }}}
@@ -57,7 +60,47 @@ trait RebalanceListener1[F[_]] {
 
 }
 
+/**
+  * Same as [[RebalanceListener1]] but with a `consumer` to allow a better type inference.
+  *
+  * {{{
+  *    import RebalanceCallback.syntax._ // to allow writing `someF.lift` instead of `lift(someF)`
+  *
+  *    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
+  *      groupByTopic(partitions) traverse_ {
+  *        case (_, partitions) =>
+  *          for {
+  *            _ <- someF.lift
+  *            partitionsOffsets <- partitions.toNonEmptyList traverse { partition =>
+  *              // fails to compile with `RebalanceCallback.position` variant at
+  *              // _ <- someF2(partitionsOffsets).lift
+  *              // expected type RebalanceCallback[Nothing,?] but found RebalanceCallback[F,Unit]
+  *              consumer.position(partition) map (partition -> _)
+  *            }
+  *            _ <- someF2(partitionsOffsets).lift
+  *          } yield ()
+  *      }
+  *    }
+  *    def someF: F[Unit] = ???
+  *    def someF2(a: Any): F[Unit] = ???
+  * }}}
+  */
+trait RebalanceListener1WithConsumer[F[_]] extends RebalanceListener1[F] {
+  final def consumer: RebalanceCallbackApi[F] = RebalanceCallback.api[F]
+}
+
 object RebalanceListener1 {
+
+  def empty[F[_]]: RebalanceListener1[F] = const(RebalanceCallback.pure(()))
+
+  def const[F[_]](unit: RebalanceCallback[F, Unit]): RebalanceListener1[F] = new RebalanceListener1[F] {
+
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]) = unit
+
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = unit
+
+    def onPartitionsLost(partitions: Nes[TopicPartition]) = unit
+  }
 
   implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
 

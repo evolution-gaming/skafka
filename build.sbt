@@ -1,27 +1,40 @@
 import Dependencies._
+import com.typesafe.tools.mima.core._
 
 lazy val commonSettings = Seq(
   organization := "com.evolutiongaming",
-  homepage := Some(new URL("http://github.com/evolution-gaming/skafka")),
+  homepage := Some(new URL("https://github.com/evolution-gaming/skafka")),
   startYear := Some(2018),
-  organizationName := "Evolution Gaming",
-  organizationHomepage := Some(url("http://evolutiongaming.com")),
-  bintrayOrganization := Some("evolutiongaming"),
+  organizationName := "Evolution",
+  organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.3", "2.12.10"),
-  resolvers += Resolver.bintrayRepo("evolutiongaming", "maven"),
+  crossScalaVersions := Seq("2.13.3", "2.12.13"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
-  scalacOptions in(Compile, doc) += "-no-link-warnings",
+  Compile / doc / scalacOptions += "-no-link-warnings",
   libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary),
-  scalacOptsFailOnWarn := Some(false))
+  scalacOptsFailOnWarn := Some(false),
+  publishTo := Some(Resolver.evolutionReleases),
+  // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
+  mimaPreviousArtifacts.withRank(KeyRanks.Invisible) := {
+    val versions = List(
+      "11.0.0",
+    )
+    versions.map(organization.value %% moduleName.value % _).toSet
+  },
+  mimaBinaryIssueFilters ++= Seq(
+    ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.subscribe"),
+    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.Converters#MapJOps.asScalaMap$extension")
+  )
+)
 
 
 lazy val root = (project
   in file(".")
+  disablePlugins (MimaPlugin)
   settings (name := "skafka")
   settings commonSettings
-  settings (skip in publish := true)
+  settings (publish / skip := true)
   aggregate(skafka, `play-json`, tests))
 
 lazy val skafka = (project
@@ -50,10 +63,11 @@ lazy val `play-json` = (project
   settings (libraryDependencies ++= Seq(Dependencies.`play-json-jsoniter`, scalatest % Test)))
 
 lazy val tests = (project in file("tests")
+  disablePlugins (MimaPlugin)
   settings (name := "skafka-tests")
   settings commonSettings
   settings Seq(
-    skip in publish := true,
+    publish / skip := true,
     Test / fork := true,
     Test / parallelExecution := false)
     dependsOn skafka % "compile->compile;test->test"

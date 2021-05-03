@@ -114,7 +114,7 @@ object ConsumerConverters {
           }
           .toTry
           .flatMap {
-            _.foldMapM { partitions => RebalanceCallback.run(call(partitions), RebalanceConsumerJ(consumer)) }
+            _.foldMapM { partitions => call(partitions).run(RebalanceConsumer(consumer)) }
           }
         result.fold(throw _, _ => ())
       }

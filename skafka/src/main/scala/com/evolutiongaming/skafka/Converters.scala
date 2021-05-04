@@ -29,16 +29,13 @@ object Converters {
     }
   }
 
-
   implicit class HeaderJOps(val self: HeaderJ) extends AnyVal {
     def asScala: Header = Header(self.key(), self.value())
   }
 
-
   implicit class AnyOps[A](val self: A) extends AnyVal {
     def noneIf(x: A): Option[A] = if (self == x) None else Some(self)
   }
-
 
   implicit class SetTopicPartitionOps(val self: Nes[TopicPartition]) extends AnyVal {
 
@@ -51,15 +48,13 @@ object Converters {
     }
   }
 
-
   implicit class TopicPartitionOps(val self: TopicPartition) extends AnyVal {
     def asJava: TopicPartitionJ = new TopicPartitionJ(self.topic, self.partition.value)
   }
 
-
   implicit class TopicPartitionJOps(val self: TopicPartitionJ) extends AnyVal {
 
-    def asScala[F[_] : ApplicativeThrowable]: F[TopicPartition] = {
+    def asScala[F[_]: ApplicativeThrowable]: F[TopicPartition] = {
       for {
         partition <- Partition.of[F](self.partition())
       } yield {
@@ -68,19 +63,19 @@ object Converters {
     }
   }
 
-
   implicit class PartitionInfoJOps(val self: PartitionInfoJ) extends AnyVal {
 
-    def asScala[F[_] : ApplicativeThrowable]: F[PartitionInfo] = {
+    def asScala[F[_]: ApplicativeThrowable]: F[PartitionInfo] = {
       for {
         partition <- Partition.of[F](self.partition())
       } yield {
         PartitionInfo(
-          topicPartition = TopicPartition(self.topic, partition),
-          leader = self.leader,
-          replicas = self.replicas.toList,
-          inSyncReplicas = self.inSyncReplicas.toList,
-          offlineReplicas = self.offlineReplicas.toList)
+          topicPartition  = TopicPartition(self.topic, partition),
+          leader          = self.leader,
+          replicas        = self.replicas.toList,
+          inSyncReplicas  = self.inSyncReplicas.toList,
+          offlineReplicas = self.offlineReplicas.toList
+        )
       }
     }
   }
@@ -94,62 +89,60 @@ object Converters {
         self.leader,
         self.replicas.toArray,
         self.inSyncReplicas.toArray,
-        self.offlineReplicas.toArray)
+        self.offlineReplicas.toArray
+      )
     }
   }
 
-
   implicit class MapJOps[K, V](val self: MapJ[K, V]) extends AnyVal {
 
-    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B], keepNullValues: Boolean): F[Map[A, B]] = {
+    def asScalaMap[F[_]: Monad, A, B](ka: K => F[A], vb: V => F[B], keepNullValues: Boolean): F[Map[A, B]] = {
       self
         .asScala
         .toList
-        .collect { case (k, v) if k != null && (keepNullValues || v != null) =>
-          for {
-            a <- ka(k)
-            b <- vb(v)
-          } yield (a, b)
+        .collect {
+          case (k, v) if k != null && (keepNullValues || v != null) =>
+            for {
+              a <- ka(k)
+              b <- vb(v)
+            } yield (a, b)
         }
         .sequence
         .map { _.toMap }
     }
 
-    def asScalaMap[F[_] : Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
+    def asScalaMap[F[_]: Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {
       asScalaMap(ka, vb, keepNullValues = false)
     }
   }
-
 
   implicit class MapOps[K, V](val self: Map[K, V]) extends AnyVal {
 
     def asJavaMap[KK, VV](kf: K => KK, vf: V => VV): MapJ[KK, VV] = {
       val zero = new java.util.HashMap[KK, VV]()
-      self.foldLeft(zero) { case (map, (k, v)) =>
-        val kk = kf(k)
-        val vv = vf(v)
-        map.put(kk, vv)
-        map
+      self.foldLeft(zero) {
+        case (map, (k, v)) =>
+          val kk = kf(k)
+          val vv = vf(v)
+          map.put(kk, vv)
+          map
       }
     }
   }
 
-
   implicit class SerializerOps[A](val self: Serializer[A]) extends AnyVal {
 
-    def asScala[F[_] : FromTry]: ToBytes[F, A] = (a: A, topic: Topic) => {
+    def asScala[F[_]: FromTry]: ToBytes[F, A] = (a: A, topic: Topic) => {
       FromTry[F].unsafe { self.serialize(topic, a) }
     }
   }
 
-
   implicit class DeserializerOps[A](val self: Deserializer[A]) extends AnyVal {
 
-    def asScala[F[_] : FromTry]: FromBytes[F, A] = (value: Bytes, topic: Topic) => {
+    def asScala[F[_]: FromTry]: FromBytes[F, A] = (value: Bytes, topic: Topic) => {
       FromTry[F].unsafe { self.deserialize(topic, value) }
     }
   }
-
 
   implicit class ToBytesOps[F[_], A](val self: ToBytes[F, A]) extends AnyVal {
 
@@ -162,7 +155,6 @@ object Converters {
     }
   }
 
-
   implicit class SkafkaFromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Deserializer[A] = new Deserializer[A] {
@@ -174,27 +166,23 @@ object Converters {
     }
   }
 
-
   implicit class SkafkaNelOps[A](val self: Nel[A]) extends AnyVal {
     def asJava: CollectionJ[A] = self.toList.asJavaCollection
   }
-
 
   implicit final class SkafkaDurationJOps(val duration: DurationJ) extends AnyVal {
 
     def asScala: scala.concurrent.duration.FiniteDuration = DurationConverters.toScala(duration)
   }
 
-
   implicit final class SkafkaFiniteDurationOps(val duration: FiniteDuration) extends AnyVal {
 
     def asJava: java.time.Duration = DurationConverters.toJava(duration)
   }
 
-
   implicit class SkafkaOffsetAndMetadataJOpsConverters(val self: OffsetAndMetadataJ) extends AnyVal {
 
-    def asScala[F[_] : ApplicativeThrowable]: F[OffsetAndMetadata] = {
+    def asScala[F[_]: ApplicativeThrowable]: F[OffsetAndMetadata] = {
       for {
         offset <- Offset.of[F](self.offset())
       } yield {
@@ -203,25 +191,24 @@ object Converters {
     }
   }
 
-
   implicit class SkafkaOffsetAndMetadataOpsConverters(val self: OffsetAndMetadata) extends AnyVal {
 
     def asJava: OffsetAndMetadataJ = new OffsetAndMetadataJ(self.offset.value, self.metadata)
   }
-
 
   implicit class OptionalOpsConverters[A](val self: Optional[A]) extends AnyVal {
 
     def toOption: Option[A] = if (self.isPresent) self.get().some else none
   }
 
-
   implicit class OptionOpsConverters[A](val self: Option[A]) extends AnyVal {
 
     def toOptional: Optional[A] = self.fold(Optional.empty[A]()) { a => Optional.of(a) }
   }
 
-  def committedOffsetsF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): F[Map[TopicPartition, OffsetAndMetadata]] = {
+  def committedOffsetsF[F[_]: MonadThrowable](
+    mapJ: MapJ[TopicPartitionJ, OffsetAndMetadataJ]
+  ): F[Map[TopicPartition, OffsetAndMetadata]] = {
     Option(mapJ).fold {
       Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
     } {
@@ -229,11 +216,13 @@ object Converters {
     }
   }
 
-  def offsetsMapF[F[_] : MonadThrowable](mapJ: MapJ[TopicPartitionJ, LongJ]): F[Map[TopicPartition, Offset]] = {
+  def offsetsMapF[F[_]: MonadThrowable](mapJ: MapJ[TopicPartitionJ, LongJ]): F[Map[TopicPartition, Offset]] = {
     mapJ.asScalaMap(_.asScala[F], a => Offset.of[F](a))
   }
 
-  def asOffsetsAndMetadataJ(offsets: Nem[TopicPartition, OffsetAndMetadata]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
+  def asOffsetsAndMetadataJ(
+    offsets: Nem[TopicPartition, OffsetAndMetadata]
+  ): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
     offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
   }
 
@@ -241,11 +230,13 @@ object Converters {
     listJ.asScala.toList.traverse { _.asScala[F] }
   }
 
-  def partitionsInfoMapF[F[_]: MonadThrowable](mapJ: MapJ[Topic, ListJ[PartitionInfoJ]]): F[Map[Topic, List[PartitionInfo]]] = {
+  def partitionsInfoMapF[F[_]: MonadThrowable](
+    mapJ: MapJ[Topic, ListJ[PartitionInfoJ]]
+  ): F[Map[Topic, List[PartitionInfo]]] = {
     mapJ.asScalaMap(_.pure[F], partitionsInfoListF[F])
   }
 
-  def topicPartitionsSetF[F[_] : ApplicativeThrowable](setJ: SetJ[TopicPartitionJ]): F[Set[TopicPartition]] = {
+  def topicPartitionsSetF[F[_]: ApplicativeThrowable](setJ: SetJ[TopicPartitionJ]): F[Set[TopicPartition]] = {
     for {
       r <- setJ.asScala.toList.traverse { _.asScala[F] }
     } yield r.toSet

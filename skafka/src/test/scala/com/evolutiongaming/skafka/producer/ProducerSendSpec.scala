@@ -11,7 +11,12 @@ import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
+import org.apache.kafka.clients.producer.{
+  Callback,
+  Producer => ProducerJ,
+  ProducerRecord => ProducerRecordJ,
+  RecordMetadata => RecordMetadataJ
+}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -30,11 +35,10 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: FromFuture: ContextShift: Blocking
   ] = {
 
-    val topic = "topic"
+    val topic          = "topic"
     val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
-    val metadata = RecordMetadata(topicPartition)
-    val record = ProducerRecord(topic = topic, value = "val", key = "key")
-
+    val metadata       = RecordMetadata(topicPartition)
+    val record         = ProducerRecord(topic = topic, value = "val", key = "key")
 
     def producerOf(block: F[ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]) = {
       val producer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
@@ -97,13 +101,13 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
       Sync[F].uncancelable {
         for {
           started <- Deferred[F, Unit]
-          fiber   <- Concurrent[F].start {
+          fiber <- Concurrent[F].start {
             for {
               _ <- started.complete(())
               a <- fa
             } yield a
           }
-          _       <- started.get
+          _ <- started.get
         } yield {
           fiber.join
         }

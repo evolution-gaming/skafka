@@ -18,7 +18,15 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerRecord => ConsumerRecordJ,
+  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -50,7 +58,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       revoked1  <- Deferred[F, Unit].toResource
       lost0     <- Deferred[F, Unit].toResource
       lost1     <- Deferred[F, Unit].toResource
-      listener   = new RebalanceListener[F] {
+      listener = new RebalanceListener[F] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
@@ -79,29 +87,29 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           } yield {}
         }
       }
-      poll       = for {
+      poll = for {
         _ <- actions.add(Action.PollEnter)
         a <- consumer.poll(1.millis)
         _ <- actions.add(Action.PollExit)
       } yield a
-      _         <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
-      fiber     <- poll.start.toResource
+      _     <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
+      fiber <- poll.start.toResource
 
-      _         <- assigned0.get.toResource
-      _         <- consumer.topics.toResource
-      _         <- assigned1.complete(()).toResource
+      _ <- assigned0.get.toResource
+      _ <- consumer.topics.toResource
+      _ <- assigned1.complete(()).toResource
 
-      _         <- revoked0.get.toResource
-      _         <- consumer.topics.toResource
-      _         <- revoked1.complete(()).toResource
+      _ <- revoked0.get.toResource
+      _ <- consumer.topics.toResource
+      _ <- revoked1.complete(()).toResource
 
-      _         <- lost0.get.toResource
-      _         <- consumer.topics.toResource
-      _         <- lost1.complete(()).toResource
+      _ <- lost0.get.toResource
+      _ <- consumer.topics.toResource
+      _ <- lost1.complete(()).toResource
 
-      _         <- fiber.join.toResource
-      actions   <- actions.get.toResource
-      _          = actions shouldEqual List(
+      _       <- fiber.join.toResource
+      actions <- actions.get.toResource
+      _ = actions shouldEqual List(
         Action.PollEnter,
         Action.PartitionsAssignedEnter,
         Action.Topics,
@@ -112,12 +120,12 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
         Action.PartitionsLostEnter,
         Action.Topics,
         Action.PartitionsLostExit,
-        Action.PollExit)
+        Action.PollExit
+      )
     } yield {}
 
     result.use { _.pure[F] }
   }
-
 
   private def `consumer.poll error`[F[_]: Concurrent: ToTry: ToFuture: Blocking: ContextShift] = {
 
@@ -129,7 +137,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       consumer  <- Consumer.fromConsumerJ(consumerJ.pure[F])
       deferred0 <- Deferred[F, Unit].toResource
       deferred1 <- Deferred[F, Unit].toResource
-      listener   = new RebalanceListener[F] {
+      listener = new RebalanceListener[F] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
@@ -154,25 +162,21 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           } yield {}
         }
       }
-      poll       = for {
+      poll = for {
         _ <- actions.add(Action.PollEnter)
         a <- consumer.poll(1.millis)
         _ <- actions.add(Action.PollExit)
       } yield a
-      _         <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
-      fiber     <- poll.start.toResource
-      _         <- deferred0.get.toResource
-      _         <- consumer.topics.toResource
-      _         <- deferred1.complete(()).toResource
-      _         <- consumer.topics.toResource
-      result    <- fiber.join.attempt.toResource
-      _          = result shouldEqual error.asLeft
-      actions   <- actions.get.toResource
-      _          = actions shouldEqual List(
-        Action.PollEnter,
-        Action.PartitionsAssignedEnter,
-        Action.Topics,
-        Action.Topics)
+      _       <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
+      fiber   <- poll.start.toResource
+      _       <- deferred0.get.toResource
+      _       <- consumer.topics.toResource
+      _       <- deferred1.complete(()).toResource
+      _       <- consumer.topics.toResource
+      result  <- fiber.join.attempt.toResource
+      _        = result shouldEqual error.asLeft
+      actions <- actions.get.toResource
+      _        = actions shouldEqual List(Action.PollEnter, Action.PartitionsAssignedEnter, Action.Topics, Action.Topics)
     } yield {}
 
     result.use { _.pure[F] }
@@ -182,7 +186,6 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
 object SerialListenersTest {
 
   val topic = "topic"
-  
 
   sealed trait Action
 
@@ -197,7 +200,6 @@ object SerialListenersTest {
     case object PartitionsLostExit extends Action
     case object Topics extends Action
   }
-
 
   trait Actions[F[_]] {
 
@@ -219,7 +221,6 @@ object SerialListenersTest {
         }
     }
   }
-
 
   def consumerJ[F[_]: Sync: ToTry, K, V](actions: Actions[F]): F[ConsumerJ[K, V]] = {
     for {
@@ -253,11 +254,9 @@ object SerialListenersTest {
         def poll(timeout: Duration) = {
           val result = for {
             listener <- listenerRef.get
-            _        <- listener.foldMapM { listener =>
+            _ <- listener.foldMapM { listener =>
               def partitions(value: Int) = {
-                List(TopicPartition(topic, Partition.unsafe(value)))
-                  .map { _.asJava }
-                  .asJava
+                List(TopicPartition(topic, Partition.unsafe(value))).map { _.asJava }.asJava
               }
               for {
                 _ <- Sync[F].delay { listener.onPartitionsAssigned(partitions(0)) }

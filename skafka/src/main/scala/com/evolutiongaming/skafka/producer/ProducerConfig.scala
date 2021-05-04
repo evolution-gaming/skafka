@@ -12,22 +12,23 @@ import scala.util.Try
   * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
   */
 final case class ProducerConfig(
-  common: CommonConfig = CommonConfig.Default,
-  batchSize: Int = 16384,
-  deliveryTimeout: FiniteDuration = 2.minutes,
-  acks: Acks = Acks.One,
-  linger: FiniteDuration = 0.millis,
-  maxRequestSize: Int = 1048576,
-  maxBlock: FiniteDuration = 1.minute,
-  bufferMemory: Long = 33554432L,
-  compressionType: CompressionType = CompressionType.None,
-  retries: Int = Int.MaxValue,
-  maxInFlightRequestsPerConnection: Int = 5,
+  common: CommonConfig                              = CommonConfig.Default,
+  batchSize: Int                                    = 16384,
+  deliveryTimeout: FiniteDuration                   = 2.minutes,
+  acks: Acks                                        = Acks.One,
+  linger: FiniteDuration                            = 0.millis,
+  maxRequestSize: Int                               = 1048576,
+  maxBlock: FiniteDuration                          = 1.minute,
+  bufferMemory: Long                                = 33554432L,
+  compressionType: CompressionType                  = CompressionType.None,
+  retries: Int                                      = Int.MaxValue,
+  maxInFlightRequestsPerConnection: Int             = 5,
   partitionerClass: Option[Class[_ <: Partitioner]] = None,
-  interceptorClasses: List[String] = Nil,
-  idempotence: Boolean = false,
-  transactionTimeout: FiniteDuration = 1.minute,
-  transactionalId: Option[String] = None) {
+  interceptorClasses: List[String]                  = Nil,
+  idempotence: Boolean                              = false,
+  transactionTimeout: FiniteDuration                = 1.minute,
+  transactionalId: Option[String]                   = None
+) {
 
   def bindings: Map[String, AnyRef] = {
     val bindings1 = Map[String, String](
@@ -43,11 +44,12 @@ final case class ProducerConfig(
       (C.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
-      (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString))
+      (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString)
+    )
 
     val bindings = bindings1 ++
       transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
-      partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
+    partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
 
     bindings ++ common.bindings
   }
@@ -64,7 +66,7 @@ object ProducerConfig {
   val Default: ProducerConfig = ProducerConfig()
 
   private implicit val CompressionTypeFromConf = FromConf[CompressionType] { (conf, path) =>
-    val str = conf.getString(path)
+    val str   = conf.getString(path)
     val value = CompressionType.Values.find { _.toString equalsIgnoreCase str }
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse CompressionType from $str")
@@ -92,7 +94,9 @@ object ProducerConfig {
     }
 
     def getDuration(path: String, pathMs: => String) = {
-      val value = try get[FiniteDuration](path) catch { case _: ConfigException => None }
+      val value =
+        try get[FiniteDuration](path)
+        catch { case _: ConfigException => None }
       value orElse get[Long](pathMs).map { _.millis }
     }
 
@@ -101,7 +105,7 @@ object ProducerConfig {
       def classOf(name: String) = {
 
         def classOfClassLoader = {
-          val thread = Thread.currentThread()
+          val thread      = Thread.currentThread()
           val classLoader = thread.getContextClassLoader
           Try { classLoader.loadClass(name) }
         }
@@ -123,46 +127,28 @@ object ProducerConfig {
     }
 
     ProducerConfig(
-      common = CommonConfig(config, default.common),
-      acks = get[Acks]("acks") getOrElse default.acks,
-      bufferMemory = get[Long](
-        "buffer-memory",
-        "buffer.memory") getOrElse default.bufferMemory,
-      compressionType = get[CompressionType](
-        "compression-type",
-        "compression.type") getOrElse default.compressionType,
-      retries = get[Int]("retries") getOrElse default.retries,
-      batchSize = get[Int](
-        "batch-size",
-        "batch.size") getOrElse default.batchSize,
-      deliveryTimeout = getDuration(
-        "delivery-timeout",
-        "delivery.timeout.ms") getOrElse default.deliveryTimeout,
-      linger = getDuration(
-        "linger",
-        "linger.ms") getOrElse default.linger,
-      maxBlock = getDuration(
-        "max-block",
-        "max.block.ms") getOrElse default.maxBlock,
-      maxRequestSize = get[Int](
-        "max-request-size",
-        "max.request.size") getOrElse default.maxRequestSize,
+      common          = CommonConfig(config, default.common),
+      acks            = get[Acks]("acks") getOrElse default.acks,
+      bufferMemory    = get[Long]("buffer-memory", "buffer.memory") getOrElse default.bufferMemory,
+      compressionType = get[CompressionType]("compression-type", "compression.type") getOrElse default.compressionType,
+      retries         = get[Int]("retries") getOrElse default.retries,
+      batchSize       = get[Int]("batch-size", "batch.size") getOrElse default.batchSize,
+      deliveryTimeout = getDuration("delivery-timeout", "delivery.timeout.ms") getOrElse default.deliveryTimeout,
+      linger          = getDuration("linger", "linger.ms") getOrElse default.linger,
+      maxBlock        = getDuration("max-block", "max.block.ms") getOrElse default.maxBlock,
+      maxRequestSize  = get[Int]("max-request-size", "max.request.size") getOrElse default.maxRequestSize,
       maxInFlightRequestsPerConnection = get[Int](
         "max-in-flight-requests-per-connection",
-        "max.in.flight.requests.per.connection") getOrElse default.maxInFlightRequestsPerConnection,
+        "max.in.flight.requests.per.connection"
+      ) getOrElse default.maxInFlightRequestsPerConnection,
       partitionerClass = partitionerClass orElse default.partitionerClass,
-      interceptorClasses = get[List[String]](
-        "interceptor-classes",
-        "interceptor.classes") getOrElse default.interceptorClasses,
-      idempotence = get[Boolean](
-        "idempotence",
-        "enable-idempotence",
-        "enable.idempotence") getOrElse default.idempotence,
-      transactionTimeout = getDuration(
-        "transaction-timeout",
-        "transaction.timeout.ms") getOrElse default.transactionTimeout,
-      transactionalId = get[String](
-        "transactional-id",
-        "transactional.id") orElse default.transactionalId)
+      interceptorClasses =
+        get[List[String]]("interceptor-classes", "interceptor.classes") getOrElse default.interceptorClasses,
+      idempotence =
+        get[Boolean]("idempotence", "enable-idempotence", "enable.idempotence") getOrElse default.idempotence,
+      transactionTimeout =
+        getDuration("transaction-timeout", "transaction.timeout.ms") getOrElse default.transactionTimeout,
+      transactionalId = get[String]("transactional-id", "transactional.id") orElse default.transactionalId
+    )
   }
 }

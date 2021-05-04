@@ -7,8 +7,8 @@ trait IOMatchers {
   class IOResultMatcher[-T](expected: T) extends Matcher[IO[T]] {
     def apply(left: IO[T]): MatchResult =
       MatchResult(
-        matches = left.unsafeRunSync() == expected,
-        rawFailureMessage = s"IO result didn't equal $expected",
+        matches                  = left.unsafeRunSync() == expected,
+        rawFailureMessage        = s"IO result didn't equal $expected",
         rawNegatedFailureMessage = s"IO result equals $expected"
       )
   }

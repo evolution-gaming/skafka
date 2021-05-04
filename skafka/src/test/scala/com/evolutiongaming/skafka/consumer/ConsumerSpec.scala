@@ -19,7 +19,14 @@ import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
+import org.apache.kafka.clients.consumer.{
+  Consumer => ConsumerJ,
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
+  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetCommitCallback => OffsetCommitCallbackJ
+}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,33 +37,35 @@ import scala.util.Try
 
 class ConsumerSpec extends AnyWordSpec with Matchers {
 
-  private val topic = "topic"
-  private val partition = Partition.min
-  private val offset = Offset.min
-  private val topicPartition = TopicPartition(topic, partition)
-  private val topicPartition2 = TopicPartition("topic2", partition)
-  private val offsetAndMetadata = OffsetAndMetadata(offset, "metadata")
-  private val offsets = Nem.of((topicPartition, offsetAndMetadata))
-  private val partitions = Nes.of(topicPartition)
-  private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+  private val topic              = "topic"
+  private val partition          = Partition.min
+  private val offset             = Offset.min
+  private val topicPartition     = TopicPartition(topic, partition)
+  private val topicPartition2    = TopicPartition("topic2", partition)
+  private val offsetAndMetadata  = OffsetAndMetadata(offset, "metadata")
+  private val offsets            = Nem.of((topicPartition, offsetAndMetadata))
+  private val partitions         = Nes.of(topicPartition)
+  private val instant            = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   private val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
   private val consumerRecord = ConsumerRecord(
-    topicPartition = topicPartition,
-    offset = offset,
+    topicPartition   = topicPartition,
+    offset           = offset,
     timestampAndType = Some(TimestampAndType(instant, TimestampType.Create)),
-    key = Some(WithSize(Bytes.empty, 1)),
-    value = Some(WithSize(Bytes.empty, 1)),
-    headers = List(Header("key", Bytes.empty)))
+    key              = Some(WithSize(Bytes.empty, 1)),
+    value            = Some(WithSize(Bytes.empty, 1)),
+    headers          = List(Header("key", Bytes.empty))
+  )
   private val consumerRecords = ConsumerRecords(Map((topicPartition, Nel.of(consumerRecord))))
 
   private val node = new Node(1, "host", 2)
 
   private val partitionInfo = PartitionInfo(
     topicPartition,
-    leader = node,
-    replicas = List(node),
-    inSyncReplicas = List(node),
-    offlineReplicas = List(node))
+    leader          = node,
+    replicas        = List(node),
+    inSyncReplicas  = List(node),
+    offlineReplicas = List(node)
+  )
 
   "Consumer" should {
 
@@ -245,10 +254,11 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     "groupMetadata" in new Scope {
       val consumerGroupMetadata = ConsumerGroupMetadata(
-        groupId = "groupId",
-        generationId = 123,
-        memberId = "memberId",
-        groupInstanceId = "groupInstanceId".some)
+        groupId         = "groupId",
+        generationId    = 123,
+        memberId        = "memberId",
+        groupInstanceId = "groupInstanceId".some
+      )
       consumer.groupMetadata should produce(consumerGroupMetadata)
     }
 
@@ -292,7 +302,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO.unit
 
       def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO.unit
-      
+
       def onPartitionsLost(partitions: Nes[TopicPartition]) = IO.unit
     }
 
@@ -301,11 +311,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     val consumerJ: ConsumerJ[Bytes, Bytes] = new ConsumerJ[Bytes, Bytes] {
 
       def groupMetadata() = {
-        new ConsumerGroupMetadataJ(
-          "groupId",
-          123,
-          "memberId",
-          Optional.of("groupInstanceId"))
+        new ConsumerGroupMetadataJ("groupId", 123, "memberId", Optional.of("groupInstanceId"))
       }
 
       def assignment() = Set(topicPartition.asJava).asJava
@@ -385,7 +391,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def position(partition: TopicPartitionJ) = offset.value
 
       def position(partition: TopicPartitionJ, timeout: DurationJ) = position(partition)
-
 
       def committed(partition: TopicPartitionJ) = offsetAndMetadata.asJava
 

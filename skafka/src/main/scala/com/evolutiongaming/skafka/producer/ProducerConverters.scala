@@ -23,47 +23,47 @@ object ProducerConverters {
         self.timestamp.fold[java.lang.Long](null) { timestamp => timestamp.toEpochMilli },
         self.key.getOrElse(null.asInstanceOf[K]),
         self.value.getOrElse(null.asInstanceOf[V]),
-        self.headers.map { _.asJava }.asJava)
+        self.headers.map { _.asJava }.asJava
+      )
     }
   }
 
-
   implicit class JProducerRecordOps[K, V](val self: ProducerRecordJ[K, V]) extends AnyVal {
 
-    def asScala[F[_] : ApplicativeThrowable]: F[ProducerRecord[K, V]] = {
+    def asScala[F[_]: ApplicativeThrowable]: F[ProducerRecord[K, V]] = {
 
       Option(self.partition)
         .traverse { partition => Partition.of[F](partition.intValue()) }
         .map { partition =>
           ProducerRecord(
-            topic = self.topic,
-            value = Option(self.value),
-            key = Option(self.key),
+            topic     = self.topic,
+            value     = Option(self.value),
+            key       = Option(self.key),
             partition = partition,
             timestamp = Option(self.timestamp) map { Instant.ofEpochMilli(_) },
-            headers = self.headers.asScala.map { _.asScala }.toList)
+            headers   = self.headers.asScala.map { _.asScala }.toList
+          )
         }
     }
   }
 
-
   implicit class JRecordMetadataOps(val self: RecordMetadataJ) extends AnyVal {
 
-    def asScala[F[_] : MonadThrowable]: F[RecordMetadata] = {
+    def asScala[F[_]: MonadThrowable]: F[RecordMetadata] = {
       for {
         partition <- Partition.of[F](self.partition())
         offset    <- (self.offset noneIf ProduceResponse.INVALID_OFFSET).traverse { Offset.of[F] }
       } yield {
         RecordMetadata(
-          topicPartition = TopicPartition(self.topic, partition),
-          timestamp = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
-          offset = offset,
-          keySerializedSize = self.serializedKeySize noneIf -1,
-          valueSerializedSize = self.serializedValueSize noneIf -1)
+          topicPartition      = TopicPartition(self.topic, partition),
+          timestamp           = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
+          offset              = offset,
+          keySerializedSize   = self.serializedKeySize noneIf -1,
+          valueSerializedSize = self.serializedValueSize noneIf -1
+        )
       }
     }
   }
-
 
   implicit class RecordMetadataOps(val self: RecordMetadata) extends AnyVal {
 
@@ -75,7 +75,8 @@ object ProducerConverters {
         self.timestamp.fold(RecordBatch.NO_TIMESTAMP)(_.toEpochMilli),
         null,
         self.keySerializedSize getOrElse -1,
-        self.valueSerializedSize getOrElse -1)
+        self.valueSerializedSize getOrElse -1
+      )
     }
   }
 }

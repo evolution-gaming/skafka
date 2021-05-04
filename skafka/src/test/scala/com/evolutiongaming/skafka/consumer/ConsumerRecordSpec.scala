@@ -12,12 +12,13 @@ class ConsumerRecordSpec extends AnyFunSuite with Matchers {
 
     def consumerRecord(topic: Topic, partition: Int, offset: Long, key: Int) = {
       ConsumerRecord(
-        topicPartition = TopicPartition(topic, Partition.unsafe(partition)),
-        offset = Offset.unsafe(offset),
+        topicPartition   = TopicPartition(topic, Partition.unsafe(partition)),
+        offset           = Offset.unsafe(offset),
         timestampAndType = none,
-        key = Some(WithSize(key)),
-        value = none,
-        headers = Nil)
+        key              = Some(WithSize(key)),
+        value            = none,
+        headers          = Nil
+      )
     }
 
     val notSorted = Nel.of(
@@ -30,7 +31,8 @@ class ConsumerRecordSpec extends AnyFunSuite with Matchers {
       consumerRecord(topic = "0", partition = 2, offset = 0, key = 21),
       consumerRecord(topic = "1", partition = 0, offset = 1, key = 0),
       consumerRecord(topic = "1", partition = 0, offset = 0, key = 0),
-      consumerRecord(topic = "0", partition = 1, offset = 0, key = 11))
+      consumerRecord(topic = "0", partition = 1, offset = 0, key = 11)
+    )
 
     val expected = Nel.of(
       consumerRecord(topic = "0", partition = 0, offset = 0, key = 0),
@@ -42,7 +44,8 @@ class ConsumerRecordSpec extends AnyFunSuite with Matchers {
       consumerRecord(topic = "0", partition = 1, offset = 1, key = 11),
       consumerRecord(topic = "0", partition = 2, offset = 0, key = 21),
       consumerRecord(topic = "1", partition = 0, offset = 0, key = 0),
-      consumerRecord(topic = "1", partition = 0, offset = 1, key = 0))
+      consumerRecord(topic = "1", partition = 0, offset = 1, key = 0)
+    )
 
     notSorted.sorted shouldEqual expected
   }

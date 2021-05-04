@@ -9,7 +9,8 @@ class OffsetAndMetadataSpec extends AnyFunSuite with Matchers {
   for {
     (value, expected) <- List(
       (OffsetAndMetadata.empty, "OffsetAndMetadata(0)"),
-      (OffsetAndMetadata(Offset.min, "2"), "OffsetAndMetadata(0,2)"))
+      (OffsetAndMetadata(Offset.min, "2"), "OffsetAndMetadata(0,2)")
+    )
   } {
     test(s"$value.toString") {
       value.toString shouldEqual expected

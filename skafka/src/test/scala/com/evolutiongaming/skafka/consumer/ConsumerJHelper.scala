@@ -8,7 +8,12 @@ import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 
 import cats.implicits._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ
+}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 object ConsumerJHelper {
@@ -27,13 +32,13 @@ object ConsumerJHelper {
               throw new ConcurrentModificationException("Consumer is not safe for multi-threaded access");
             }
 
-          try f finally threadIdRef.set(none)
+          try f
+          finally threadIdRef.set(none)
         }
       }
       self.map(lock)
     }
 
-    
     def map(f: ByName): ConsumerJ[K, V] = new ConsumerJ[K, V] {
 
       def assignment() = f { self.assignment() }
@@ -171,7 +176,6 @@ object ConsumerJHelper {
       def wakeup() = f { self.wakeup() }
     }
   }
-
 
   trait ByName {
     def apply[A](f: => A): A

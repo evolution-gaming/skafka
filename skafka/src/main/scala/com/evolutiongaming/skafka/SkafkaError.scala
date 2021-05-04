@@ -7,7 +7,8 @@ import scala.util.control.NoStackTrace
 case class SkafkaError(
   msg: String,
   cause: Option[Throwable] = None
-) extends RuntimeException(msg, cause.orNull) with NoStackTrace
+) extends RuntimeException(msg, cause.orNull)
+    with NoStackTrace
 
 object SkafkaError {
 

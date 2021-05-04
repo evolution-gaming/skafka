@@ -18,7 +18,13 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import scala.concurrent.ExecutionContext
@@ -52,9 +58,7 @@ trait Consumer[F[_], K, V] {
 
   def unsubscribe: F[Unit]
 
-
   def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]]
-
 
   def commit: F[Unit]
 
@@ -64,41 +68,33 @@ trait Consumer[F[_], K, V] {
 
   def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit]
 
-
   def commitLater: F[Map[TopicPartition, OffsetAndMetadata]]
 
   def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]): F[Unit]
 
-
   def seek(partition: TopicPartition, offset: Offset): F[Unit]
 
   def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): F[Unit]
-  
 
   def seekToBeginning(partitions: Nes[TopicPartition]): F[Unit]
 
   def seekToEnd(partitions: Nes[TopicPartition]): F[Unit]
 
-
   def position(partition: TopicPartition): F[Offset]
 
   def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset]
-
 
   def committed(partitions: Nes[TopicPartition]): F[Map[TopicPartition, OffsetAndMetadata]]
 
   def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]]
 
-
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]]
 
-
   def topics: F[Map[Topic, List[PartitionInfo]]]
 
   def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
-
 
   def pause(partitions: Nes[TopicPartition]): F[Unit]
 
@@ -106,16 +102,18 @@ trait Consumer[F[_], K, V] {
 
   def resume(partitions: Nes[TopicPartition]): F[Unit]
 
+  def offsetsForTimes(
+    timestampsToSearch: Map[TopicPartition, Offset]
+  ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
 
-  def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
-
-  def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
-
+  def offsetsForTimes(
+    timestampsToSearch: Map[TopicPartition, Offset],
+    timeout: FiniteDuration
+  ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]]
 
   def beginningOffsets(partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]]
 
   def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
-
 
   def endOffsets(partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]]
 
@@ -126,10 +124,9 @@ trait Consumer[F[_], K, V] {
   def wakeup: F[Unit]
 }
 
-
 object Consumer {
 
-  def empty[F[_] : Applicative, K, V]: Consumer[F, K, V] = {
+  def empty[F[_]: Applicative, K, V]: Consumer[F, K, V] = {
 
     val empty = ().pure[F]
 
@@ -233,18 +230,14 @@ object Consumer {
     }
   }
 
-
   def of[F[_]: Concurrent: ContextShift: ToTry: ToFuture, K, V](
     config: ConsumerConfig,
-    executorBlocking: ExecutionContext)(implicit
-    fromBytesK: FromBytes[F, K],
-    fromBytesV: FromBytes[F, V]
-  ): Resource[F, Consumer[F, K, V]] = {
+    executorBlocking: ExecutionContext
+  )(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]): Resource[F, Consumer[F, K, V]] = {
     implicit val blocking = Blocking.fromExecutionContext(executorBlocking)
-    val consumer = CreateConsumerJ(config, fromBytesK, fromBytesV)
+    val consumer          = CreateConsumerJ(config, fromBytesK, fromBytesV)
     fromConsumerJ(consumer)
   }
-
 
   def fromConsumerJ[F[_]: Concurrent: ContextShift: ToFuture: ToTry: Blocking, K, V](
     consumer: F[ConsumerJ[K, V]]
@@ -260,7 +253,7 @@ object Consumer {
       serialListeners <- SerialListeners.of[F].toResource
       semaphore       <- Semaphore(1).toResource
       consumer        <- consumer.blocking.toResource
-      around           = new Around {
+      around = new Around {
         def apply[A](f: => A) = {
           semaphore
             .withPermit { serialListeners.around { blocking { f } } }
@@ -268,8 +261,8 @@ object Consumer {
             .uncancelable
         }
       }
-      close            = around { consumer.close() }
-      _               <- Resource.release { close }
+      close = around { consumer.close() }
+      _    <- Resource.release { close }
     } yield {
 
       def serial[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
@@ -319,8 +312,7 @@ object Consumer {
         } yield offset
       }
 
-      def committed1(
-        partitions: Nes[TopicPartition])(
+      def committed1(partitions: Nes[TopicPartition])(
         f: (SetJ[TopicPartitionJ]) => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
       ) = {
         val partitionsJ = partitions.asJava
@@ -344,8 +336,7 @@ object Consumer {
         } yield result
       }
 
-      def offsetsForTimes1(
-        timestamps: Map[TopicPartition, Offset])(
+      def offsetsForTimes1(timestamps: Map[TopicPartition, Offset])(
         f: MapJ[TopicPartitionJ, LongJ] => MapJ[TopicPartitionJ, OffsetAndTimestampJ]
       ) = {
         val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
@@ -355,8 +346,7 @@ object Consumer {
         } yield result
       }
 
-      def offsetsOf(
-        partitions: Nes[TopicPartition])(
+      def offsetsOf(partitions: Nes[TopicPartition])(
         f: CollectionJ[TopicPartitionJ] => MapJ[TopicPartitionJ, LongJ]
       ) = {
         val partitionsJ = partitions.asJava
@@ -381,7 +371,7 @@ object Consumer {
         }
 
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
-          val topicsJ = topics.toSortedSet.asJava
+          val topicsJ   = topics.toSortedSet.asJava
           val listenerJ = listener.asJava(consumer)
           serialNonBlocking { consumer.subscribe(topicsJ, listenerJ) }
         }
@@ -401,7 +391,7 @@ object Consumer {
         }
 
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
-          val topicsJ = topics.toSortedSet.toSet.asJava
+          val topicsJ   = topics.toSortedSet.toSet.asJava
           val listenerJ = listenerOf(listener)
           serialNonBlocking { consumer.subscribe(topicsJ, listenerJ) }
         }
@@ -466,7 +456,7 @@ object Consumer {
         }
 
         def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
-          val partitionsJ = partition.asJava
+          val partitionsJ        = partition.asJava
           val offsetAndMetadataJ = offsetAndMetadata.asJava
           serialNonBlocking { consumer.seek(partitionsJ, offsetAndMetadataJ) }
         }
@@ -484,7 +474,6 @@ object Consumer {
         def position(partition: TopicPartition) = {
           position1(partition) { consumer.position }
         }
-
 
         def position(partition: TopicPartition, timeout: FiniteDuration) = {
           position1(partition) { consumer.position(_, timeout.asJava) }
@@ -567,14 +556,11 @@ object Consumer {
     }
   }
 
-
   implicit class ConsumerOps[F[_], K, V](val self: Consumer[F, K, V]) extends AnyVal {
 
     def withMetrics[E](
-      metrics: ConsumerMetrics[F])(implicit
-      F: MonadError[F, E],
-      measureDuration: MeasureDuration[F],
-    ): Consumer[F, K, V] = {
+      metrics: ConsumerMetrics[F]
+    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
 
       implicit val monoidUnit = Applicative.monoid[F, Unit]
 
@@ -585,7 +571,6 @@ object Consumer {
       } yield {
         topicPartition.topic
       }
-
 
       def call[A](name: String, topics: Iterable[Topic])(fa: F[A]): F[A] = {
         for {
@@ -603,7 +588,6 @@ object Consumer {
           r      <- call(name, topics)(f)
         } yield r
       }
-
 
       def count(name: String, topics: Iterable[Topic]) = {
         topics.toList.foldMapM { topic => metrics.count(name, topic) }
@@ -646,8 +630,6 @@ object Consumer {
           }
         }
       }
-
-
 
       new Consumer[F, K, V] {
 
@@ -716,10 +698,11 @@ object Consumer {
         def poll(timeout: FiniteDuration) =
           for {
             records <- call1("poll") { self.poll(timeout) }
-            topics    = records.values.values.flatMap(_.toList).groupBy(_.topic)
-            _       <- topics.toList.traverse { case (topic, topicRecords) =>
-              val bytes = topicRecords.flatMap(_.value).map(_.serializedSize).sum
-              metrics.poll(topic, bytes = bytes, records = topicRecords.size)
+            topics   = records.values.values.flatMap(_.toList).groupBy(_.topic)
+            _ <- topics.toList.traverse {
+              case (topic, topicRecords) =>
+                val bytes = topicRecords.flatMap(_.value).map(_.serializedSize).sum
+                metrics.poll(topic, bytes = bytes, records = topicRecords.size)
             }
           } yield records
 
@@ -920,15 +903,9 @@ object Consumer {
       }
     }
 
-
-    def withLogging(
-      log: Log[F])(implicit
-      F: Monad[F],
-      measureDuration: MeasureDuration[F]
-    ): Consumer[F, K, V] = {
+    def withLogging(log: Log[F])(implicit F: Monad[F], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
       ConsumerLogging(log, self)
     }
-
 
     def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new Consumer[G, K, V] {
 
@@ -976,7 +953,9 @@ object Consumer {
 
       def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = fg(self.commit(offsets))
 
-      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = fg(self.commit(offsets, timeout))
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = fg(
+        self.commit(offsets, timeout)
+      )
 
       def commitLater = fg(self.commitLater)
 
@@ -984,7 +963,9 @@ object Consumer {
 
       def seek(partition: TopicPartition, offset: Offset) = fg(self.seek(partition, offset))
 
-      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = fg(self.seek(partition, offsetAndMetadata))
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = fg(
+        self.seek(partition, offsetAndMetadata)
+      )
 
       def seekToBeginning(partitions: Nes[TopicPartition]) = fg(self.seekToBeginning(partitions))
 
@@ -1040,4 +1021,3 @@ object Consumer {
     }
   }
 }
-

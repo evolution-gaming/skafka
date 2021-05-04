@@ -11,12 +11,13 @@ class ConsumerRecordsTest extends AnyFunSuite with Matchers {
   test("summaryShow") {
     def consumerRecord(topic: Topic, partition: Int, offset: Long, key: Int) = {
       ConsumerRecord(
-        topicPartition = TopicPartition(topic, Partition.unsafe(partition)),
-        offset = Offset.unsafe(offset),
+        topicPartition   = TopicPartition(topic, Partition.unsafe(partition)),
+        offset           = Offset.unsafe(offset),
         timestampAndType = none,
-        key = Some(WithSize(key)),
-        value = none[WithSize[Nothing]],
-        headers = Nil)
+        key              = Some(WithSize(key)),
+        value            = none[WithSize[Nothing]],
+        headers          = Nil
+      )
     }
 
     val records = Nel.of(
@@ -29,7 +30,8 @@ class ConsumerRecordsTest extends AnyFunSuite with Matchers {
       consumerRecord(topic = "0", partition = 2, offset = 1, key = 21),
       consumerRecord(topic = "1", partition = 0, offset = 1, key = 0),
       consumerRecord(topic = "1", partition = 0, offset = 0, key = 0),
-      consumerRecord(topic = "0", partition = 1, offset = 0, key = 11))
+      consumerRecord(topic = "0", partition = 1, offset = 0, key = 11)
+    )
 
     val consumerRecords = ConsumerRecords(records.sorted.groupBy(_.topicPartition))
 

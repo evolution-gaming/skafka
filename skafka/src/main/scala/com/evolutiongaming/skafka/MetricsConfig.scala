@@ -8,15 +8,17 @@ import scala.concurrent.duration._
 
 final case class MetricsConfig(
   sampleWindow: FiniteDuration = 30.seconds,
-  numSamples: Int = 2,
-  recordingLevel: String = "INFO",
-  reporters: List[String] = Nil) {
+  numSamples: Int              = 2,
+  recordingLevel: String       = "INFO",
+  reporters: List[String]      = Nil
+) {
 
   def bindings: Map[String, String] = Map[String, String](
     (C.METRICS_SAMPLE_WINDOW_MS_CONFIG, sampleWindow.toMillis.toString),
     (C.METRICS_NUM_SAMPLES_CONFIG, numSamples.toString),
     (C.METRICS_RECORDING_LEVEL_CONFIG, recordingLevel),
-    (C.METRIC_REPORTER_CLASSES_CONFIG, reporters mkString ","))
+    (C.METRIC_REPORTER_CLASSES_CONFIG, reporters mkString ",")
+  )
 }
 
 object MetricsConfig {
@@ -30,22 +32,18 @@ object MetricsConfig {
     }
 
     def getDuration(path: String, pathMs: => String) = {
-      val value = try get[FiniteDuration](path) catch { case _: ConfigException => None }
+      val value =
+        try get[FiniteDuration](path)
+        catch { case _: ConfigException => None }
       value orElse get[Long](pathMs).map { _.millis }
     }
 
     MetricsConfig(
-      sampleWindow = getDuration(
-        "metrics.sample-window",
-        "metrics.sample.window.ms") getOrElse Default.sampleWindow,
-      numSamples = get[Int](
-        "metrics.num-samples",
-        "metrics.num.samples") getOrElse Default.numSamples,
-      recordingLevel = get[String](
-        "metrics.recording-level",
-        "metrics.recording.level") getOrElse Default.recordingLevel,
-      reporters = get[List[String]](
-        "metrics.reporters",
-        "metric.reporters") getOrElse Default.reporters)
+      sampleWindow = getDuration("metrics.sample-window", "metrics.sample.window.ms") getOrElse Default.sampleWindow,
+      numSamples   = get[Int]("metrics.num-samples", "metrics.num.samples") getOrElse Default.numSamples,
+      recordingLevel =
+        get[String]("metrics.recording-level", "metrics.recording.level") getOrElse Default.recordingLevel,
+      reporters = get[List[String]]("metrics.reporters", "metric.reporters") getOrElse Default.reporters
+    )
   }
 }

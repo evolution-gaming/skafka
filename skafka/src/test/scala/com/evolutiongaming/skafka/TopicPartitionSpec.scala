@@ -18,13 +18,16 @@ class TopicPartitionSpec extends AnyFunSuite with Matchers {
       TopicPartition(topic = topic, partition = Partition.unsafe(partition))
     }
 
-    Nel.of(
-      topicPartition(topic = "0", partition = 1),
-      topicPartition(topic = "1", partition = 0),
-      topicPartition(topic = "0", partition = 0)
-    ).sorted shouldEqual Nel.of(
+    Nel
+      .of(
+        topicPartition(topic = "0", partition = 1),
+        topicPartition(topic = "1", partition = 0),
+        topicPartition(topic = "0", partition = 0)
+      )
+      .sorted shouldEqual Nel.of(
       topicPartition(topic = "0", partition = 0),
       topicPartition(topic = "0", partition = 1),
-      topicPartition(topic = "1", partition = 0))
+      topicPartition(topic = "1", partition = 0)
+    )
   }
 }

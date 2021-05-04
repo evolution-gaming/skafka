@@ -13,6 +13,7 @@ object Dependencies {
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.3"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.1.1"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.10.3"
+  val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.1.4"
 
   object Kafka {
     private val version = "2.5.0"
@@ -36,5 +37,6 @@ object Dependencies {
     private val version = "2.3.0"
     val core   = "org.typelevel" %% "cats-core"   % version
     val effect = "org.typelevel" %% "cats-effect" % version
+    val laws   = "org.typelevel" %% "cats-laws"   % version
   }
 }

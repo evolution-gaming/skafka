@@ -5,7 +5,6 @@ import com.evolutiongaming.skafka.Bytes
 import org.apache.kafka.clients.producer.{KafkaProducer, Producer => ProducerJ}
 import org.apache.kafka.common.serialization.ByteArraySerializer
 
-
 object CreateProducerJ {
 
   def apply[F[_]: Sync](config: ProducerConfig): F[ProducerJ[Bytes, Bytes]] = {

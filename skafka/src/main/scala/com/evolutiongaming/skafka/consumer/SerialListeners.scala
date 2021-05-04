@@ -15,7 +15,6 @@ import cats.implicits._
   * 2. rebalanceListener
   * 3. poll exits
   *
-  *
   * Calls order in details as following:
   *
   *  1. Consumer.poll enters
@@ -48,7 +47,6 @@ object SerialListeners {
     def listener[A](fa: F[A]) = fa.pure[F]
   }
 
-
   def of[F[_]: Concurrent]: F[SerialListeners[F]] = {
     val empty = ().pure[F]
     for {
@@ -73,7 +71,7 @@ object SerialListeners {
           val result = for {
             d <- Deferred[F, Either[Throwable, Unit]]
             l <- ref.modify { a => (d.get.rethrow, a) }
-            f  = for {
+            f = for {
               a <- l.productR(semaphore.withPermit(fa)).attempt
               _ <- d.complete(a.void)
               a <- a.liftTo[F]

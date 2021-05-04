@@ -12,9 +12,8 @@ object TopicPartition {
 
   val empty: TopicPartition = TopicPartition("", Partition.min)
 
-  implicit val orderTopicPartition: Order[TopicPartition] = Order.whenEqual(
-    Order.by { a: TopicPartition => a.topic },
-    Order.by { a: TopicPartition => a.partition })
+  implicit val orderTopicPartition: Order[TopicPartition] =
+    Order.whenEqual(Order.by { a: TopicPartition => a.topic }, Order.by { a: TopicPartition => a.partition })
 
   implicit val showTopicPartition: Show[TopicPartition] = Show.fromToString
 }

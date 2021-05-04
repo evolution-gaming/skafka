@@ -8,11 +8,12 @@ import com.evolutiongaming.skafka._
 
 final case class ProducerRecord[+K, +V](
   topic: Topic,
-  value: Option[V] = None,
-  key: Option[K] = None,
+  value: Option[V]             = None,
+  key: Option[K]               = None,
   partition: Option[Partition] = None,
-  timestamp: Option[Instant] = None,
-  headers: List[Header] = Nil)
+  timestamp: Option[Instant]   = None,
+  headers: List[Header]        = Nil
+)
 
 object ProducerRecord {
 
@@ -20,11 +21,10 @@ object ProducerRecord {
     ProducerRecord(topic = topic, value = Some(value), key = Some(key))
   }
 
-
   implicit class ProducerRecordOps[K, V](val self: ProducerRecord[K, V]) extends AnyVal {
 
-    def toBytes[F[_] : Sync](implicit
-      toBytesK: ToBytes[F, K],
+    def toBytes[F[_]: Sync](
+      implicit toBytesK: ToBytes[F, K],
       toBytesV: ToBytes[F, V]
     ): F[ProducerRecord[Bytes, Bytes]] = {
       val topic = self.topic

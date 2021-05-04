@@ -13,7 +13,7 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
-  def apply[F[_] : Effect : ContextShift : MeasureDuration](
+  def apply[F[_]: Effect: ContextShift: MeasureDuration](
     executorBlocking: ExecutionContext,
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
@@ -27,14 +27,13 @@ object ProducerOf {
     }
   }
 
-
   implicit class ProducerOfOps[F[_]](val self: ProducerOf[F]) extends AnyVal {
 
-    def mapK[G[_] : Monad : Defer](
+    def mapK[G[_]: Monad: Defer](
       fg: F ~> G,
       gf: G ~> F
-    ): ProducerOf[G] = {
-      (config: ProducerConfig) => {
+    ): ProducerOf[G] = { (config: ProducerConfig) =>
+      {
         for {
           a <- self(config).mapK(fg)
         } yield {

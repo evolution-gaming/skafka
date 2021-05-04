@@ -13,7 +13,10 @@ import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata => ConsumerGroupMetadataJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  OffsetAndMetadata => OffsetAndMetadataJ
+}
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 
@@ -23,9 +26,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class ProducerSpec extends AnyWordSpec with Matchers {
 
-  val topic = "topic"
+  val topic          = "topic"
   val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
-  val metadata = RecordMetadata(topicPartition)
+  val metadata       = RecordMetadata(topicPartition)
 
   "Producer" should {
 
@@ -43,7 +46,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
     "proxy sendOffsetsToTransaction" in new Scope {
       val consumerGroupId = "consumerGroupId"
-      val offsets = Nem.of((topicPartition, OffsetAndMetadata.empty))
+      val offsets         = Nem.of((topicPartition, OffsetAndMetadata.empty))
       verify(producer.sendOffsetsToTransaction(offsets, consumerGroupId)) { _ =>
         sendOffsetsToTransaction shouldEqual consumerGroupId
       }
@@ -96,7 +99,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     }
   }
 
-
   "Producer.empty" should {
 
     implicit val empty = Producer.empty[IO]
@@ -137,15 +139,15 @@ class ProducerSpec extends AnyWordSpec with Matchers {
   }
 
   private trait Scope {
-    var flushCalled = false
-    var commitTransaction = false
-    var beginTransaction = false
-    var initTransactions = false
-    var abortTransaction = false
-    var partitionsFor = ""
-    var sendOffsetsToTransaction = ""
+    var flushCalled               = false
+    var commitTransaction         = false
+    var beginTransaction          = false
+    var initTransactions          = false
+    var abortTransaction          = false
+    var partitionsFor             = ""
+    var sendOffsetsToTransaction  = ""
     var sendOffsetsToTransaction1 = none[ConsumerGroupMetadataJ]
-    val completableFuture = CompletableFuture.completedFuture(metadata.asJava)
+    val completableFuture         = CompletableFuture.completedFuture(metadata.asJava)
 
     val jProducer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
@@ -153,7 +155,10 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
       def beginTransaction() = Scope.this.beginTransaction = true
 
-      def sendOffsetsToTransaction(offsets: java.util.Map[TopicPartitionJ, OffsetAndMetadataJ], consumerGroupId: String) = {
+      def sendOffsetsToTransaction(
+        offsets: java.util.Map[TopicPartitionJ, OffsetAndMetadataJ],
+        consumerGroupId: String
+      ) = {
         Scope.this.sendOffsetsToTransaction = consumerGroupId
       }
 
@@ -163,7 +168,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       ) = {
         Scope.this.sendOffsetsToTransaction1 = groupMetadata.some
       }
-      
+
       def flush() = flushCalled = true
 
       def commitTransaction() = Scope.this.commitTransaction = true
@@ -188,7 +193,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
       def abortTransaction() = Scope.this.abortTransaction = true
     }
-    
+
     val producer: Producer[IO] = {
       implicit val measureDuration = MeasureDuration.empty[IO]
       Producer

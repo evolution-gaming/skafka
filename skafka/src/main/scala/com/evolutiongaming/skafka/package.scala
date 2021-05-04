@@ -6,9 +6,7 @@ package object skafka {
 
   type ClientId = String
 
-
   type Topic = String
-
 
   type Metadata = String
 
@@ -16,13 +14,11 @@ package object skafka {
     val empty: Metadata = ""
   }
 
-
   type Bytes = Array[Byte]
 
   object Bytes {
 
     val empty: Bytes = Array.empty
-
 
     implicit val monoidBytes: Monoid[Bytes] = new Monoid[Bytes] {
 

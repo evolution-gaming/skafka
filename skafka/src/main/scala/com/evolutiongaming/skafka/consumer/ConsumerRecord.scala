@@ -4,14 +4,13 @@ import cats.Order
 import cats.implicits._
 import com.evolutiongaming.skafka._
 
-
 final case class ConsumerRecord[K, +V](
   topicPartition: TopicPartition,
   offset: Offset,
   timestampAndType: Option[TimestampAndType],
-  key: Option[WithSize[K]] = None,
+  key: Option[WithSize[K]]   = None,
   value: Option[WithSize[V]] = None,
-  headers: List[Header] = Nil
+  headers: List[Header]      = Nil
 ) {
 
   def topic: Topic = topicPartition.topic
@@ -25,7 +24,9 @@ object ConsumerRecord {
     Order.whenEqual(
       Order.whenEqual(
         Order.by { a: ConsumerRecord[K, V] => a.topicPartition },
-        Order.by { a: ConsumerRecord[K, V] => a.key }),
-      Order.by { a: ConsumerRecord[K, V] => a.offset })
+        Order.by { a: ConsumerRecord[K, V] => a.key }
+      ),
+      Order.by { a: ConsumerRecord[K, V] => a.offset }
+    )
   }
 }

@@ -12,13 +12,12 @@ import org.scalatest.wordspec.AnyWordSpec
 import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Try}
 
-
 class ConvertersSpec extends AnyWordSpec with Matchers {
 
   "Converters" should {
 
     "convert Header" in {
-      val bytes = Array[Byte](1, 2, 3)
+      val bytes  = Array[Byte](1, 2, 3)
       val header = Header("key", bytes)
       header shouldEqual header.asJava.asScala
     }
@@ -30,8 +29,8 @@ class ConvertersSpec extends AnyWordSpec with Matchers {
 
     "convert PartitionInfo" in {
       val topicPartition = TopicPartition("topic", Partition.min)
-      val node = new Node(1, "host", 2)
-      val value = PartitionInfo(topicPartition, node, List(node), List(node), List(node))
+      val node           = new Node(1, "host", 2)
+      val value          = PartitionInfo(topicPartition, node, List(node), List(node), List(node))
       value.pure[Try] shouldEqual value.asJava.asScala[Try]
     }
 
@@ -105,7 +104,7 @@ class ConvertersSpec extends AnyWordSpec with Matchers {
           v => Try(v._1),
           keepNullValues = true
         )
-      exception shouldBe a [NullPointerException]
+      exception shouldBe a[NullPointerException]
     }
   }
 }

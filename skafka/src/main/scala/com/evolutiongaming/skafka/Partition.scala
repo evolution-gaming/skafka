@@ -18,16 +18,13 @@ object Partition {
 
   val max: Partition = new Partition(Int.MaxValue) {}
 
-
   implicit val showPartition: Show[Partition] = Show.fromToString
-
 
   implicit val orderingPartition: Ordering[Partition] = (x: Partition, y: Partition) => x.value compare y.value
 
   implicit val orderPartition: Order[Partition] = Order.fromOrdering
 
-
-  def of[F[_] : ApplicativeThrowable](value: Int): F[Partition] = {
+  def of[F[_]: ApplicativeThrowable](value: Int): F[Partition] = {
     if (value < min.value) {
       SkafkaError(s"invalid Partition of $value, it must be greater or equal to $min").raiseError[F, Partition]
     } else if (value > max.value) {
@@ -40,7 +37,6 @@ object Partition {
       new Partition(value) {}.pure[F]
     }
   }
-
 
   def unsafe[A](value: A)(implicit numeric: Numeric[A]): Partition = of[Try](numeric.toInt(value)).get
 }

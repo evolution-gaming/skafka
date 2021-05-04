@@ -11,25 +11,26 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
   */
 final case class ConsumerConfig(
-  common: CommonConfig = CommonConfig.Default,
-  groupId: Option[String] = None,
-  maxPollRecords: Int = 500,
-  maxPollInterval: FiniteDuration = 5.minutes,
-  sessionTimeout: FiniteDuration = 10.seconds,
-  heartbeatInterval: FiniteDuration = 3.seconds,
-  autoCommit: Boolean = true,
-  autoCommitInterval: FiniteDuration = 5.seconds,
+  common: CommonConfig                = CommonConfig.Default,
+  groupId: Option[String]             = None,
+  maxPollRecords: Int                 = 500,
+  maxPollInterval: FiniteDuration     = 5.minutes,
+  sessionTimeout: FiniteDuration      = 10.seconds,
+  heartbeatInterval: FiniteDuration   = 3.seconds,
+  autoCommit: Boolean                 = true,
+  autoCommitInterval: FiniteDuration  = 5.seconds,
   partitionAssignmentStrategy: String = "org.apache.kafka.clients.consumer.RangeAssignor",
-  autoOffsetReset: AutoOffsetReset = AutoOffsetReset.Latest,
-  defaultApiTimeout: FiniteDuration = 1.minute,
-  fetchMinBytes: Int = 1,
-  fetchMaxBytes: Int = 52428800,
-  fetchMaxWait: FiniteDuration = 500.millis,
-  maxPartitionFetchBytes: Int = 1048576,
-  checkCrcs: Boolean = true,
-  interceptorClasses: List[String] = Nil,
-  excludeInternalTopics: Boolean = true,
-  isolationLevel: IsolationLevel = IsolationLevel.ReadUncommitted) {
+  autoOffsetReset: AutoOffsetReset    = AutoOffsetReset.Latest,
+  defaultApiTimeout: FiniteDuration   = 1.minute,
+  fetchMinBytes: Int                  = 1,
+  fetchMaxBytes: Int                  = 52428800,
+  fetchMaxWait: FiniteDuration        = 500.millis,
+  maxPartitionFetchBytes: Int         = 1048576,
+  checkCrcs: Boolean                  = true,
+  interceptorClasses: List[String]    = Nil,
+  excludeInternalTopics: Boolean      = true,
+  isolationLevel: IsolationLevel      = IsolationLevel.ReadUncommitted
+) {
 
   def bindings: Map[String, String] = {
     val groupIdMap = groupId.fold(Map.empty[String, String]) { groupId => Map((C.GROUP_ID_CONFIG, groupId)) }
@@ -50,7 +51,8 @@ final case class ConsumerConfig(
       (C.CHECK_CRCS_CONFIG, checkCrcs.toString),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics.toString),
-      (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name))
+      (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
+    )
 
     bindings ++ common.bindings
   }
@@ -67,7 +69,7 @@ object ConsumerConfig {
   val Default: ConsumerConfig = ConsumerConfig()
 
   private implicit val AutoOffsetResetFromConf = FromConf[AutoOffsetReset] { (conf, path) =>
-    val str = conf.getString(path)
+    val str   = conf.getString(path)
     val value = AutoOffsetReset.Values.find { _.toString equalsIgnoreCase str }
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse AutoOffsetReset from $str")
@@ -75,7 +77,7 @@ object ConsumerConfig {
   }
 
   private implicit val IsolationLevelFromConf = FromConf[IsolationLevel] { (conf, path) =>
-    val str = conf.getString(path)
+    val str   = conf.getString(path)
     val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel from $str")
@@ -93,64 +95,42 @@ object ConsumerConfig {
     }
 
     def getDuration(path: String, pathMs: => String) = {
-      val value = try get[FiniteDuration](path) catch { case _: ConfigException => None }
+      val value =
+        try get[FiniteDuration](path)
+        catch { case _: ConfigException => None }
       value orElse get[Long](pathMs).map { _.millis }
     }
 
     ConsumerConfig(
-      common = CommonConfig(config, default.common),
-      groupId = get[String]("group-id", "group.id") orElse default.groupId,
-      maxPollRecords = get[Int](
-        "max-poll-records",
-        "max.poll.records") getOrElse default.maxPollRecords,
-      maxPollInterval = getDuration(
-        "max-poll-interval",
-        "max.poll.interval.ms") getOrElse default.maxPollInterval,
-      sessionTimeout = getDuration(
-        "session-timeout",
-        "session.timeout.ms") getOrElse default.sessionTimeout,
-      heartbeatInterval = getDuration(
-        "heartbeat-interval",
-        "heartbeat.interval.ms") getOrElse default.heartbeatInterval,
-      autoCommit = get[Boolean](
-        "auto-commit",
-        "enable-auto-commit",
-        "enable.auto.commit") getOrElse default.autoCommit,
-      autoCommitInterval = getDuration(
-        "auto-commit-interval",
-        "auto.commit.interval.ms") getOrElse default.autoCommitInterval,
+      common          = CommonConfig(config, default.common),
+      groupId         = get[String]("group-id", "group.id") orElse default.groupId,
+      maxPollRecords  = get[Int]("max-poll-records", "max.poll.records") getOrElse default.maxPollRecords,
+      maxPollInterval = getDuration("max-poll-interval", "max.poll.interval.ms") getOrElse default.maxPollInterval,
+      sessionTimeout  = getDuration("session-timeout", "session.timeout.ms") getOrElse default.sessionTimeout,
+      heartbeatInterval =
+        getDuration("heartbeat-interval", "heartbeat.interval.ms") getOrElse default.heartbeatInterval,
+      autoCommit = get[Boolean]("auto-commit", "enable-auto-commit", "enable.auto.commit") getOrElse default.autoCommit,
+      autoCommitInterval =
+        getDuration("auto-commit-interval", "auto.commit.interval.ms") getOrElse default.autoCommitInterval,
       partitionAssignmentStrategy = get[String](
         "partition-assignment-strategy",
-        "partition.assignment.strategy") getOrElse default.partitionAssignmentStrategy,
-      autoOffsetReset = get[AutoOffsetReset](
-        "auto-offset-reset",
-        "auto.offset.reset") getOrElse default.autoOffsetReset,
-      defaultApiTimeout = get[FiniteDuration](
-        "default-api-timeout",
-        "default.api.timeout.ms") getOrElse default.defaultApiTimeout,
-      fetchMinBytes = get[Int](
-        "fetch-min-bytes",
-        "fetch.min.bytes") getOrElse default.fetchMinBytes,
-      fetchMaxBytes = get[Int](
-        "fetch-max-bytes",
-        "fetch.max.bytes") getOrElse default.fetchMaxBytes,
-      fetchMaxWait = getDuration(
-        "fetch-max-wait",
-        "fetch.max.wait.ms") getOrElse default.fetchMaxWait,
-      maxPartitionFetchBytes = get[Int](
-        "max-partition-fetch-bytes",
-        "max.partition.fetch.bytes") getOrElse default.maxPartitionFetchBytes,
-      checkCrcs = get[Boolean](
-        "check-crcs",
-        "check.crcs") getOrElse default.checkCrcs,
-      interceptorClasses = get[List[String]](
-        "interceptor-classes",
-        "interceptor.classes") getOrElse default.interceptorClasses,
-      excludeInternalTopics = get[Boolean](
-        "exclude-internal-topics",
-        "exclude.internal.topics") getOrElse default.excludeInternalTopics,
-      isolationLevel = get[IsolationLevel](
-        "isolation-level",
-        "isolation.level") getOrElse default.isolationLevel)
+        "partition.assignment.strategy"
+      ) getOrElse default.partitionAssignmentStrategy,
+      autoOffsetReset =
+        get[AutoOffsetReset]("auto-offset-reset", "auto.offset.reset") getOrElse default.autoOffsetReset,
+      defaultApiTimeout =
+        get[FiniteDuration]("default-api-timeout", "default.api.timeout.ms") getOrElse default.defaultApiTimeout,
+      fetchMinBytes = get[Int]("fetch-min-bytes", "fetch.min.bytes") getOrElse default.fetchMinBytes,
+      fetchMaxBytes = get[Int]("fetch-max-bytes", "fetch.max.bytes") getOrElse default.fetchMaxBytes,
+      fetchMaxWait  = getDuration("fetch-max-wait", "fetch.max.wait.ms") getOrElse default.fetchMaxWait,
+      maxPartitionFetchBytes =
+        get[Int]("max-partition-fetch-bytes", "max.partition.fetch.bytes") getOrElse default.maxPartitionFetchBytes,
+      checkCrcs = get[Boolean]("check-crcs", "check.crcs") getOrElse default.checkCrcs,
+      interceptorClasses =
+        get[List[String]]("interceptor-classes", "interceptor.classes") getOrElse default.interceptorClasses,
+      excludeInternalTopics =
+        get[Boolean]("exclude-internal-topics", "exclude.internal.topics") getOrElse default.excludeInternalTopics,
+      isolationLevel = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel
+    )
   }
 }

@@ -8,7 +8,7 @@ import com.evolutiongaming.smetrics.MeasureDuration
 
 object ProducerLogging {
 
-  def apply[F[_] : MonadThrowable : MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] = {
+  def apply[F[_]: MonadThrowable: MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] = {
 
     new Producer[F] {
 
@@ -24,11 +24,7 @@ object ProducerLogging {
 
       val abortTransaction = producer.abortTransaction
 
-      def send[K, V](
-        record: ProducerRecord[K, V])(implicit
-        toBytesK: ToBytes[F, K],
-        toBytesV: ToBytes[F, V]
-      ) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
         val a = for {
           d <- MeasureDuration[F].start
           a <- producer.send(record)
@@ -36,7 +32,7 @@ object ProducerLogging {
           a <- a.attempt
           d <- d
           _ <- a match {
-            case Right(a) => log.debug(s"send in ${ d.toMillis }ms, $record, result: $a")
+            case Right(a) => log.debug(s"send in ${d.toMillis}ms, $record, result: $a")
             case Left(e)  => log.error(s"failed to send record $record: $e")
           }
           a <- a.liftTo[F]
@@ -56,4 +52,3 @@ object ProducerLogging {
     }
   }
 }
-

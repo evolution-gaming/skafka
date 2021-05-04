@@ -52,6 +52,8 @@ lazy val skafka = (project
       `cats-helper`,
       smetrics,
       scalatest % Test,
+      Cats.laws % Test,
+      discipline % Test,
       `scala-java8-compat`,
       `collection-compat`)))
 

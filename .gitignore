@@ -24,3 +24,10 @@ project/plugins/project/
 
 # Mac
 .DS_Store
+
+# Metals/Bloop/Vscode specific
+.metals
+metals.sbt
+.bloop
+.vscode
+.bsp

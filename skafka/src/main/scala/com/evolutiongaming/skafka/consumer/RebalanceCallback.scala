@@ -311,15 +311,77 @@ abstract private[consumer] class RebalanceCallbackInstances {
     catsMonadForRebalanceCallback[Nothing]
 
   implicit def catsMonadForRebalanceCallback[F[_]]: Monad[RebalanceCallback[F, *]] =
-    new StackSafeMonad[RebalanceCallback[F, *]] {
+    new MonadForRebalanceCallback[F]
 
-      def pure[A](a: A): RebalanceCallback[F, A] =
-        RebalanceCallback.pure(a)
+  implicit def catsMonadThrowableForRebalanceCallback[F[_]: MonadThrowable]: MonadThrowable[RebalanceCallback[F, *]] =
+    new MonadThrowableForRebalanceCallback[F]
 
-      def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
-        new RebalanceCallbackOps(fa).flatMap(f)
+  private class MonadForRebalanceCallback[F[_]] extends StackSafeMonad[RebalanceCallback[F, *]] {
+    override def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
+      new RebalanceCallbackOps(fa).flatMap(f)
+    override def pure[A](a: A): RebalanceCallback[F, A] =
+      RebalanceCallback.pure(a)
+  }
 
-    }
+  private class MonadThrowableForRebalanceCallback[F[_]](implicit F: MonadThrowable[F])
+      extends MonadForRebalanceCallback[F]
+      with MonadThrowable[RebalanceCallback[F, *]] {
+    private case class ErrorMarker(t: Throwable)
+
+    override def raiseError[A](e: Throwable): RebalanceCallback[F, A] =
+      RebalanceCallback.fromTry(Failure(e))
+
+    override def handleErrorWith[A](
+      cb: RebalanceCallback[F, A]
+    )(f: Throwable => RebalanceCallback[F, A]): RebalanceCallback[F, A] =
+      cb match {
+        case Pure(_) =>
+          cb
+        case Bind(source, fs) =>
+          /** Explanation:
+            * When dealing with `Bind` we need to handle error for both source (left side) and function result (right side) separately.
+            * - if left side results in an error, we need to short-circuit to the error handler, skipping the right side;
+            * - if right side results in an error, we just need to apply the error handler;
+            * Thus, we need to apply the handler to the left side and propagate the result (with some encoding of the error)
+            * to the right side to be able to analyze it and short-circuit computation.
+            * One way would be to model this with `Either`:
+            * {{{
+            *   // handle left side
+            *   handleErrorWith(source.map(value => Right(value)))(err => pure(Left(err)))
+            *   // handle right side
+            *   (eith: Either[Throwable, A]) => eith.fold(err => f(err), value => fs(value)))
+            * }}}
+            * The problem with it is the handling of left side, which enters infinite recursion due to `.map` resulting in
+            * Bind(source, value => Pure(Right(value))) structure, which is passed recursively into `handleErrorWith` and ends up
+            * in the same `Bind` branch.
+            * To avoid this we forfeit type-safety for a moment and return `ErrorMarker` class as a result of the left side.
+            * So the actual type of the left-side expression is `A | ErrorMarker` (seen as Any by the compiler)
+            * which we then match on in the right-side handler.
+            */
+          Bind(
+            () => handleErrorWith(source())(t => RebalanceCallback.pure(ErrorMarker(t))),
+            (value: Any) => {
+              value match {
+                case ErrorMarker(t) => f(t)
+                case a              => handleErrorWith(fs(a))(f)
+              }
+            }
+          )
+        case Lift(fa) =>
+          val fCb: F[RebalanceCallback[F, A]] = F.attempt(fa).map {
+            case Left(error)  => f(error)
+            case Right(value) => RebalanceCallback.pure(value)
+          }
+
+          RebalanceCallback.lift(fCb).flatMap(identity)
+        case WithConsumer(f1) =>
+          val wc: RebalanceConsumer => Try[RebalanceCallback[F, A]] =
+            consumer => Success(f1(consumer).fold(f, RebalanceCallback.pure))
+          WithConsumer(wc).flatMap(identity)
+        case Error(throwable) =>
+          f(throwable)
+      }
+  }
 }
 
 private[consumer] object DataModel {

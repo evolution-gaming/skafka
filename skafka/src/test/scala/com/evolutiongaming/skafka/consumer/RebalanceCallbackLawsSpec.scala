@@ -6,7 +6,7 @@ import cats.effect.IO
 import cats.instances.either._
 import cats.instances.try_._
 import cats.kernel.Eq
-import cats.laws.discipline.MonadTests
+import cats.laws.discipline.MonadErrorTests
 import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
 import org.apache.kafka.common.PartitionInfo
 import org.scalacheck.{Arbitrary, Gen}
@@ -45,7 +45,10 @@ class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike 
         Eq[Try[A]].eqv(runWithMock(x), runWithMock(y))
     }
 
-    checkAll("RebalanceCallback.MonadLaws.run", MonadTests[RebalanceCallback[IO, *]].monad[Int, Int, Int])
+    checkAll(
+      "RebalanceCallback.MonadErrorLaws.run",
+      MonadErrorTests[RebalanceCallback[IO, *], Throwable].monadError[Int, Int, Int]
+    )
   }
 
   // Test with RebalanceConsumer.toF[IO]
@@ -59,7 +62,10 @@ class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike 
         Eq[IO[A]].eqv(toFWithMock(x), toFWithMock(y))
     }
 
-    checkAll("RebalanceCallback.MonadLaws.toF", MonadTests[RebalanceCallback[IO, *]].monad[Int, Int, Int])
+    checkAll(
+      "RebalanceCallback.MonadErrorLaws.toF",
+      MonadErrorTests[RebalanceCallback[IO, *], Throwable].monadError[Int, Int, Int]
+    )
   }
 }
 

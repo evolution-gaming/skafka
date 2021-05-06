@@ -12,6 +12,7 @@ import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters.{SkafkaOffsetAndMetadataOpsConverters, TopicPartitionOps}
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.DataPoints._
+import com.evolutiongaming.skafka.consumer.ExplodingConsumer.NotImplementedOnPurpose
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
 import org.apache.kafka.clients.consumer.{
@@ -27,7 +28,7 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{Await, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Random, Success, Try}
 
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
@@ -68,6 +69,104 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         tryRun(fromTry(input), consumer) mustBe Failure(TestError)
         ioErrorTests(RebalanceCallback.api[IO].fromTry(input), TestError, consumer)
       }
+
+      "handleErrorWith" - {
+        import cats.syntax.applicativeError._
+
+        /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error */
+        def testFailedInput[A](
+          input: RebalanceCallback[Try, A],
+          recoverValue: A,
+          c: ExplodingConsumer = new ExplodingConsumer
+        ) = {
+          tryRun(input.handleErrorWith(_ => pure(recoverValue)), c) mustBe Success(recoverValue)
+          tryRun(input.handleErrorWith(_ => lift(Try(throw TestError2))), c) mustBe Failure(TestError2)
+          tryRun(input.handleErrorWith(_ => lift(Try(recoverValue))), c) mustBe Success(recoverValue)
+          tryRun(input.handleErrorWith(_ => commit.map(_ => recoverValue)), c) mustBe Failure(
+            NotImplementedOnPurpose
+          )
+          tryRun(
+            input.handleErrorWith(_ => pure(()).flatMap(_ => fromTry(Success(recoverValue)))),
+            c
+          ) mustBe Success(recoverValue)
+          tryRun(
+            input.handleErrorWith(_ => pure(()).flatMap(_ => fromTry(Failure(TestError2)))),
+            c
+          ) mustBe Failure(TestError2)
+        }
+
+        /** Non-failed input should be used as-is and error handler is no-op */
+        def testSuccessInput(
+          input: RebalanceCallback[Try, Int],
+          inputValue: Int,
+          c: ExplodingConsumer = new ExplodingConsumer
+        ) = {
+          tryRun(input.handleErrorWith(_ => pure(Random.nextInt())), c) mustBe Success(inputValue)
+          tryRun(input.handleErrorWith(_ => lift(Failure(TestError2))), c) mustBe Success(inputValue)
+          tryRun(input.handleErrorWith(_ => lift(Success(Random.nextInt()))), c) mustBe Success(inputValue)
+          tryRun(input.handleErrorWith(_ => commit.map(_ => Random.nextInt())), c) mustBe Success(inputValue)
+          tryRun(
+            input.handleErrorWith(_ => pure(()).flatMap(_ => fromTry(Success(Random.nextInt())))),
+            c
+          ) mustBe Success(inputValue)
+          tryRun(
+            input.handleErrorWith(_ => pure(()).flatMap(_ => fromTry(Failure(TestError2)))),
+            c
+          ) mustBe Success(inputValue)
+        }
+
+        "passes value as-is for Pure" in {
+          val input = pure(1)
+
+          testSuccessInput(input, inputValue = 1)
+        }
+
+        "handles errors for failed Lift" in {
+          val input = lift(Try(throw TestError))
+
+          testFailedInput(input, recoverValue = 1)
+        }
+
+        "passes value as-is for successful Lift" in {
+          val input = lift(Success(1))
+
+          testSuccessInput(input, inputValue = 1)
+        }
+
+        "handles errors for failed WithConsumer" in {
+          val input: RebalanceCallback[Try, Unit] = commit
+
+          testFailedInput(input, recoverValue = ())
+        }
+
+        "passes value as-is for successful WithConsumer" in {
+          val cons = new ExplodingConsumer {
+            override def commitSync(): Unit = ()
+          }
+          val input = commit.map(_ => 1)
+
+          testSuccessInput(input, inputValue = 1, cons)
+        }
+
+        "handles error for failed Bind" in {
+          val input: RebalanceCallback[Try, Int] = pure(1).flatMap(_ => fromTry(Failure(TestError)))
+
+          testFailedInput(input, recoverValue = 2)
+        }
+
+        "passes value as-is for successful Bind" in {
+          val input: RebalanceCallback[Try, Int] = pure(1).flatMap(a => fromTry(Success(a + 1)))
+
+          testSuccessInput(input, inputValue = 2)
+        }
+
+        "handles error for Error" in {
+          val input: RebalanceCallback[Try, Unit] = fromTry(Failure(TestError))
+
+          testFailedInput(input, ())
+        }
+      }
+
     }
 
     "consumer related methods delegating the call correctly" - {

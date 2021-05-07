@@ -6,8 +6,8 @@ import java.util.{Map => MapJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 

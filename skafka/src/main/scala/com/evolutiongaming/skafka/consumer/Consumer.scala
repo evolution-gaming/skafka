@@ -19,11 +19,11 @@ import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
-  OffsetCommitCallback,
   Consumer => ConsumerJ,
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
   OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  OffsetAndTimestamp => OffsetAndTimestampJ,
+  OffsetCommitCallback
 }
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 

@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import java.util.regex.Pattern
 
 import cats.Monad
-import cats.data.{NonEmptySet => Nes, NonEmptyMap => Nem}
+import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}

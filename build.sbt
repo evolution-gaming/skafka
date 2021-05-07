@@ -24,10 +24,13 @@ lazy val commonSettings = Seq(
   },
   mimaBinaryIssueFilters ++= Seq(
     ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.subscribe"),
-    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.Converters#MapJOps.asScalaMap$extension")
-  )
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.evolutiongaming.skafka.Converters#MapJOps.asScalaMap$extension"
+    )
+  ),
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision
 )
-
 
 lazy val root = (project
   in file(".")
@@ -35,27 +38,27 @@ lazy val root = (project
   settings (name := "skafka")
   settings commonSettings
   settings (publish / skip := true)
-  aggregate(skafka, `play-json`, tests))
+  aggregate (skafka, `play-json`, tests))
 
 lazy val skafka = (project
   in file("skafka")
   settings commonSettings
-  settings(                                                                          
-    name := "skafka",
-    scalacOptions -= "-Ywarn-unused:params",
-    libraryDependencies ++= Seq(
-      Cats.core,
-      Cats.effect,
-      `config-tools`,
-      Kafka.clients,
-      `future-helper`,
-      `cats-helper`,
-      smetrics,
-      scalatest % Test,
-      Cats.laws % Test,
-      discipline % Test,
-      `scala-java8-compat`,
-      `collection-compat`)))
+  settings (name := "skafka",
+  scalacOptions -= "-Ywarn-unused:params",
+  libraryDependencies ++= Seq(
+    Cats.core,
+    Cats.effect,
+    `config-tools`,
+    Kafka.clients,
+    `future-helper`,
+    `cats-helper`,
+    smetrics,
+    scalatest  % Test,
+    Cats.laws  % Test,
+    discipline % Test,
+    `scala-java8-compat`,
+    `collection-compat`
+  )))
 
 lazy val `play-json` = (project
   in file("modules/play-json")
@@ -68,16 +71,16 @@ lazy val tests = (project in file("tests")
   disablePlugins (MimaPlugin)
   settings (name := "skafka-tests")
   settings commonSettings
-  settings Seq(
-    publish / skip := true,
-    Test / fork := true,
-    Test / parallelExecution := false)
-    dependsOn skafka % "compile->compile;test->test"
-    settings (libraryDependencies ++= Seq(
-      Kafka.kafka % Test,
-      `kafka-launcher` % Test,
-      Slf4j.api % Test,
-      Slf4j.`log4j-over-slf4j` % Test,
-      Logback.core % Test,
-      Logback.classic % Test,
-      scalatest % Test)))
+  settings Seq(publish / skip := true, Test / fork := true, Test / parallelExecution := false)
+  dependsOn skafka % "compile->compile;test->test"
+  settings (libraryDependencies ++= Seq(
+    Kafka.kafka              % Test,
+    `kafka-launcher`         % Test,
+    Slf4j.api                % Test,
+    Slf4j.`log4j-over-slf4j` % Test,
+    Logback.core             % Test,
+    Logback.classic          % Test,
+    scalatest                % Test
+  )))
+
+ThisBuild / scalafixDependencies += "com.github.liancheng" %% "organize-imports" % "0.5.0"

@@ -4,7 +4,7 @@ import cats.effect.Sync
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.FromBytes
-import org.apache.kafka.clients.consumer.{KafkaConsumer, Consumer => ConsumerJ}
+import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, KafkaConsumer}
 
 object CreateConsumerJ {
 

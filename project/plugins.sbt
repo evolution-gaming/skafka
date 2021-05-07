@@ -9,3 +9,5 @@ addSbtPlugin("com.evolution" % "sbt-scalac-opts-plugin" % "0.0.9")
 addSbtPlugin("com.evolution" % "sbt-artifactory-plugin" % "0.0.2")
 
 addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.8.1")
+
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.9.27")

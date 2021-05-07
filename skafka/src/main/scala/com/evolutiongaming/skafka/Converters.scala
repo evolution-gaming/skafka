@@ -2,10 +2,10 @@ package com.evolutiongaming.skafka
 
 import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
-import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ, List => ListJ}
+import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Optional, Set => SetJ}
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes, NonEmptyMap => Nem}
+import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}

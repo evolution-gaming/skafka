@@ -306,22 +306,27 @@ sealed trait RebalanceCallbackApi[F[_]] {
 
 }
 
-abstract private[consumer] class RebalanceCallbackInstances {
+private[consumer] trait RebalanceCallbackLowPrioInstances {
+
   implicit val catsMonadForRebalanceCallbackWithNoEffect: Monad[RebalanceCallback[Nothing, *]] =
-    catsMonadForRebalanceCallback[Nothing]
+    new MonadForRebalanceCallback[Nothing]
 
   implicit def catsMonadForRebalanceCallback[F[_]]: Monad[RebalanceCallback[F, *]] =
     new MonadForRebalanceCallback[F]
 
-  implicit def catsMonadThrowableForRebalanceCallback[F[_]: MonadThrowable]: MonadThrowable[RebalanceCallback[F, *]] =
-    new MonadThrowableForRebalanceCallback[F]
-
-  private class MonadForRebalanceCallback[F[_]] extends StackSafeMonad[RebalanceCallback[F, *]] {
+  class MonadForRebalanceCallback[F[_]] extends StackSafeMonad[RebalanceCallback[F, *]] {
     override def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
       new RebalanceCallbackOps(fa).flatMap(f)
     override def pure[A](a: A): RebalanceCallback[F, A] =
       RebalanceCallback.pure(a)
   }
+
+}
+
+abstract private[consumer] class RebalanceCallbackInstances extends RebalanceCallbackLowPrioInstances {
+
+  implicit def catsMonadThrowableForRebalanceCallback[F[_]: MonadThrowable]: MonadThrowable[RebalanceCallback[F, *]] =
+    new MonadThrowableForRebalanceCallback[F]
 
   private class MonadThrowableForRebalanceCallback[F[_]](implicit F: MonadThrowable[F])
       extends MonadForRebalanceCallback[F]
@@ -382,6 +387,7 @@ abstract private[consumer] class RebalanceCallbackInstances {
           f(throwable)
       }
   }
+
 }
 
 private[consumer] object DataModel {

@@ -33,12 +33,78 @@ val metadata: IO[RecordMetadata] = producer.use { producer =>
 ## Consumer usage example
 
 ```scala
+import cats.data.{NonEmptySet => Nes}
+
 val consumer = Consumer.of[IO, String, String](config, ecBlocking)
 val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer => 
   for {
-    _       <- consumer.subscribe(Nel("topic"), None)
+    _       <- consumer.subscribe(Nes("topic"))
     records <- consumer.poll(100.millis)
   } yield records 
+}
+```
+
+## Handling consumer group rebalance
+It's possible to provide a callback for a consumer group rebalance event, which can be useful if you want to do some computations,
+save the state, commit some offsets (or do anything with the consumer before the new group is applied).  
+This can be done by providing an implementation of `RebalanceListener1` (or a more convenient version - `RebalanceListener1WithConsumer`) 
+which requires you to return a `RebalanceCallback` structure which describes what actions should be performed in a certain situation. 
+It allows you to use some of consumer's methods as well as a way to run an arbitrary computation.
+Please note that all the actions are executed on the consumer `poll` thread which means that running heavy or 
+long-running computations is discouraged. 
+
+What you can currently do:
+- lift a pure value via `RebalanceCallback.pure(a)`
+- raise an error via `RebalanceCallback.fromTry(Failure(error))`
+- perform some consumer-related functionality via exposed methods like `RebalanceCallback.commit` or `RebalanceCallback.seek` 
+  (see `RebalanceCallbackApi` to discover these methods)
+- lift any arbitrary computation in the `F[_]` effect via `RebalanceCallback.lift(...)`  
+
+These operations can be composed due to the presence of `map`/`flatMap` methods as well as the presence of `cats.Monad` instance.
+### Example
+```scala
+import cats.data.{NonEmptySet => Nes}
+
+class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
+
+    // import is needed to use `fa.lift` syntax where
+    // `fa: F[A]`
+    // `fa.lift: RebalanceCallback[F, A]`
+    import RebalanceCallback.syntax._
+
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+      for {
+        // read the offsets from an external store using some custom code not described here
+        offsets <- readOffsetsFromExternalStore[F](partitions).lift
+        a       <- offsets.toList.foldMapM { case (partition, offset) => consumer.seek(partition, offset) }
+      } yield a
+
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+      for {
+        positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
+          case (offsets, partition) =>
+            for {
+              position <- consumer.position(partition)
+            } yield offsets + (partition -> position)
+        }
+        // save the offsets in an external store using some custom code not described here
+        a <- saveOffsetsInExternalStore[F](positions).lift
+      } yield a
+
+    // do not need to save the offsets since these partitions are probably owned by other consumers already
+    def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+
+    private def readOffsetsFromExternalStore[F[_]: Applicative](partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]] = ???
+    private def saveOffsetsInExternalStore[F[_]: Applicative](offsets: Map[TopicPartition, Offset]): F[Unit] = ???
+  }
+
+val consumer = Consumer.of[IO, String, String](config, ecBlocking)
+val listener = new SaveOffsetsOnRebalance[IO]
+val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
+  for {
+    _       <- consumer.subscribe(Nes("topic"), listener)
+    records <- consumer.poll(100.millis)
+  } yield records
 }
 ```
 

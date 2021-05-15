@@ -19,6 +19,7 @@ import scala.util.{Failure, Try}
 
 class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike with Configuration {
 
+  import RebalanceCallback._
   import RebalanceCallbackLawsSpec._
 
   // Generate each of ADT members. Where possible, generate a successful outcome as well as an unsuccessful one.
@@ -26,13 +27,15 @@ class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike 
   // composite members (see generation for WithConsumer)
   implicit def arbAny[A](implicit A: Arbitrary[A]): Arbitrary[RebalanceCallback[IO, A]] = Arbitrary(
     Gen.oneOf(
-      A.arbitrary.map(RebalanceCallback.pure), // Pure
-      A.arbitrary.map(a => RebalanceCallback.pure(a).flatMap(b => RebalanceCallback.pure(b))), // Bind
-      A.arbitrary.map(a => RebalanceCallback.lift(IO.pure(a))), // Lift(Success)
-      Gen.const(RebalanceCallback.lift(IO.raiseError(new Exception("Lift fail") with NoStackTrace))), // Lift(Error)
-      A.arbitrary.map(a => RebalanceCallback.commit.map(_ => a)), // WithConsumer with success
-      A.arbitrary.map(a => RebalanceCallback.topics.map(_ => a)), // WithConsumer with failure
-      Gen.const(RebalanceCallback.fromTry(Failure(new Exception("Test") with NoStackTrace))) // Error(e)
+      A.arbitrary.map(pure), // Pure
+      A.arbitrary.map(a => pure(a).flatMap(b => pure(b))), // Bind
+      A.arbitrary.map(a => lift(IO.pure(a))), // Lift(Success)
+      Gen.const(lift(IO.raiseError(new Exception("Lift fail") with NoStackTrace))), // Lift(Error)
+      A.arbitrary.map(a => commit.map(_ => a)), // WithConsumer with success
+      A.arbitrary.map(a => topics.map(_ => a)), // WithConsumer with failure
+      Gen.const(fromTry(Failure(new Exception("Test") with NoStackTrace))), // Error(e)
+      A.arbitrary.map(a => pure(a).handleErrorWith(_ => pure(a))), // HandleErrorWith
+      A.arbitrary.map(a => pure(a).handleErrorWith(_ => fromTry(Failure(new Exception("Handle error fail"))))),
     )
   )
 

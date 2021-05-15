@@ -74,10 +74,16 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(() => self, f)
 
+    def handleErrorWith(f: Throwable => RebalanceCallback[F, A]): RebalanceCallback[F, A] =
+      HandleErrorWith(() => self, f)
+
     def run(
       consumer: RebalanceConsumer
     )(implicit fToTry: ToTry[F]): Try[A] = {
       type S = Any => RebalanceCallback[F, Any]
+
+      def continue[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] =
+        loop(c, ss)
 
       @tailrec
       def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
@@ -109,6 +115,16 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
             loop(c.source(), c.fs.asInstanceOf[S] :: ss)
           case Error(a) =>
             a.raiseError[Try, A1]
+          case HandleErrorWith(source, fe) =>
+            continue(source(), Nil) match {
+              case Failure(e) =>
+                loop(fe(e), ss)
+              case Success(a) =>
+                ss match {
+                  case Nil     => a.pure[Try]
+                  case s :: ss => loop(s(a), ss)
+                }
+            }
         }
       }
 
@@ -154,6 +170,16 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
             loop(c.source(), c.fs.asInstanceOf[S] :: ss)
           case Error(a) =>
             a.raiseError[F, A1].widen
+          case HandleErrorWith(source, fe) =>
+            continue(source(), Nil).attempt.flatMap {
+              case Left(e) =>
+                continue(fe(e), ss)
+              case Right(a) =>
+                ss match {
+                  case Nil     => a.pure[F]
+                  case s :: ss => continue(s(a), ss)
+                }
+            }
         }
       }
 
@@ -164,11 +190,12 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {
       self match {
-        case Pure(a)          => Pure(a)
-        case Bind(source, f)  => Bind(() => source().mapK(fg), f andThen (_.mapK(fg)))
-        case Lift(fa)         => Lift(fg(fa))
-        case WithConsumer(f)  => WithConsumer(f)
-        case Error(throwable) => Error(throwable)
+        case Pure(a)                     => Pure(a)
+        case Bind(source, f)             => Bind(() => source().mapK(fg), f andThen (_.mapK(fg)))
+        case Lift(fa)                    => Lift(fg(fa))
+        case WithConsumer(f)             => WithConsumer(f)
+        case Error(throwable)            => Error(throwable)
+        case HandleErrorWith(source, fe) => HandleErrorWith(() => source().mapK(fg), fe andThen (_.mapK(fg)))
       }
     }
 
@@ -328,10 +355,9 @@ abstract private[consumer] class RebalanceCallbackInstances extends RebalanceCal
   implicit def catsMonadThrowableForRebalanceCallback[F[_]: MonadThrowable]: MonadThrowable[RebalanceCallback[F, *]] =
     new MonadThrowableForRebalanceCallback[F]
 
-  private class MonadThrowableForRebalanceCallback[F[_]](implicit F: MonadThrowable[F])
+  private class MonadThrowableForRebalanceCallback[F[_]]
       extends MonadForRebalanceCallback[F]
       with MonadThrowable[RebalanceCallback[F, *]] {
-    private case class ErrorMarker(t: Throwable)
 
     override def raiseError[A](e: Throwable): RebalanceCallback[F, A] =
       RebalanceCallback.fromTry(Failure(e))
@@ -339,53 +365,7 @@ abstract private[consumer] class RebalanceCallbackInstances extends RebalanceCal
     override def handleErrorWith[A](
       cb: RebalanceCallback[F, A]
     )(f: Throwable => RebalanceCallback[F, A]): RebalanceCallback[F, A] =
-      cb match {
-        case Pure(_) =>
-          cb
-        case Bind(source, fs) =>
-          /** Explanation:
-            * When dealing with `Bind` we need to handle error for both source (left side) and function result (right side) separately.
-            * - if left side results in an error, we need to short-circuit to the error handler, skipping the right side;
-            * - if right side results in an error, we just need to apply the error handler;
-            * Thus, we need to apply the handler to the left side and propagate the result (with some encoding of the error)
-            * to the right side to be able to analyze it and short-circuit computation.
-            * One way would be to model this with `Either`:
-            * {{{
-            *   // handle left side
-            *   handleErrorWith(source.map(value => Right(value)))(err => pure(Left(err)))
-            *   // handle right side
-            *   (eith: Either[Throwable, A]) => eith.fold(err => f(err), value => fs(value)))
-            * }}}
-            * The problem with it is the handling of left side, which enters infinite recursion due to `.map` resulting in
-            * Bind(source, value => Pure(Right(value))) structure, which is passed recursively into `handleErrorWith` and ends up
-            * in the same `Bind` branch.
-            * To avoid this we forfeit type-safety for a moment and return `ErrorMarker` class as a result of the left side.
-            * So the actual type of the left-side expression is `A | ErrorMarker` (seen as Any by the compiler)
-            * which we then match on in the right-side handler.
-            */
-          Bind(
-            () => handleErrorWith(source())(t => RebalanceCallback.pure(ErrorMarker(t))),
-            (value: Any) => {
-              value match {
-                case ErrorMarker(t) => f(t)
-                case a              => handleErrorWith(fs(a))(f)
-              }
-            }
-          )
-        case Lift(fa) =>
-          val fCb: F[RebalanceCallback[F, A]] = F.attempt(fa).map {
-            case Left(error)  => f(error)
-            case Right(value) => RebalanceCallback.pure(value)
-          }
-
-          RebalanceCallback.lift(fCb).flatMap(identity)
-        case WithConsumer(f1) =>
-          val wc: RebalanceConsumer => Try[RebalanceCallback[F, A]] =
-            consumer => Success(f1(consumer).fold(f, RebalanceCallback.pure))
-          WithConsumer(wc).flatMap(identity)
-        case Error(throwable) =>
-          f(throwable)
-      }
+      cb.handleErrorWith(f)
   }
 
 }
@@ -402,5 +382,10 @@ private[consumer] object DataModel {
   final case class WithConsumer[+A](f: RebalanceConsumer => Try[A]) extends RebalanceCallback[Nothing, A]
 
   final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
+
+  final case class HandleErrorWith[F[_], A](
+    source: () => RebalanceCallback[F, A],
+    fe: Throwable => RebalanceCallback[F, A]
+  ) extends RebalanceCallback[F, A]
 
 }

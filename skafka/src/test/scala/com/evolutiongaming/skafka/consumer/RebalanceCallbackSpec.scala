@@ -165,6 +165,17 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
           testFailedInput(input, ())
         }
+
+        "recovers error which is followed by chain of flatMaps" in {
+          val ex                                 = new Exception("Test")
+          val error: RebalanceCallback[Try, Int] = fromTry(Failure(ex))
+          val input = error.flatMap(_ => pure(1)).flatMap(_ => pure(2)).handleErrorWith { e =>
+            e mustBe ex
+            pure(3)
+          }
+
+          tryRun(input, consumer) mustBe Success(3)
+        }
       }
 
     }

@@ -46,18 +46,23 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 
 ## Handling consumer group rebalance
 It's possible to provide a callback for a consumer group rebalance event, which can be useful if you want to do some computations,
-save the state, commit some offsets (or do anything with the consumer before the new group is applied).  
+save the state, commit some offsets (or do anything with the consumer whenever partition assignment changes).  
 This can be done by providing an implementation of `RebalanceListener1` (or a more convenient version - `RebalanceListener1WithConsumer`) 
 which requires you to return a `RebalanceCallback` structure which describes what actions should be performed in a certain situation. 
-It allows you to use some of consumer's methods as well as a way to run an arbitrary computation.
+It allows you to use some of consumer's methods as well as a way to run an arbitrary computation. 
+### Note on long-running computations in a rebalance callback 
 Please note that all the actions are executed on the consumer `poll` thread which means that running heavy or 
-long-running computations is discouraged. 
+long-running computations is discouraged. This is due to to the following reasons:
+- if executing callback takes too long (longer than Kafka consumer `max.poll.interval.ms` setting), the consumer will be assumed
+'failed' and the group will rebalance once again. The default value is 300000 (5 minutes). You can see the official documentation [here](https://docs.confluent.io/platform/current/installation/configuration/consumer-configs.html#consumerconfigs_max.poll.interval.ms)
+- since the callback is executed by the means of providing an instance of `ToTry` (which runs the computation synchronously in the Java callback), it dictates the timeout for the callback computation to complete. 
+The current default implementation for `cats.effect.IO` is 1 minute (see `ToTry#ioToTry`)
 
-What you can currently do:
+### What you can currently do:
 - lift a pure value via `RebalanceCallback.pure(a)`
 - raise an error via `RebalanceCallback.fromTry(Failure(error))`
-- perform some consumer-related functionality via exposed methods like `RebalanceCallback.commit` or `RebalanceCallback.seek` 
-  (see `RebalanceCallbackApi` to discover these methods)
+- use consumer methods, for example `RebalanceCallback.commit` or `RebalanceCallback.seek`
+  (see `RebalanceCallbackApi` to discover allowed consumer methods)
 - lift any arbitrary computation in the `F[_]` effect via `RebalanceCallback.lift(...)`  
 
 These operations can be composed due to the presence of `map`/`flatMap` methods as well as the presence of `cats.Monad` instance.

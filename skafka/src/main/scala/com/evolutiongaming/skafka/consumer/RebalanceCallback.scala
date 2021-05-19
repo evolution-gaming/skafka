@@ -85,13 +85,11 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
       @tailrec
       def loop[A1](c: Try[RebalanceCallback[F, A1]], ss: List[S]): Try[Any] = {
         c match {
-          case f: Failure[_] =>
-            ss match {
-              case Nil     => f
-              case s :: ss => loop(s(f), ss)
-            }
           case Success(c) =>
             c match {
+              case c: Bind[F, Any, A1] =>
+                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
+                loop(Try(c.source()), s :: ss)
               case c: Pure[A1] =>
                 ss match {
                   case Nil     => c.a.pure[Try]
@@ -123,9 +121,6 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
                       case s :: ss => loop(s(f), ss)
                     }
                 }
-              case c: Bind[F, Any, A1] =>
-                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
-                loop(Try(c.source()), s :: ss)
               case Error(a) =>
                 loop(Failure(a), ss)
               case HandleErrorWith(source, fe) =>
@@ -137,6 +132,11 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
                 }
 
                 loop(Try(source()), s :: ss)
+            }
+          case f: Failure[_] =>
+            ss match {
+              case Nil     => f
+              case s :: ss => loop(s(f), ss)
             }
         }
       }
@@ -158,13 +158,11 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
       @tailrec
       def loop[A1](c: Try[RebalanceCallback[F, A1]], ss: List[S]): F[Any] = {
         c match {
-          case f @ Failure(a) =>
-            ss match {
-              case Nil     => a.raiseError[F, A1].widen
-              case s :: ss => loop(s(f), ss)
-            }
           case Success(c) =>
             c match {
+              case c: Bind[F, Any, A1] =>
+                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
+                loop(Try(c.source()), s :: ss)
               case c: Pure[A1] =>
                 ss match {
                   case Nil     => c.a.pure[F].widen
@@ -192,9 +190,6 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
                   a <- c.f(consumer).fold(_.raiseError[F, A1], _.pure[F])
                 } yield a
                 loop(Success(Lift(fa)), ss)
-              case c: Bind[F, Any, A1] =>
-                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
-                loop(Try(c.source()), s :: ss)
               case Error(a) =>
                 loop(Failure(a), ss)
               case HandleErrorWith(source, fe) =>
@@ -205,6 +200,11 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
                     Success(RebalanceCallback.pure(value))
                 }
                 loop(Try(source()), s :: ss)
+            }
+          case f @ Failure(a) =>
+            ss match {
+              case Nil     => a.raiseError[F, A1].widen
+              case s :: ss => loop(s(f), ss)
             }
         }
       }

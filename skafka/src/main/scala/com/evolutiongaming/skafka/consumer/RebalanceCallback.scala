@@ -4,7 +4,7 @@ import java.time.Instant
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import cats.{Monad, StackSafeMonad, ~>}
+import cats.{Functor, Monad, StackSafeMonad, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
 import com.evolutiongaming.skafka._
@@ -74,46 +74,75 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
 
     def flatMap[B](f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] = Bind(() => self, f)
 
+    def handleErrorWith(f: Throwable => RebalanceCallback[F, A]): RebalanceCallback[F, A] =
+      HandleErrorWith(() => self, f)
+
     def run(
       consumer: RebalanceConsumer
     )(implicit fToTry: ToTry[F]): Try[A] = {
-      type S = Any => RebalanceCallback[F, Any]
+      type S = Try[Any] => Try[RebalanceCallback[F, Any]]
 
       @tailrec
-      def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): Try[Any] = {
+      def loop[A1](c: Try[RebalanceCallback[F, A1]], ss: List[S]): Try[Any] = {
         c match {
-          case c: Pure[A1] =>
+          case Success(c) =>
+            c match {
+              case c: Bind[F, Any, A1] =>
+                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
+                loop(Try(c.source()), s :: ss)
+              case c: Pure[A1] =>
+                ss match {
+                  case Nil     => c.a.pure[Try]
+                  case s :: ss => loop(s(Success(c.a)), ss)
+                }
+              case c: Lift[F, A1] =>
+                c.fa.toTry match {
+                  case Success(a) =>
+                    ss match {
+                      case Nil     => a.pure[Try]
+                      case s :: ss => loop(s(Success(a)), ss)
+                    }
+                  case f: Failure[_] =>
+                    ss match {
+                      case Nil     => f
+                      case s :: ss => loop(s(f), ss)
+                    }
+                }
+              case c: WithConsumer[A1] =>
+                c.f(consumer) match {
+                  case Success(a) =>
+                    ss match {
+                      case Nil     => a.pure[Try]
+                      case s :: ss => loop(s(Success(a)), ss)
+                    }
+                  case f: Failure[_] =>
+                    ss match {
+                      case Nil     => f
+                      case s :: ss => loop(s(f), ss)
+                    }
+                }
+              case Error(a) =>
+                loop(Failure(a), ss)
+              case HandleErrorWith(source, fe) =>
+                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = {
+                  case Failure(exception) =>
+                    Try(fe(exception))
+                  case Success(value) =>
+                    Success(RebalanceCallback.pure(value))
+                }
+
+                loop(Try(source()), s :: ss)
+            }
+          case f: Failure[_] =>
             ss match {
-              case Nil     => c.a.pure[Try]
-              case s :: ss => loop(s(c.a), ss)
+              case Nil     => f
+              case s :: ss => loop(s(f), ss)
             }
-          case c: Lift[F, A1] =>
-            c.fa.toTry match {
-              case Success(a) =>
-                ss match {
-                  case Nil     => a.pure[Try]
-                  case s :: ss => loop(s(a), ss)
-                }
-              case Failure(a) => a.raiseError[Try, A1]
-            }
-          case c: WithConsumer[A1] =>
-            c.f(consumer) match {
-              case Success(a) =>
-                ss match {
-                  case Nil     => a.pure[Try]
-                  case s :: ss => loop(s(a), ss)
-                }
-              case Failure(a) => a.raiseError[Try, A1]
-            }
-          case c: Bind[F, _, A1] =>
-            loop(c.source(), c.fs.asInstanceOf[S] :: ss)
-          case Error(a) =>
-            a.raiseError[Try, A1]
         }
       }
 
       for {
-        a <- loop(self, List.empty)
+        a <- loop(Success(self), List.empty)
         a <- Try { a.asInstanceOf[A] }
       } yield a
     }
@@ -121,54 +150,78 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
     def toF(
       consumer: RebalanceConsumer
     )(implicit MT: MonadThrowable[F]): F[A] = {
-      type S = Any => RebalanceCallback[F, Any]
+      type S = Try[Any] => Try[RebalanceCallback[F, Any]]
 
-      def continue[A1](c: RebalanceCallback[F, A1], ss: List[S]): F[Any] =
+      def continue[A1](c: Try[RebalanceCallback[F, A1]], ss: List[S]): F[Any] =
         loop(c, ss)
 
       @tailrec
-      def loop[A1](c: RebalanceCallback[F, A1], ss: List[S]): F[Any] = {
+      def loop[A1](c: Try[RebalanceCallback[F, A1]], ss: List[S]): F[Any] = {
         c match {
-          case c: Pure[A1] =>
+          case Success(c) =>
+            c match {
+              case c: Bind[F, Any, A1] =>
+                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
+                loop(Try(c.source()), s :: ss)
+              case c: Pure[A1] =>
+                ss match {
+                  case Nil     => c.a.pure[F].widen
+                  case s :: ss => loop(s(Success(c.a)), ss)
+                }
+              case c: Lift[F, A1] =>
+                c.fa.attempt.flatMap {
+                  case Left(a) =>
+                    ss match {
+                      case Nil     => a.raiseError[F, A1].widen
+                      case s :: ss => continue(s(Failure(a)), ss)
+                    }
+                  case Right(value) =>
+                    ss match {
+                      case Nil     => value.pure[F].widen
+                      case s :: ss => continue(s(Success(value)), ss)
+                    }
+                }
+              case c: WithConsumer[A1] =>
+                // a trick to make `c.f` lazy if F[_] is lazy
+                // by moving it into `flatMap`
+                // using this trick as it does not require Defer/Sync instances
+                val fa = for {
+                  _ <- ().pure[F]
+                  a <- c.f(consumer).fold(_.raiseError[F, A1], _.pure[F])
+                } yield a
+                loop(Success(Lift(fa)), ss)
+              case Error(a) =>
+                loop(Failure(a), ss)
+              case HandleErrorWith(source, fe) =>
+                val s: Try[Any] => Try[RebalanceCallback[F, Any]] = {
+                  case Failure(exception) =>
+                    Try(fe(exception))
+                  case Success(value) =>
+                    Success(RebalanceCallback.pure(value))
+                }
+                loop(Try(source()), s :: ss)
+            }
+          case f @ Failure(a) =>
             ss match {
-              case Nil     => c.a.pure[F].widen
-              case s :: ss => loop(s(c.a), ss)
+              case Nil     => a.raiseError[F, A1].widen
+              case s :: ss => loop(s(f), ss)
             }
-          case c: Lift[F, A1] =>
-            c.fa.widen.flatMap { a =>
-              ss match {
-                case Nil     => a.pure[F].widen
-                case s :: ss => continue(s(a), ss)
-              }
-            }
-          case c: WithConsumer[A1] =>
-            // a trick to make `c.f` lazy if F[_] is lazy
-            // by moving it into `flatMap`
-            // using this trick as it does not require Defer/Sync instances
-            val fa = for {
-              _ <- ().pure[F]
-              a <- c.f(consumer).fold(_.raiseError[F, A1], _.pure[F])
-            } yield a
-            loop(Lift(fa), ss)
-          case c: Bind[F, _, A1] =>
-            loop(c.source(), c.fs.asInstanceOf[S] :: ss)
-          case Error(a) =>
-            a.raiseError[F, A1].widen
         }
       }
 
       for {
-        a <- loop(self, List.empty)
+        a <- loop(Success(self), List.empty)
       } yield a.asInstanceOf[A]
     }
 
     def mapK[G[_]](fg: F ~> G): RebalanceCallback[G, A] = {
       self match {
-        case Pure(a)          => Pure(a)
-        case Bind(source, f)  => Bind(() => source().mapK(fg), f andThen (_.mapK(fg)))
-        case Lift(fa)         => Lift(fg(fa))
-        case WithConsumer(f)  => WithConsumer(f)
-        case Error(throwable) => Error(throwable)
+        case Pure(a)                     => Pure(a)
+        case Bind(source, f)             => Bind(() => source().mapK(fg), f andThen (_.mapK(fg)))
+        case Lift(fa)                    => Lift(fg(fa))
+        case WithConsumer(f)             => WithConsumer(f)
+        case Error(throwable)            => Error(throwable)
+        case HandleErrorWith(source, fe) => HandleErrorWith(() => source().mapK(fg), fe andThen (_.mapK(fg)))
       }
     }
 
@@ -306,20 +359,41 @@ sealed trait RebalanceCallbackApi[F[_]] {
 
 }
 
-abstract private[consumer] class RebalanceCallbackInstances {
+private[consumer] trait RebalanceCallbackLowPrioInstances {
+
   implicit val catsMonadForRebalanceCallbackWithNoEffect: Monad[RebalanceCallback[Nothing, *]] =
-    catsMonadForRebalanceCallback[Nothing]
+    new MonadForRebalanceCallback[Nothing]
 
   implicit def catsMonadForRebalanceCallback[F[_]]: Monad[RebalanceCallback[F, *]] =
-    new StackSafeMonad[RebalanceCallback[F, *]] {
+    new MonadForRebalanceCallback[F]
 
-      def pure[A](a: A): RebalanceCallback[F, A] =
-        RebalanceCallback.pure(a)
+  class MonadForRebalanceCallback[F[_]] extends StackSafeMonad[RebalanceCallback[F, *]] {
+    override def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
+      new RebalanceCallbackOps(fa).flatMap(f)
+    override def pure[A](a: A): RebalanceCallback[F, A] =
+      RebalanceCallback.pure(a)
+  }
 
-      def flatMap[A, B](fa: RebalanceCallback[F, A])(f: A => RebalanceCallback[F, B]): RebalanceCallback[F, B] =
-        new RebalanceCallbackOps(fa).flatMap(f)
+}
 
-    }
+abstract private[consumer] class RebalanceCallbackInstances extends RebalanceCallbackLowPrioInstances {
+
+  implicit def catsMonadThrowableForRebalanceCallback[F[_]: MonadThrowable]: MonadThrowable[RebalanceCallback[F, *]] =
+    new MonadThrowableForRebalanceCallback[F]
+
+  private class MonadThrowableForRebalanceCallback[F[_]]
+      extends MonadForRebalanceCallback[F]
+      with MonadThrowable[RebalanceCallback[F, *]] {
+
+    override def raiseError[A](e: Throwable): RebalanceCallback[F, A] =
+      RebalanceCallback.fromTry(Failure(e))
+
+    override def handleErrorWith[A](
+      cb: RebalanceCallback[F, A]
+    )(f: Throwable => RebalanceCallback[F, A]): RebalanceCallback[F, A] =
+      cb.handleErrorWith(f)
+  }
+
 }
 
 private[consumer] object DataModel {
@@ -334,5 +408,10 @@ private[consumer] object DataModel {
   final case class WithConsumer[+A](f: RebalanceConsumer => Try[A]) extends RebalanceCallback[Nothing, A]
 
   final case class Error(throwable: Throwable) extends RebalanceCallback[Nothing, Nothing]
+
+  final case class HandleErrorWith[F[_], A](
+    source: () => RebalanceCallback[F, A],
+    fe: Throwable => RebalanceCallback[F, A]
+  ) extends RebalanceCallback[F, A]
 
 }

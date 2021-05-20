@@ -59,11 +59,12 @@ long-running computations is discouraged. This is due to to the following reason
 The current default implementation for `cats.effect.IO` is 1 minute (see `ToTry#ioToTry`)
 
 ### What you can currently do:
-- lift a pure value via `RebalanceCallback.pure(a)`
-- raise an error via `RebalanceCallback.fromTry(Failure(error))`
+- lift a pure value via `RebalanceCallback.pure(a)`. There's also an instance of `cats.Monad` for `RebalanceCallback` which you can use via syntax extensions or direct summoning
+- raise an error which should be an instance of `Throwable`. If your effect `F[_]` has an instance of `MonadError[F, Throwable]` in scope, then an instance of `MonadError[RebalanceCallback[F, *], Throwable]` will be derived, so you can use it to `raiseError` via syntax extensions or direct summoning
 - use consumer methods, for example `RebalanceCallback.commit` or `RebalanceCallback.seek`
   (see `RebalanceCallbackApi` to discover allowed consumer methods)
-- lift any arbitrary computation in the `F[_]` effect via `RebalanceCallback.lift(...)`  
+- lift any arbitrary computation in the `F[_]` effect via `RebalanceCallback.lift(...)`
+- handle occuring errors in the `F[_]` effect via `callback.handleErroWith(...)` or using `MonadError` instance, described above  
 
 These operations can be composed due to the presence of `map`/`flatMap` methods as well as the presence of `cats.Monad` instance.
 ### Example

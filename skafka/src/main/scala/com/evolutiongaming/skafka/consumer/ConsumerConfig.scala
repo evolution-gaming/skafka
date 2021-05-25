@@ -11,37 +11,39 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
   */
 final case class ConsumerConfig(
-  common: CommonConfig                = CommonConfig.Default,
-  groupId: Option[String]             = None,
-  maxPollRecords: Int                 = 500,
-  maxPollInterval: FiniteDuration     = 5.minutes,
-  sessionTimeout: FiniteDuration      = 10.seconds,
-  heartbeatInterval: FiniteDuration   = 3.seconds,
-  autoCommit: Boolean                 = true,
-  autoCommitInterval: FiniteDuration  = 5.seconds,
-  partitionAssignmentStrategy: String = "org.apache.kafka.clients.consumer.RangeAssignor",
-  autoOffsetReset: AutoOffsetReset    = AutoOffsetReset.Latest,
-  defaultApiTimeout: FiniteDuration   = 1.minute,
-  fetchMinBytes: Int                  = 1,
-  fetchMaxBytes: Int                  = 52428800,
-  fetchMaxWait: FiniteDuration        = 500.millis,
-  maxPartitionFetchBytes: Int         = 1048576,
-  checkCrcs: Boolean                  = true,
-  interceptorClasses: List[String]    = Nil,
-  excludeInternalTopics: Boolean      = true,
-  isolationLevel: IsolationLevel      = IsolationLevel.ReadUncommitted
+  common: CommonConfig                       = CommonConfig.Default,
+  groupId: Option[String]                    = None,
+  maxPollRecords: Int                        = 500,
+  maxPollInterval: FiniteDuration            = 5.minutes,
+  sessionTimeout: FiniteDuration             = 10.seconds,
+  heartbeatInterval: FiniteDuration          = 3.seconds,
+  autoCommit: Boolean                        = true,
+  autoCommitInterval: Option[FiniteDuration] = Some(5.seconds),
+  partitionAssignmentStrategy: String        = "org.apache.kafka.clients.consumer.RangeAssignor",
+  autoOffsetReset: AutoOffsetReset           = AutoOffsetReset.Latest,
+  defaultApiTimeout: FiniteDuration          = 1.minute,
+  fetchMinBytes: Int                         = 1,
+  fetchMaxBytes: Int                         = 52428800,
+  fetchMaxWait: FiniteDuration               = 500.millis,
+  maxPartitionFetchBytes: Int                = 1048576,
+  checkCrcs: Boolean                         = true,
+  interceptorClasses: List[String]           = Nil,
+  excludeInternalTopics: Boolean             = true,
+  isolationLevel: IsolationLevel             = IsolationLevel.ReadUncommitted
 ) {
 
   def bindings: Map[String, String] = {
     val groupIdMap = groupId.fold(Map.empty[String, String]) { groupId => Map((C.GROUP_ID_CONFIG, groupId)) }
-    val bindings = groupIdMap ++ Map[String, String](
+    val autoCommitIntervalMap = autoCommitInterval.fold(Map.empty[String, String]) { autoCommitInterval =>
+      Map((C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString))
+    }
+    val bindings = groupIdMap ++ autoCommitIntervalMap ++ Map[String, String](
       (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
       (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
       (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
       (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
       (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
-      (C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString),
-      (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.toString),
+      (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy),
       (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
       (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
       (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
@@ -111,7 +113,7 @@ object ConsumerConfig {
         getDuration("heartbeat-interval", "heartbeat.interval.ms") getOrElse default.heartbeatInterval,
       autoCommit = get[Boolean]("auto-commit", "enable-auto-commit", "enable.auto.commit") getOrElse default.autoCommit,
       autoCommitInterval =
-        getDuration("auto-commit-interval", "auto.commit.interval.ms") getOrElse default.autoCommitInterval,
+        getDuration("auto-commit-interval", "auto.commit.interval.ms") orElse default.autoCommitInterval,
       partitionAssignmentStrategy = get[String](
         "partition-assignment-strategy",
         "partition.assignment.strategy"

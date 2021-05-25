@@ -17,7 +17,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     sessionTimeout              = 3.seconds,
     heartbeatInterval           = 4.minutes,
     autoCommit                  = false,
-    autoCommitInterval          = 5.hours,
+    autoCommitInterval          = Some(5.hours),
     partitionAssignmentStrategy = "partitionAssignmentStrategy",
     autoOffsetReset             = AutoOffsetReset.Earliest,
     defaultApiTimeout           = 6.seconds,

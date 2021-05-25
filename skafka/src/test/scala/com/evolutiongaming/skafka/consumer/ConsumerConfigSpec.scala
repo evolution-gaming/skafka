@@ -3,10 +3,10 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
-
-import scala.concurrent.duration._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
@@ -17,7 +17,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     sessionTimeout              = 3.seconds,
     heartbeatInterval           = 4.minutes,
     autoCommit                  = false,
-    autoCommitInterval          = 5.hours,
+    autoCommitInterval          = Some(5.hours),
     partitionAssignmentStrategy = "partitionAssignmentStrategy",
     autoOffsetReset             = AutoOffsetReset.Earliest,
     defaultApiTimeout           = 6.seconds,
@@ -48,7 +48,8 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
   test("bindings") {
     val configs = ConsumerConfig(
-      common = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId"))
+      common             = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
+      autoCommitInterval = Some(5.seconds),
     )
 
     configs.bindings shouldEqual Map(

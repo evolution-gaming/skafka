@@ -29,16 +29,15 @@ lazy val commonSettings = Seq(
 )
 
 
-lazy val root = (project
-  in file(".")
+lazy val root = (project in file(".")
   disablePlugins (MimaPlugin)
   settings (name := "skafka")
   settings commonSettings
   settings (publish / skip := true)
   aggregate(skafka, `play-json`, tests))
 
-lazy val skafka = (project
-  in file("skafka")
+lazy val skafka = (project in file("skafka")
+  disablePlugins (MimaPlugin)
   settings commonSettings
   settings(                                                                          
     name := "skafka",
@@ -57,8 +56,7 @@ lazy val skafka = (project
       `scala-java8-compat`,
       `collection-compat`)))
 
-lazy val `play-json` = (project
-  in file("modules/play-json")
+lazy val `play-json` = (project in file("modules/play-json")
   settings (name := "skafka-play-json")
   settings commonSettings
   dependsOn skafka

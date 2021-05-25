@@ -18,7 +18,7 @@ final case class ConsumerConfig(
   sessionTimeout: FiniteDuration             = 10.seconds,
   heartbeatInterval: FiniteDuration          = 3.seconds,
   autoCommit: Boolean                        = true,
-  autoCommitInterval: Option[FiniteDuration] = Some(5.seconds),
+  autoCommitInterval: Option[FiniteDuration] = None,
   partitionAssignmentStrategy: String        = "org.apache.kafka.clients.consumer.RangeAssignor",
   autoOffsetReset: AutoOffsetReset           = AutoOffsetReset.Latest,
   defaultApiTimeout: FiniteDuration          = 1.minute,

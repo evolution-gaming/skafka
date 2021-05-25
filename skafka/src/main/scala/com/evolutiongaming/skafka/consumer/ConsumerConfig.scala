@@ -33,15 +33,19 @@ final case class ConsumerConfig(
 ) {
 
   def bindings: Map[String, String] = {
-    val groupIdMap = groupId.fold(Map.empty[String, String]) { groupId => Map((C.GROUP_ID_CONFIG, groupId)) }
+    val groupIdMap = groupId.fold(Map.empty[String, String]) { groupId =>
+      Map(
+        (C.GROUP_ID_CONFIG, groupId),
+        (C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString),
+      )
+    }
     val bindings = groupIdMap ++ Map[String, String](
       (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
       (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
       (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
       (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
       (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
-      (C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString),
-      (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy.toString),
+      (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy),
       (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
       (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
       (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),

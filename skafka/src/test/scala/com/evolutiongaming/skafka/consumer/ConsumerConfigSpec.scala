@@ -3,10 +3,10 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
-
-import scala.concurrent.duration._
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+
+import scala.concurrent.duration._
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
@@ -58,7 +58,6 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "partition.assignment.strategy" -> "org.apache.kafka.clients.consumer.RangeAssignor",
       "heartbeat.interval.ms"         -> "3000",
       "check.crcs"                    -> "true",
-      "auto.commit.interval.ms"       -> "5000",
       "default.api.timeout.ms"        -> "60000",
       "connections.max.idle.ms"       -> "540000",
       "fetch.max.wait.ms"             -> "500",
@@ -84,6 +83,15 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "reconnect.backoff.ms"          -> "50",
       "isolation.level"               -> "read_uncommitted",
       "send.buffer.bytes"             -> "131072"
+    )
+  }
+
+  test("bindings with groupId") {
+    val configs = ConsumerConfig(groupId = Some("foo"))
+
+    configs.bindings should contain.allOf(
+      "group.id"                -> "foo",
+      "auto.commit.interval.ms" -> "5000",
     )
   }
 }

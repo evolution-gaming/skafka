@@ -57,11 +57,14 @@ object Producer {
 
   def apply[F[_]](implicit F: Producer[F]): Producer[F] = F
 
+
+  private sealed abstract class Empty
+
   def empty[F[_]: Applicative]: Producer[F] = {
 
     val empty = ().pure[F]
 
-    new Producer[F] {
+    new Empty with Producer[F] {
 
       val initTransactions = empty
 
@@ -98,12 +101,15 @@ object Producer {
     fromProducerJ(producer)
   }
 
+
+  private sealed abstract class Main
+
   def fromProducerJ[F[_]: Effect: Blocking](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
 
     def blocking[A](f: => A) = Sync[F].delay(f).blocking
 
     def apply(producer: ProducerJ[Bytes, Bytes]) = {
-      new Producer[F] {
+      new Main with Producer[F] {
 
         val initTransactions = {
           blocking { producer.initTransactions() }
@@ -198,11 +204,14 @@ object Producer {
     } yield producer
   }
 
+
+  private sealed abstract class WithMetrics
+
   def apply[F[_]: MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
     implicit F: MonadError[F, E],
   ): Producer[F] = {
 
-    new Producer[F] {
+    new WithMetrics with Producer[F] {
 
       val initTransactions = {
         for {
@@ -297,6 +306,9 @@ object Producer {
     }
   }
 
+
+  private sealed abstract class MapK
+
   implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
     def withLogging(log: Log[F])(implicit F: MonadThrowable[F], measureDuration: MeasureDuration[F]): Producer[F] = {
@@ -309,7 +321,7 @@ object Producer {
       Producer(self, metrics)
     }
 
-    def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F): Producer[G] = new Producer[G] {
+    def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F): Producer[G] = new MapK with Producer[G] {
 
       def initTransactions = fg(self.initTransactions)
 

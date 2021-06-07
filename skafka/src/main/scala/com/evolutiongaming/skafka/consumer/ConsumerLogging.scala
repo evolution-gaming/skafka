@@ -13,12 +13,14 @@ import scala.concurrent.duration.FiniteDuration
 
 object ConsumerLogging {
 
+  private sealed abstract class WithLogging
+
   def apply[F[_]: Monad: MeasureDuration, K, V](
     log: Log[F],
     consumer: Consumer[F, K, V]
   ): Consumer[F, K, V] = {
 
-    new Consumer[F, K, V] {
+    new WithLogging with Consumer[F, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = {
         for {

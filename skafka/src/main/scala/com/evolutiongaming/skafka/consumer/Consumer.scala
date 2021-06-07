@@ -119,11 +119,13 @@ trait Consumer[F[_], K, V] {
 
 object Consumer {
 
+  private sealed abstract class Empty
+
   def empty[F[_]: Applicative, K, V]: Consumer[F, K, V] = {
 
     val empty = ().pure[F]
 
-    new Consumer[F, K, V] {
+    new Empty with Consumer[F, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = empty
 
@@ -222,6 +224,9 @@ object Consumer {
       val wakeup = empty
     }
   }
+
+
+  private sealed abstract class Main
 
   def of[F[_]: Concurrent: ContextShift: ToTry: ToFuture, K, V](
     config: ConsumerConfig,
@@ -345,7 +350,7 @@ object Consumer {
         } yield result
       }
 
-      new Consumer[F, K, V] {
+      new Main with Consumer[F, K, V] {
 
         def assign(partitions: Nes[TopicPartition]) = {
           val partitionsJ = partitions.toList.map { _.asJava }.asJavaCollection
@@ -545,6 +550,11 @@ object Consumer {
     }
   }
 
+
+  private sealed abstract class WithMetrics
+
+  private sealed abstract class MapK
+
   implicit class ConsumerOps[F[_], K, V](val self: Consumer[F, K, V]) extends AnyVal {
 
     def withMetrics[E](
@@ -595,7 +605,7 @@ object Consumer {
           partitions.foldMapM { metrics.rebalance(name, _) }
         }
 
-        new RebalanceListener[F] {
+        new WithMetrics with RebalanceListener[F] {
 
           def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
             for {
@@ -620,7 +630,7 @@ object Consumer {
         }
       }
 
-      new Consumer[F, K, V] {
+      new WithMetrics with Consumer[F, K, V] {
 
         def assign(partitions: Nes[TopicPartition]) = {
           val topics = partitions.map(_.topic).toList.toSet
@@ -896,7 +906,7 @@ object Consumer {
       ConsumerLogging(log, self)
     }
 
-    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new Consumer[G, K, V] {
+    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))
 

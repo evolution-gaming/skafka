@@ -15,9 +15,12 @@ object ToBytes {
 
   def apply[F[_], A](implicit F: ToBytes[F, A]): ToBytes[F, A] = F
 
-  def const[F[_]: Applicative, A](bytes: Bytes): ToBytes[F, A] = (_: A, _: Topic) => bytes.pure[F]
+  def const[F[_], A](bytes: F[Bytes]): ToBytes[F, A] = (_: A, _: Topic) => bytes
 
-  def empty[F[_]: Applicative, A]: ToBytes[F, A] = const(Bytes.empty)
+  def const[F[_]: Applicative, A](bytes: Bytes): ToBytes[F, A] = const(bytes.pure[F])
+
+
+  def empty[F[_]: Applicative, A]: ToBytes[F, A] = const(Bytes.empty.pure[F])
 
   implicit def contravariantToBytes[F[_]]: Contravariant[ToBytes[F, ?]] = new Contravariant[ToBytes[F, ?]] {
 
@@ -29,6 +32,9 @@ object ToBytes {
   }
 
   implicit def bytesToBytes[F[_]: Applicative]: ToBytes[F, Bytes] = (a: Bytes, _: Topic) => a.pure[F]
+
+  implicit def unitToBytes[F[_]: Applicative]: ToBytes[F, Unit] = empty[F, Unit]
+
 
   implicit class ToBytesOps[F[_], A](val self: ToBytes[F, A]) extends AnyVal {
 

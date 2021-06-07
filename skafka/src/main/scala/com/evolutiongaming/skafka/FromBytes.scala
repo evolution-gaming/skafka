@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka
 
-import java.nio.charset.StandardCharsets.UTF_8
-
 import cats.implicits._
 import cats.{Applicative, Functor, ~>}
 import com.evolutiongaming.catshelper.FromTry
+
+import java.nio.charset.StandardCharsets.UTF_8
 
 trait FromBytes[F[_], A] {
 
@@ -15,7 +15,10 @@ object FromBytes {
 
   def apply[F[_], A](implicit F: FromBytes[F, A]): FromBytes[F, A] = F
 
-  def const[F[_]: Applicative, A](a: A): FromBytes[F, A] = (_: Bytes, _: Topic) => a.pure[F]
+  def const[F[_], A](a: F[A]): FromBytes[F, A] = (_: Bytes, _: Topic) => a
+
+  def const[F[_]: Applicative, A](a: A): FromBytes[F, A] = const(a.pure[F])
+
 
   implicit def functorFromBytes[F[_]: Functor]: Functor[FromBytes[F, ?]] = new Functor[FromBytes[F, ?]] {
 
@@ -30,6 +33,9 @@ object FromBytes {
   }
 
   implicit def bytesFromBytes[F[_]: Applicative]: FromBytes[F, Bytes] = (a: Bytes, _: Topic) => a.pure[F]
+
+  implicit def unitFromBytes[F[_]: Applicative]: FromBytes[F, Unit] = const(().pure[F])
+
 
   implicit class FromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 

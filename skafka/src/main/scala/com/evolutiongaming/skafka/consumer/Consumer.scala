@@ -1,10 +1,6 @@
 package com.evolutiongaming.skafka
 package consumer
 
-import java.lang.{Long => LongJ}
-import java.util.regex.Pattern
-import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
-
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
@@ -18,15 +14,12 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
-  OffsetCommitCallback,
-  Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
-}
+import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
+import java.lang.{Long => LongJ}
+import java.util.regex.Pattern
+import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -272,28 +265,24 @@ object Consumer {
       def serialBlocking[A](f: => A) = serial { blocking { f } }
 
       def commitLater1(f: OffsetCommitCallback => Unit) = {
-        val commitLater = Async[F].asyncF[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { f1 =>
-          val callback = new OffsetCommitCallback {
+        Async[F]
+          .async[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
+            val offsetCommitCallback = new OffsetCommitCallback {
 
-            def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
-              if (exception != null) {
-                f1(exception.asLeft)
-              } else if (offsets != null) {
-                f1(offsets.asRight)
-              } else {
-                val failure = SkafkaError("both offsets & exception are nulls")
-                f1(failure.asLeft)
+              def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
+                if (exception != null) {
+                  callback(exception.asLeft)
+                } else if (offsets != null) {
+                  callback(offsets.asRight)
+                } else {
+                  val failure = SkafkaError("both offsets & exception are nulls")
+                  callback(failure.asLeft)
+                }
               }
             }
+            f(offsetCommitCallback)
           }
-
-          blocking { f(callback) }
-        }
-
-        for {
-          result <- commitLater
-          _      <- ContextShift[F].shift
-        } yield result
+          .blocking
       }
 
       def listenerOf(listener: Option[RebalanceListener[F]]) = {

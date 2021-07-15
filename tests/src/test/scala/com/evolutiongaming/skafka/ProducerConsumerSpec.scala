@@ -421,7 +421,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
           offset = Offset.min,
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           key = Some(WithSize(key, 4)),
           value = Some(WithSize(value, 6)),
           headers = Nil),
@@ -455,7 +455,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord[String, String](
           topicPartition = deleteMetadata.topicPartition,
           offset = Offset.unsafe(2),
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           key = Some(WithSize(key, 4)),
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
@@ -478,7 +478,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord[String, String](
           topicPartition = metadata.topicPartition,
           offset = Offset.unsafe(3),
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
 
@@ -510,7 +510,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
           offset = Offset.unsafe(4L),
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           key = WithSize(key, 4).some,
           value = WithSize(value, 6).some,
           headers = Nil),

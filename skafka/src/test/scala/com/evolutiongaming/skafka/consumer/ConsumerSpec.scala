@@ -50,7 +50,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
   private val consumerRecord = ConsumerRecord(
     topicPartition   = topicPartition,
     offset           = offset,
-    timestampAndType = Some(TimestampAndType(instant, TimestampType.Create)),
+    timestampAndType = Some(TimestampAndType(instant, TimestampType.create)),
     key              = Some(WithSize(Bytes.empty, 1)),
     value            = Some(WithSize(Bytes.empty, 1)),
     headers          = List(Header("key", Bytes.empty))

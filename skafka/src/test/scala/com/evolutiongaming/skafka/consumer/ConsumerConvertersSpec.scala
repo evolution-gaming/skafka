@@ -31,8 +31,8 @@ class ConsumerConvertersSpec extends AnyWordSpec with Matchers {
     for {
       timestampAndType <- List(
         None,
-        Some(TimestampAndType(instant, TimestampType.Create)),
-        Some(TimestampAndType(instant, TimestampType.Append))
+        Some(TimestampAndType(instant, TimestampType.create)),
+        Some(TimestampAndType(instant, TimestampType.append))
       )
       key   <- List(Some(WithSize("key", 1)), None)
       value <- List(Some(WithSize("value", 1)), None)

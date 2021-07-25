@@ -80,6 +80,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def endOffsets(partitions: util.Collection[TopicPartition], timeout: Duration) =
         supported // rebalanceConsumer.endOffsets(partitions, timeout)
       def groupMetadata()                      = supported // rebalanceConsumer.groupMetadata()
+      def enforceRebalance()                   = unsupported
       def close()                              = unsupported
       def close(timeout: Long, unit: TimeUnit) = unsupported
       def close(timeout: Duration)             = unsupported

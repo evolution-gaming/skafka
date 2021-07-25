@@ -416,6 +416,15 @@ object ConsumerLogging {
           _ <- log.debug(s"wakeup in ${d.toMillis}ms")
         } yield a
       }
+
+      val enforceRebalance = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.enforceRebalance
+          d <- d
+          _ <- log.debug(s"enforceRebalance in ${d.toMillis}ms")
+        } yield a
+      }
     }
   }
 }

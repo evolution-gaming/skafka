@@ -166,6 +166,8 @@ object ConsumerJHelper {
 
       def groupMetadata() = f { self.groupMetadata() }
 
+      def enforceRebalance() = {}
+
       def close() = f { self.close() }
 
       @nowarn("cat=deprecation")

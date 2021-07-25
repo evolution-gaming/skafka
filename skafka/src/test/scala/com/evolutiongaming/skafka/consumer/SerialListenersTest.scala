@@ -7,7 +7,7 @@ import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{Concurrent, ContextShift, IO, Sync}
+import cats.effect.{Concurrent, IO, Sync}
 import cats.effect.implicits._
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
@@ -39,7 +39,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
   }
 
   @nowarn("cat=deprecation")
-  private def `consumer.poll`[F[_]: Concurrent: ToTry: ToFuture: Blocking: ContextShift] = {
+  private def `consumer.poll`[F[_]: Concurrent: ToTry: ToFuture: Blocking] = {
 
     val result = for {
       actions   <- Actions.of[F].toResource
@@ -121,7 +121,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
   }
 
   @nowarn("cat=deprecation")
-  private def `consumer.poll error`[F[_]: Concurrent: ToTry: ToFuture: Blocking: ContextShift] = {
+  private def `consumer.poll error`[F[_]: Concurrent: ToTry: ToFuture: Blocking] = {
 
     val error: Throwable = new RuntimeException("error") with NoStackTrace
 
@@ -358,6 +358,8 @@ object SerialListenersTest {
         }
 
         def groupMetadata() = ConsumerGroupMetadata.Empty.asJava
+
+        def enforceRebalance() = {}
 
         def close() = {}
 

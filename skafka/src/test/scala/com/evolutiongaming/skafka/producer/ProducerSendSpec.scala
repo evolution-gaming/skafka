@@ -4,9 +4,9 @@ import java.util.concurrent.CompletableFuture
 import java.util.{Map => MapJ}
 
 import cats.effect.concurrent.Deferred
-import cats.effect.{Concurrent, ConcurrentEffect, ContextShift, IO, Sync}
+import cats.effect.{Concurrent, ConcurrentEffect, IO, Sync}
 import cats.implicits._
-import com.evolutiongaming.catshelper.{Blocking, FromFuture, FromTry, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.{Blocking, FromTry, ToFuture, ToTry}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
@@ -32,7 +32,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
   }
 
   private def blockAndSend[
-    F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: FromFuture: ContextShift: Blocking
+    F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: Blocking
   ] = {
 
     val topic          = "topic"

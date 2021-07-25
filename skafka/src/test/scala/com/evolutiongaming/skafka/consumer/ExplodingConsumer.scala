@@ -110,6 +110,7 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def metrics(): MapJ[MetricName, _ <: Metric]                                      = notImplemented
   def pause(partitions: CollectionJ[TopicPartitionJ]): Unit                         = notImplemented
   def resume(partitions: CollectionJ[TopicPartitionJ]): Unit                        = notImplemented
+  def enforceRebalance()                                                            = notImplemented
   def close(): Unit                                                                 = notImplemented
   def close(timeout: Long, unit: TimeUnit): Unit                                    = notImplemented
   def close(timeout: DurationJ): Unit                                               = notImplemented

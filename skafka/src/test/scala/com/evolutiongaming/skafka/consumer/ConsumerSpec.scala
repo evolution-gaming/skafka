@@ -465,6 +465,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         endOffsets(partitions)
       }
 
+      def enforceRebalance() = {}
+
       def close() = {}
 
       def close(timeout: Long, unit: TimeUnit) = {}

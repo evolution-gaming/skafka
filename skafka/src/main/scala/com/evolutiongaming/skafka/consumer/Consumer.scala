@@ -116,6 +116,8 @@ trait Consumer[F[_], K, V] {
   def groupMetadata: F[ConsumerGroupMetadata]
 
   def wakeup: F[Unit]
+
+  def enforceRebalance: F[Unit]
 }
 
 object Consumer {
@@ -223,6 +225,8 @@ object Consumer {
       def groupMetadata = ConsumerGroupMetadata.Empty.pure[F]
 
       val wakeup = empty
+
+      val enforceRebalance = empty
     }
   }
 
@@ -238,7 +242,7 @@ object Consumer {
     fromConsumerJ(consumer)
   }
 
-  def fromConsumerJ[F[_]: Concurrent: ContextShift: ToFuture: ToTry: Blocking, K, V](
+  def fromConsumerJ[F[_]: Concurrent: ToFuture: ToTry: Blocking, K, V](
     consumer: F[ConsumerJ[K, V]]
   ): Resource[F, Consumer[F, K, V]] = {
 
@@ -547,6 +551,8 @@ object Consumer {
         val wakeup = {
           serialBlocking { consumer.wakeup() }
         }
+
+        val enforceRebalance = serialBlocking { consumer.enforceRebalance() }
       }
     }
   }
@@ -902,6 +908,13 @@ object Consumer {
             r <- self.wakeup
           } yield r
         }
+
+        val enforceRebalance = {
+          for {
+            _ <- count1("enforceRebalance")
+            a <- self.enforceRebalance
+          } yield a
+        }
       }
     }
 
@@ -1022,6 +1035,8 @@ object Consumer {
       def groupMetadata = fg(self.groupMetadata)
 
       def wakeup = fg(self.wakeup)
+
+      def enforceRebalance = fg(self.enforceRebalance)
     }
   }
 }

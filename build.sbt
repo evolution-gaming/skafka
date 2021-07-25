@@ -12,11 +12,11 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.6", "2.12.10"),
+  crossScalaVersions := Seq("2.13.6", "2.12.14"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",
-  libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.binary),
+  libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.full),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
   // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
@@ -48,7 +48,7 @@ lazy val skafka = (project in file("skafka")
     scalacOptions -= "-Ywarn-unused:params",
     libraryDependencies ++= Seq(
       Cats.core,
-      Cats.effect,
+      CatsEffect.effect,
       `config-tools`,
       Kafka.clients,
       `future-helper`,

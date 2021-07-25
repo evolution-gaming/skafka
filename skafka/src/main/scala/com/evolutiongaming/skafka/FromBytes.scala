@@ -20,7 +20,7 @@ object FromBytes {
   def const[F[_]: Applicative, A](a: A): FromBytes[F, A] = const(a.pure[F])
 
 
-  implicit def functorFromBytes[F[_]: Functor]: Functor[FromBytes[F, ?]] = new Functor[FromBytes[F, ?]] {
+  implicit def functorFromBytes[F[_]: Functor]: Functor[FromBytes[F, *]] = new Functor[FromBytes[F, *]] {
 
     def map[A, B](fa: FromBytes[F, A])(f: A => B) = new FromBytes[F, B] {
 

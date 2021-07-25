@@ -20,6 +20,7 @@ import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition 
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -672,6 +673,7 @@ object Consumer {
           } yield r
         }
 
+        @nowarn("cat=deprecation")
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
           for {
@@ -680,6 +682,7 @@ object Consumer {
           } yield r
         }
 
+        @nowarn("cat=deprecation")
         def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
           for {
@@ -930,11 +933,13 @@ object Consumer {
         fg(self.subscribe(pattern))
       }
 
+      @nowarn("cat=deprecation")
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {
         val listener1 = listener.map(_.mapK(gf))
         fg(self.subscribe(topics, listener1))
       }
 
+      @nowarn("cat=deprecation")
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[G]]) = {
         val listener1 = listener.map(_.mapK(gf))
         fg(self.subscribe(pattern, listener1))

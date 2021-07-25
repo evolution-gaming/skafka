@@ -5,7 +5,6 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
-
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
 import cats.effect.{Concurrent, ContextShift, IO, Sync}
@@ -18,19 +17,12 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener,
-  OffsetCommitCallback,
-  Consumer => ConsumerJ,
-  ConsumerRecord => ConsumerRecordJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
-}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
@@ -46,6 +38,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     `consumer.poll error`[IO].run()
   }
 
+  @nowarn("cat=deprecation")
   private def `consumer.poll`[F[_]: Concurrent: ToTry: ToFuture: Blocking: ContextShift] = {
 
     val result = for {
@@ -127,6 +120,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     result.use { _.pure[F] }
   }
 
+  @nowarn("cat=deprecation")
   private def `consumer.poll error`[F[_]: Concurrent: ToTry: ToFuture: Blocking: ContextShift] = {
 
     val error: Throwable = new RuntimeException("error") with NoStackTrace

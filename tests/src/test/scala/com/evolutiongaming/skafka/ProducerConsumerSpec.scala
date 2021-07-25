@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-
 import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
@@ -23,7 +22,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import RebalanceCallback.syntax._
 
-import scala.annotation.tailrec
+import scala.annotation.{nowarn, tailrec}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -65,6 +64,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
+  @nowarn("cat=deprecation")
   def consumerOf(
     topic: Topic,
     listener: Option[RebalanceListener[IO]]

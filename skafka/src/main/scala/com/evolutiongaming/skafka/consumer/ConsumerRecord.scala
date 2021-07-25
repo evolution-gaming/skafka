@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.Order
+import cats.{Functor, Order}
 import cats.implicits._
 import com.evolutiongaming.skafka._
 
@@ -28,5 +28,11 @@ object ConsumerRecord {
       ),
       Order.by { a: ConsumerRecord[K, V] => a.offset }
     )
+  }
+
+  implicit def functorConsumerRecord[K]: Functor[ConsumerRecord[K, *]] = new Functor[ConsumerRecord[K, *]] {
+    def map[A, B](fa: ConsumerRecord[K, A])(f: A => B) = {
+      fa.copy(value = fa.value.map { _.map(f) })
+    }
   }
 }

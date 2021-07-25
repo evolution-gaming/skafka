@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.Show
+import cats.{Functor, Show}
 import cats.data.{NonEmptyList => Nel}
 import cats.implicits._
 import com.evolutiongaming.skafka._
@@ -23,5 +23,11 @@ object ConsumerRecords {
       s"$topicPartition:$offset records: $count"
     }
     result.mkString(", ")
+  }
+
+  implicit def functorConsumerRecords[K]: Functor[ConsumerRecords[K, *]] = new Functor[ConsumerRecords[K, *]] {
+    def map[A, B](fa: ConsumerRecords[K, A])(f: A => B) = {
+      fa.copy(values = fa.values.map { case (key, value) => (key, value.map { _.map(f) }) })
+    }
   }
 }

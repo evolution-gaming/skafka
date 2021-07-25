@@ -7,6 +7,13 @@ final case class TimestampAndType(timestamp: Instant, timestampType: TimestampTy
 sealed trait TimestampType
 
 object TimestampType {
+
+  def create: TimestampType = Create
+
+  def append: TimestampType = Append
+
+
   case object Create extends TimestampType
+
   case object Append extends TimestampType
 }

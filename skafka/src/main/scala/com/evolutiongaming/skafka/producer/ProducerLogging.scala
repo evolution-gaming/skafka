@@ -8,9 +8,11 @@ import com.evolutiongaming.smetrics.MeasureDuration
 
 object ProducerLogging {
 
+  private sealed abstract class WithLogging
+
   def apply[F[_]: MonadThrowable: MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] = {
 
-    new Producer[F] {
+    new WithLogging with Producer[F] {
 
       val initTransactions = producer.initTransactions
 

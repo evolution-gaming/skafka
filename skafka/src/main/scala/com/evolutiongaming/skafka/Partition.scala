@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.Show
+import cats.{Eq, Show}
 import cats.implicits._
 import cats.kernel.Order
 import com.evolutiongaming.catshelper.ApplicativeThrowable
@@ -23,6 +23,8 @@ object Partition {
   implicit val orderingPartition: Ordering[Partition] = (x: Partition, y: Partition) => x.value compare y.value
 
   implicit val orderPartition: Order[Partition] = Order.fromOrdering
+
+  implicit val eqPartition: Eq[Partition] = Eq.fromUniversalEquals
 
   def of[F[_]: ApplicativeThrowable](value: Int): F[Partition] = {
     if (value < min.value) {

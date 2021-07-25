@@ -1,10 +1,6 @@
 package com.evolutiongaming.skafka
 package consumer
 
-import java.lang.{Long => LongJ}
-import java.util.regex.Pattern
-import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
-
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
 import cats.effect.concurrent.Semaphore
@@ -18,15 +14,13 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
-  OffsetCommitCallback,
-  Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
-}
+import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
+import java.lang.{Long => LongJ}
+import java.util.regex.Pattern
+import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import scala.annotation.nowarn
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
@@ -126,11 +120,13 @@ trait Consumer[F[_], K, V] {
 
 object Consumer {
 
+  private sealed abstract class Empty
+
   def empty[F[_]: Applicative, K, V]: Consumer[F, K, V] = {
 
     val empty = ().pure[F]
 
-    new Consumer[F, K, V] {
+    new Empty with Consumer[F, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = empty
 
@@ -230,6 +226,9 @@ object Consumer {
     }
   }
 
+
+  private sealed abstract class Main
+
   def of[F[_]: Concurrent: ContextShift: ToTry: ToFuture, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext
@@ -272,28 +271,24 @@ object Consumer {
       def serialBlocking[A](f: => A) = serial { blocking { f } }
 
       def commitLater1(f: OffsetCommitCallback => Unit) = {
-        val commitLater = Async[F].asyncF[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { f1 =>
-          val callback = new OffsetCommitCallback {
+        Async[F]
+          .async[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
+            val offsetCommitCallback = new OffsetCommitCallback {
 
-            def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
-              if (exception != null) {
-                f1(exception.asLeft)
-              } else if (offsets != null) {
-                f1(offsets.asRight)
-              } else {
-                val failure = SkafkaError("both offsets & exception are nulls")
-                f1(failure.asLeft)
+              def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
+                if (exception != null) {
+                  callback(exception.asLeft)
+                } else if (offsets != null) {
+                  callback(offsets.asRight)
+                } else {
+                  val failure = SkafkaError("both offsets & exception are nulls")
+                  callback(failure.asLeft)
+                }
               }
             }
+            f(offsetCommitCallback)
           }
-
-          blocking { f(callback) }
-        }
-
-        for {
-          result <- commitLater
-          _      <- ContextShift[F].shift
-        } yield result
+          .blocking
       }
 
       def listenerOf(listener: Option[RebalanceListener[F]]) = {
@@ -356,7 +351,7 @@ object Consumer {
         } yield result
       }
 
-      new Consumer[F, K, V] {
+      new Main with Consumer[F, K, V] {
 
         def assign(partitions: Nes[TopicPartition]) = {
           val partitionsJ = partitions.toList.map { _.asJava }.asJavaCollection
@@ -556,6 +551,11 @@ object Consumer {
     }
   }
 
+
+  private sealed abstract class WithMetrics
+
+  private sealed abstract class MapK
+
   implicit class ConsumerOps[F[_], K, V](val self: Consumer[F, K, V]) extends AnyVal {
 
     def withMetrics[E](
@@ -606,7 +606,7 @@ object Consumer {
           partitions.foldMapM { metrics.rebalance(name, _) }
         }
 
-        new RebalanceListener[F] {
+        new WithMetrics with RebalanceListener[F] {
 
           def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
             for {
@@ -631,7 +631,7 @@ object Consumer {
         }
       }
 
-      new Consumer[F, K, V] {
+      new WithMetrics with Consumer[F, K, V] {
 
         def assign(partitions: Nes[TopicPartition]) = {
           val topics = partitions.map(_.topic).toList.toSet
@@ -673,6 +673,7 @@ object Consumer {
           } yield r
         }
 
+        @nowarn("cat=deprecation")
         def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
           for {
@@ -681,6 +682,7 @@ object Consumer {
           } yield r
         }
 
+        @nowarn("cat=deprecation")
         def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
           val listener1 = listener.map(rebalanceListener)
           for {
@@ -907,7 +909,7 @@ object Consumer {
       ConsumerLogging(log, self)
     }
 
-    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new Consumer[G, K, V] {
+    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))
 
@@ -931,11 +933,13 @@ object Consumer {
         fg(self.subscribe(pattern))
       }
 
+      @nowarn("cat=deprecation")
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[G]]) = {
         val listener1 = listener.map(_.mapK(gf))
         fg(self.subscribe(topics, listener1))
       }
 
+      @nowarn("cat=deprecation")
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[G]]) = {
         val listener1 = listener.map(_.mapK(gf))
         fg(self.subscribe(pattern, listener1))

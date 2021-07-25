@@ -516,11 +516,11 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield ()
 
-          val reset = () => {
+          def reset(): Unit = {
             a.set("unchanged")
             b.set("unchanged")
           }
-          val verifyResults = () => {
+          def verifyResults(): Unit = {
             a.get() mustBe "step-before-rcError1"
             b.get() mustBe "unchanged"
             ()
@@ -550,11 +550,11 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield ()
 
-          val reset = () => {
+          def reset(): Unit = {
             a.set("unchanged")
             b.set("unchanged")
           }
-          val verifyResults = () => {
+          def verifyResults(): Unit = {
             a.get() mustBe "step-before-rcError2"
             b.get() mustBe "unchanged"
             ()
@@ -583,10 +583,10 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
             })
           } yield a
 
-          val reset = () => {
+          def reset(): Unit = {
             list.set(List.empty)
           }
-          val verifyResults = () => {
+          def verifyResults(): Unit = {
             list.get() mustBe expected
             ()
           }
@@ -786,43 +786,43 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
     rc: RebalanceCallbackApi[IO] => RebalanceCallback[IO, A],
     expected: A,
     explodingConsumer: ExplodingConsumer,
-    reset: => Unit              = (),
-    verifyOtherResults: => Unit = ()
+    reset: () => Unit              = () => (),
+    verifyOtherResults: () => Unit = () => ()
   ): Unit = {
     val consumer = explodingConsumer.asRebalanceConsumer
-    reset
+    reset()
     rc(RebalanceCallback.api).run(consumer) mustBe Try(expected)
-    verifyOtherResults
+    verifyOtherResults()
 
-    reset
+    reset()
     rc(RebalanceCallback.api).mapK(ToTry.functionK).run(consumer) mustBe Try(expected)
-    verifyOtherResults
+    verifyOtherResults()
 
-    reset
+    reset()
     rc(RebalanceCallback.api).toF(consumer).unsafeRunSync() mustBe expected
-    verifyOtherResults
+    verifyOtherResults()
   }
 
   def ioErrorTests(
     rc: RebalanceCallback[IO, Unit],
     expected: Throwable,
     explodingConsumer: ExplodingConsumer,
-    reset: => Unit              = (),
-    verifyOtherResults: => Unit = ()
+    reset: () => Unit              = () => (),
+    verifyOtherResults: () => Unit = () => ()
   ): Unit = {
     val consumer = explodingConsumer.asRebalanceConsumer
-    reset
+    reset()
     rc.run(consumer) mustBe Failure(expected)
-    verifyOtherResults
+    verifyOtherResults()
 
-    reset
+    reset()
     rc.mapK(ToTry.functionK).run(consumer) mustBe Failure(expected)
-    verifyOtherResults
+    verifyOtherResults()
 
-    reset
+    reset()
     val io = rc.toF(consumer)
     Try(io.unsafeRunSync()) mustBe Failure(expected)
-    verifyOtherResults
+    verifyOtherResults()
   }
 
 }

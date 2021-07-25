@@ -1,6 +1,10 @@
 import Dependencies._
 import com.typesafe.tools.mima.core._
 
+ThisBuild / versionScheme := Some("early-semver")
+
+ThisBuild / evictionErrorLevel := Level.Warn
+
 lazy val commonSettings = Seq(
   organization := "com.evolutiongaming",
   homepage := Some(new URL("https://github.com/evolution-gaming/skafka")),
@@ -8,7 +12,7 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.3", "2.12.14"),
+  crossScalaVersions := Seq("2.13.6", "2.12.10"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",

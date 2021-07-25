@@ -147,8 +147,8 @@ object ConsumerConverters {
 
         self.timestampType() match {
           case TimestampTypeJ.NO_TIMESTAMP_TYPE => None
-          case TimestampTypeJ.CREATE_TIME       => some(TimestampType.Create)
-          case TimestampTypeJ.LOG_APPEND_TIME   => some(TimestampType.Append)
+          case TimestampTypeJ.CREATE_TIME       => some(TimestampType.create)
+          case TimestampTypeJ.LOG_APPEND_TIME   => some(TimestampType.append)
         }
       }
 

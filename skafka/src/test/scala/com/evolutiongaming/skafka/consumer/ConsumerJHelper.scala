@@ -6,15 +6,11 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, Collection => CollectionJ, Map => MapJ, Set => SetJ}
-
 import cats.implicits._
-import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener,
-  OffsetCommitCallback,
-  Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ
-}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+
+import scala.annotation.nowarn
 
 object ConsumerJHelper {
 
@@ -61,6 +57,7 @@ object ConsumerJHelper {
 
       def unsubscribe() = f { self.unsubscribe() }
 
+      @nowarn("cat=deprecation")
       def poll(timeout: Long) = f { self.poll(timeout) }
 
       def poll(timeout: Duration) = f { self.poll(timeout) }
@@ -109,10 +106,12 @@ object ConsumerJHelper {
         f { self.position(partition, timeout) }
       }
 
+      @nowarn("cat=deprecation")
       def committed(partition: TopicPartitionJ) = {
         f { self.committed(partition) }
       }
 
+      @nowarn("cat=deprecation")
       def committed(partition: TopicPartitionJ, timeout: Duration) = {
         f { self.committed(partition, timeout) }
       }
@@ -169,6 +168,7 @@ object ConsumerJHelper {
 
       def close() = f { self.close() }
 
+      @nowarn("cat=deprecation")
       def close(timeout: Long, unit: TimeUnit) = f { self.close(timeout, unit) }
 
       def close(timeout: Duration) = f { self.close(timeout) }

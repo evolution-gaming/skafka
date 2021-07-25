@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-
 import cats.arrow.FunctionK
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
@@ -23,7 +22,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import RebalanceCallback.syntax._
 
-import scala.annotation.tailrec
+import scala.annotation.{nowarn, tailrec}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -65,6 +64,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
+  @nowarn("cat=deprecation")
   def consumerOf(
     topic: Topic,
     listener: Option[RebalanceListener[IO]]
@@ -421,7 +421,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
           offset = Offset.min,
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           key = Some(WithSize(key, 4)),
           value = Some(WithSize(value, 6)),
           headers = Nil),
@@ -455,7 +455,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord[String, String](
           topicPartition = deleteMetadata.topicPartition,
           offset = Offset.unsafe(2),
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           key = Some(WithSize(key, 4)),
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
@@ -478,7 +478,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord[String, String](
           topicPartition = metadata.topicPartition,
           offset = Offset.unsafe(3),
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           headers = Nil),
         headers = List(Record.Header(key = "key", value = "value")))
 
@@ -510,7 +510,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         record = ConsumerRecord(
           topicPartition = metadata.topicPartition,
           offset = Offset.unsafe(4L),
-          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.Create)),
+          timestampAndType = Some(TimestampAndType(timestamp, TimestampType.create)),
           key = WithSize(key, 4).some,
           value = WithSize(value, 6).some,
           headers = Nil),

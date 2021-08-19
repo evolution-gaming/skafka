@@ -7,8 +7,7 @@ import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.TopicPartition
 import com.evolutiongaming.smetrics.MeasureDuration
 
-/**
-  * See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+/** See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   */
 trait RebalanceListener[F[_]] {
 

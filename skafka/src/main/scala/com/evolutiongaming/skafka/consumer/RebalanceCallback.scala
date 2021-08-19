@@ -15,52 +15,53 @@ import scala.annotation.tailrec
 import scala.concurrent.duration.FiniteDuration
 import scala.util.{Failure, Success, Try}
 
-/**
-  * Describes computations in callback methods of [[RebalanceListener1]].
+/** Describes computations in callback methods of [[RebalanceListener1]].
   *
-  * `RebalanceCallback` is just a data structure (a description of things to be done),
-  * so calling `RebalanceCallback.seek(...)` for example does not execute the `seek` right away.
+  * `RebalanceCallback` is just a data structure (a description of things to be done), so calling
+  * `RebalanceCallback.seek(...)` for example does not execute the `seek` right away.
   *
-  * However all consumer related methods are executed on a `consumer.poll(...)` thread,
-  * at the time of interpretation/execution of the `RebalanceCallback` data structure.
+  * However all consumer related methods are executed on a `consumer.poll(...)` thread, at the time of
+  * interpretation/execution of the `RebalanceCallback` data structure.
   *
-  * The computations' result is awaited on a `poll` thread,
-  * just as it would with blocking java API of `ConsumerRebalanceListener`.
+  * The computations' result is awaited on a `poll` thread, just as it would with blocking java API of
+  * `ConsumerRebalanceListener`.
   *
-  * Errors from consumer related methods are thrown in a `poll` thread,
-  * and currently there's no way to provide recovering code for [[RebalanceCallback]],
-  * but it's planned to be [[https://github.com/evolution-gaming/skafka/issues/128 added]].
+  * Errors from consumer related methods are thrown in a `poll` thread, and currently there's no way to provide
+  * recovering code for [[RebalanceCallback]], but it's planned to be
+  * [[https://github.com/evolution-gaming/skafka/issues/128 added]].
   *
-  * Unhandled errors from lifted computations are thrown in a `poll` thread,
-  * currently it's only possible to handle those errors from within lifted F[_] context.
+  * Unhandled errors from lifted computations are thrown in a `poll` thread, currently it's only possible to handle
+  * those errors from within lifted F[_] context.
   *
   * Usage:
   * {{{
   * new RebalanceListener1WithConsumer[IO] {
   *
-  *  // import is needed to use `fa.lift` syntax where
-  *  // `fa: F[A]`
-  *  // `fa.lift: RebalanceCallback[F, A]`
-  *  import RebalanceCallback.syntax._
+  *   // import is needed to use `fa.lift` syntax where
+  *   // `fa: F[A]`
+  *   // `fa.lift: RebalanceCallback[F, A]`
+  *   import RebalanceCallback.syntax._
   *
-  *  def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) = {
-  *    for {
-  *      state <- restoreStateFor(partitions).lift
-  *      a     <- state.offsets.foldMapM(o => consumer.seek(o.partition, o.offset))
-  *    } yield a
-  *  }
+  *   def onPartitionsAssigned(partitions: NonEmptySet[TopicPartition]) = {
+  *     for {
+  *       state <- restoreStateFor(partitions).lift
+  *       a     <- state.offsets.foldMapM(o => consumer.seek(o.partition, o.offset))
+  *     } yield a
+  *   }
   *
-  *  def onPartitionsRevoked(partitions: NonEmptySet[TopicPartition]) =
-  *    for {
-  *      offsets <- committableOffsetsFor(partitions).lift
-  *      a       <- consumer.commit(offsets)
-  *    } yield a
+  *   def onPartitionsRevoked(partitions: NonEmptySet[TopicPartition]) =
+  *     for {
+  *       offsets <- committableOffsetsFor(partitions).lift
+  *       a       <- consumer.commit(offsets)
+  *     } yield a
   *
-  *  def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = RebalanceCallback.empty
+  *   def onPartitionsLost(partitions: NonEmptySet[TopicPartition]) = RebalanceCallback.empty
   * }
   * }}}
-  * @see [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
-  * @see [[RebalanceListener1]]
+  * @see
+  *   [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+  * @see
+  *   [[RebalanceListener1]]
   */
 sealed trait RebalanceCallback[+F[_], +A]
 

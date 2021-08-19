@@ -8,8 +8,7 @@ import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
 import scala.concurrent.duration._
 import scala.util.Try
 
-/**
-  * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
+/** Check [[http://kafka.apache.org/documentation/#producerconfigs]]
   */
 final case class ProducerConfig(
   common: CommonConfig                              = CommonConfig.Default,

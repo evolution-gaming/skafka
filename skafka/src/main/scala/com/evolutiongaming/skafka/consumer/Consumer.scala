@@ -14,7 +14,13 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import java.lang.{Long => LongJ}
@@ -25,8 +31,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 
-/**
-  * See [[org.apache.kafka.clients.consumer.Consumer]]
+/** See [[org.apache.kafka.clients.consumer.Consumer]]
   */
 trait Consumer[F[_], K, V] {
 
@@ -229,7 +234,6 @@ object Consumer {
       val enforceRebalance = empty
     }
   }
-
 
   private sealed abstract class Main
 
@@ -556,7 +560,6 @@ object Consumer {
       }
     }
   }
-
 
   private sealed abstract class WithMetrics
 

@@ -15,24 +15,25 @@ import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._
 import scala.util.Try
 
-/**
-  * Internal wrapper for [[org.apache.kafka.clients.consumer.Consumer]]
-  * with a smaller scope of methods making sense during consumer group rebalance.
-  * Introduced in https://github.com/evolution-gaming/skafka/pull/122
-  * At the moment of writing we had KafkaConsumer v2.5.0
-  * and made following choice about methods
-  *  - allowed prefixed with `+ ` in the list below
-  *  - not allowed methods prefixed with `- ` in the list below
+/** Internal wrapper for [[org.apache.kafka.clients.consumer.Consumer]] with a smaller scope of methods making sense
+  * during consumer group rebalance. Introduced in https://github.com/evolution-gaming/skafka/pull/122 At the moment of
+  * writing we had KafkaConsumer v2.5.0 and made following choice about methods
+  *   - allowed prefixed with `+ ` in the list below
+  *   - not allowed methods prefixed with `- ` in the list below
   *
-  *  The choice is based on following factors
-  *  - it's ok to use any read-only methods like `assignment`, `position`
-  *  - it doesn't make sense to call `consumer.poll` in the middle of current `consumer.poll`
-  *  - it's ok to use `commitSync` as we have to do it in a blocking-way inside corresponding method of [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
-  *  - it doesn't make sense to use `commitAsync` - as we would need to wait for the confirmation before exiting `ConsumerRebalanceListener` method
-  *  - we don't want to allow changing current subscription as we're in the middle of `consumer.poll` method
-  *  - we don't need to `close` or `wakeup` the consumer, instead we want to gracefully finish the work or start one, and close the consumer after exiting the `poll` method
-  *  - we didn't see any use cases for `pause`/`resume` methods, hence they are unsupported
-  *  - seek methods are allowed as they are an official way to manipulate consumer position and used as an example in documentation for `ConsumerRebalanceListener`
+  * The choice is based on following factors
+  *   - it's ok to use any read-only methods like `assignment`, `position`
+  *   - it doesn't make sense to call `consumer.poll` in the middle of current `consumer.poll`
+  *   - it's ok to use `commitSync` as we have to do it in a blocking-way inside corresponding method of
+  *     [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+  *   - it doesn't make sense to use `commitAsync` - as we would need to wait for the confirmation before exiting
+  *     `ConsumerRebalanceListener` method
+  *   - we don't want to allow changing current subscription as we're in the middle of `consumer.poll` method
+  *   - we don't need to `close` or `wakeup` the consumer, instead we want to gracefully finish the work or start one,
+  *     and close the consumer after exiting the `poll` method
+  *   - we didn't see any use cases for `pause`/`resume` methods, hence they are unsupported
+  *   - seek methods are allowed as they are an official way to manipulate consumer position and used as an example in
+  *     documentation for `ConsumerRebalanceListener`
   * {{{
   * - assign
   * + assignment
@@ -62,8 +63,8 @@ import scala.util.Try
   * - enforceRebalance
   * }}}
   *
-  * If you want to support more methods, please double check kafka documentation and implementation about
-  * consumer group rebalance protocol.
+  * If you want to support more methods, please double check kafka documentation and implementation about consumer group
+  * rebalance protocol.
   */
 trait RebalanceConsumer {
 

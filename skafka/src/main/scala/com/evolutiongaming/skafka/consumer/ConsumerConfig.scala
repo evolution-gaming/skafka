@@ -7,8 +7,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig => C}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-/**
-  * Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
+/** Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
   */
 final case class ConsumerConfig(
   common: CommonConfig                       = CommonConfig.Default,

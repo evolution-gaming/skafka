@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka
 
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.config.ConfigHelper._
-import com.evolutiongaming.skafka.ConfigHelpers._
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.{CommonClientConfigs => C}
 
@@ -49,6 +48,14 @@ final case class CommonConfig(
 object CommonConfig {
 
   val Default: CommonConfig = CommonConfig()
+
+  implicit val SecurityProtocolFromConf: FromConf[SecurityProtocol] = FromConf[SecurityProtocol] { (conf, path) =>
+    val str   = conf.getString(path)
+    val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
+    value getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
+    }
+  }
 
   def apply(config: Config): CommonConfig = {
     apply(config, Default)

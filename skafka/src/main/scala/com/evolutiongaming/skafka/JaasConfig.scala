@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 import com.evolutiongaming.config.ConfigHelper.ConfigOps
 import com.evolutiongaming.skafka.ConfigHelpers._
-import com.typesafe.config.{Config, ConfigException, ConfigObject}
+import com.typesafe.config.{ConfigException, ConfigObject, ConfigValue}
 
 import scala.util.{Failure, Success, Try}
 
@@ -11,6 +11,8 @@ sealed trait JaasConfig {
 }
 
 object JaasConfig {
+
+  private val EMPTY_PATH = "\"\""
 
   case class Plain(entry: String) extends JaasConfig {
     override def asString(): String = entry
@@ -30,22 +32,24 @@ object JaasConfig {
     def make(obj: ConfigObject): Option[Structured] = {
       val config = obj.toConfig
       for {
-        loginModuleClass <- config.getOpt[Class[_]]("loginModuleClass")
-        controlFlag      <- config.getOpt[String]("controlFlag")
+        loginModuleClass <- config.getOpt[Class[_]]("login-module-class")
+        controlFlag      <- config.getOpt[String]("control-flag")
         options          <- config.getOpt[List[Pair]]("options")
       } yield new Structured(loginModuleClass, controlFlag, options)
     }
   }
 
-  def apply(config: Config): JaasConfig = {
+  def apply(configByName: ConfigValue): JaasConfig = {
 
-    def getPlain = Try(config.getString("")) match {
+    val config = configByName.atPath(EMPTY_PATH)
+
+    def getPlain = Try(config.getString(EMPTY_PATH)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(string)                       => Some(Plain(string))
     }
 
-    def getStructured = Try(config.getObject("")) match {
+    def getStructured = Try(config.getObject(EMPTY_PATH)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(obj)                          => Structured.make(obj)
@@ -54,7 +58,7 @@ object JaasConfig {
     getPlain.orElse(getStructured) match {
       case Some(value) => value
       case None =>
-        throw new ConfigException.BadValue(config.origin(), ".", "Unexpected format. Should be string or object")
+        throw new ConfigException.BadValue(config.origin(), EMPTY_PATH, "Unexpected format. Should be string or object")
     }
   }
 }

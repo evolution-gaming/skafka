@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import com.evolutiongaming.config.ConfigHelper.{ConfigOps, FromConf}
-import com.typesafe.config.{Config, ConfigException}
+import com.typesafe.config.{Config, ConfigException, ConfigRenderOptions, ConfigValue}
 
 import java.nio.file.Path
 import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS, SECONDS, TimeUnit}
@@ -11,15 +11,6 @@ import scala.util.{Failure, Success, Try}
 object ConfigHelpers {
 
   type Pair = (String, String)
-
-  implicit val SecurityProtocolFromConf: FromConf[SecurityProtocol] = FromConf[SecurityProtocol] {
-    (conf, path) =>
-      val str   = conf.getString(path)
-      val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
-      value getOrElse {
-        throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
-      }
-  }
 
   implicit val FilePathFromConf: FromConf[Path] = FromConf[Path] { (conf, path) =>
     val str = conf.getString(path)
@@ -39,12 +30,14 @@ object ConfigHelpers {
 
   implicit val JaasOptionsFromConf: FromConf[List[Pair]] = FromConf[List[Pair]] { (conf, path) =>
     conf
-      .getObject("")
+      .getObject(path)
       .entrySet
       .asScala
-      .map(entry => (entry.getKey, entry.getValue.render()))
+      .map(entry => (entry.getKey, entry.getValue.render(ConfigRenderOptions.defaults().setJson(false))))
       .toList
   }
+
+  implicit val ConfigValueFromConfig: FromConf[ConfigValue] = (conf, path) => conf.getValue(path)
 
   implicit class ConfigHelpersOps(val config: Config) {
     def getMillis(path: String, pathWithUnit: => String): Option[FiniteDuration] =

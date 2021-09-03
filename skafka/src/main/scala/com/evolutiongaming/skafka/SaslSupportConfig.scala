@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka
 import cats.implicits._
 import com.evolutiongaming.config.ConfigHelper._
 import com.evolutiongaming.skafka.ConfigHelpers._
-import com.typesafe.config.Config
+import com.typesafe.config.{Config, ConfigValue}
 import org.apache.kafka.common.config.SaslConfigs
 
 import java.nio.file.Path
@@ -77,9 +77,9 @@ object SaslSupportConfig {
         config.getOpt[Double]("sasl-login-refresh-window-jitter", "sasl.login.refresh.window.jitter") getOrElse
           default.loginRefreshWindowJitter,
       loginRefreshMinPeriod =
-        config.getSeconds("sasl-login-refresh-min-period", "sasl.login.refresh.min.period.sec") getOrElse
+        config.getSeconds("sasl-login-refresh-min-period", "sasl.login.refresh.min.period.seconds") getOrElse
           default.loginRefreshMinPeriod,
-      loginRefreshBuffer = config.getSeconds("sasl-login-refresh-buffer", "sasl.login.refresh.buffer.sec") getOrElse
+      loginRefreshBuffer = config.getSeconds("sasl-login-refresh-buffer", "sasl.login.refresh.buffer.seconds") getOrElse
         default.loginRefreshBuffer,
       mechanism = config.getOpt[String]("sasl-mechanism", "sasl.mechanism") getOrElse
         default.mechanism,
@@ -92,7 +92,7 @@ object SaslSupportConfig {
       loginClass = config.getOpt[Class[_]]("sasl-login-class", "sasl.login.class") orElse
         default.loginClass,
       jaasConfig = config
-        .getOpt[Config]("sasl-jaas-config", "sasl.jaas.config")
+        .getOpt[ConfigValue]("sasl-jaas-config", "sasl.jaas.config")
         .map(JaasConfig(_))
         .orElse(default.jaasConfig),
     )

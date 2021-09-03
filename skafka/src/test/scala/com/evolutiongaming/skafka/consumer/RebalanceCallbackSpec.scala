@@ -73,7 +73,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       "handleErrorWith" - {
         import cats.syntax.applicativeError._
 
-        /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error */
+        /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error
+          */
         def testFailedInput[A](
           input: RebalanceCallback[Try, A],
           recoverValue: A,

@@ -25,9 +25,9 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
 //    val rebalanceConsumer = RebalanceConsumer(new MockConsumer[String, String](OffsetResetStrategy.NONE))
 
     val consumerJ = new ConsumerJ[String, String] {
-      def assignment()                                                                    = supported // rebalanceConsumer.assignment()
-      def subscription()                                                                  = supported // rebalanceConsumer.subscription()
-      def subscribe(topics: util.Collection[String])                                      = unsupported
+      def assignment()                               = supported // rebalanceConsumer.assignment()
+      def subscription()                             = supported // rebalanceConsumer.subscription()
+      def subscribe(topics: util.Collection[String]) = unsupported
       def subscribe(topics: util.Collection[String], callback: ConsumerRebalanceListener) = unsupported
       def assign(partitions: util.Collection[TopicPartition])                             = unsupported
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener)                = unsupported
@@ -35,8 +35,8 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def unsubscribe()                                                                   = unsupported
       def poll(timeout: Long)                                                             = unsupported
       def poll(timeout: Duration)                                                         = unsupported
-      def commitSync()                                                                    = supported // rebalanceConsumer.commit()
-      def commitSync(timeout: Duration)                                                   = supported // rebalanceConsumer.commit(timeout)
+      def commitSync()                  = supported // rebalanceConsumer.commit()
+      def commitSync(timeout: Duration) = supported // rebalanceConsumer.commit(timeout)
       def commitSync(offsets: util.Map[TopicPartition, OffsetAndMetadata]) =
         supported // rebalanceConsumer.commit(offsets)
       def commitSync(offsets: util.Map[TopicPartition, OffsetAndMetadata], timeout: Duration) =
@@ -59,12 +59,12 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def committed(partitions: util.Set[TopicPartition])         = supported // rebalanceConsumer.committed(partitions)
       def committed(partitions: util.Set[TopicPartition], timeout: Duration) =
         supported // rebalanceConsumer.committed(partitions, timeout)
-      def metrics()                                           = unsupported
-      def partitionsFor(topic: String)                        = supported // rebalanceConsumer.partitionsFor(topic)
-      def partitionsFor(topic: String, timeout: Duration)     = supported // rebalanceConsumer.partitionsFor(topic, timeout)
-      def listTopics()                                        = supported // rebalanceConsumer.topics()
-      def listTopics(timeout: Duration)                       = supported // rebalanceConsumer.topics(timeout)
-      def paused()                                            = supported // rebalanceConsumer.paused()
+      def metrics()                                       = unsupported
+      def partitionsFor(topic: String)                    = supported // rebalanceConsumer.partitionsFor(topic)
+      def partitionsFor(topic: String, timeout: Duration) = supported // rebalanceConsumer.partitionsFor(topic, timeout)
+      def listTopics()                                    = supported // rebalanceConsumer.topics()
+      def listTopics(timeout: Duration)                   = supported // rebalanceConsumer.topics(timeout)
+      def paused()                                        = supported // rebalanceConsumer.paused()
       def pause(partitions: util.Collection[TopicPartition])  = unsupported
       def resume(partitions: util.Collection[TopicPartition]) = unsupported
       def offsetsForTimes(timestampsToSearch: util.Map[TopicPartition, lang.Long]) =

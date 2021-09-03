@@ -1,39 +1,60 @@
 package com.evolutiongaming.skafka
 
-sealed trait SecurityProtocol extends Product {
-  def name: String
-}
+import com.evolutiongaming.config.ConfigHelper.ConfigOps
+import com.evolutiongaming.skafka.ConfigHelpers._
+import com.typesafe.config.{Config, ConfigException, ConfigObject}
 
-object SecurityProtocol {
-  val Values: Set[SecurityProtocol] = Set(Plaintext, Ssl, SaslPlaintext, SaslSsl)
-
-  case object Plaintext extends SecurityProtocol { def name = "PLAINTEXT" }
-  case object Ssl extends SecurityProtocol { def name = "SSL" }
-  case object SaslPlaintext extends SecurityProtocol { def name = "SASL_PLAINTEXT" }
-  case object SaslSsl extends SecurityProtocol { def name = "SASL_SSL" }
-}
+import scala.util.{Failure, Success, Try}
 
 sealed trait JaasConfig {
   def asString(): String
 }
 
-// org.apache.kafka.common.security.scram.ScramLoginModule required username='7N637LQ6JFF5M4L2' password='knGr/ANovu2+d7/S0TT05xhEL/CMt0C2xh7XejsMtaioGydm1WTwIs5A8z5Oi/jE';
-
 object JaasConfig {
 
-  type Option = (String, String)
-
-  case class Plain(str: String) extends JaasConfig {
-    override def asString(): String = str
+  case class Plain(entry: String) extends JaasConfig {
+    override def asString(): String = entry
   }
 
-//    loginModuleClass controlFlag (optionName=optionValue)*;
-  case class LoginContext(loginModuleClass: String, controlFlag: String, options: List[Option]) extends JaasConfig {
-    override def asString(): String = s"$loginModuleClass $controlFlag ${optionsAsString()}"
+  case class Structured(loginModuleClass: Class[_], controlFlag: String, options: List[Pair]) extends JaasConfig {
 
-    private def optionsAsString() =
+    override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${pairAsString()}"
+
+    private def pairAsString() =
       options
         .map(option => s"${option._1}='${option._2}'")
         .mkString("", " ", ";")
+  }
+
+  case object Structured {
+    def make(obj: ConfigObject): Option[Structured] = {
+      val config = obj.toConfig
+      for {
+        loginModuleClass <- config.getOpt[Class[_]]("loginModuleClass")
+        controlFlag      <- config.getOpt[String]("controlFlag")
+        options          <- config.getOpt[List[Pair]]("options")
+      } yield new Structured(loginModuleClass, controlFlag, options)
+    }
+  }
+
+  def apply(config: Config): JaasConfig = {
+
+    def getPlain = Try(config.getString("")) match {
+      case Failure(_: ConfigException.WrongType) => None
+      case Failure(exception)                    => throw exception
+      case Success(string)                       => Some(Plain(string))
+    }
+
+    def getStructured = Try(config.getObject("")) match {
+      case Failure(_: ConfigException.WrongType) => None
+      case Failure(exception)                    => throw exception
+      case Success(obj)                          => Structured.make(obj)
+    }
+
+    getPlain.orElse(getStructured) match {
+      case Some(value) => value
+      case None =>
+        throw new ConfigException.BadValue(config.origin(), ".", "Unexpected format. Should be string or object")
+    }
   }
 }

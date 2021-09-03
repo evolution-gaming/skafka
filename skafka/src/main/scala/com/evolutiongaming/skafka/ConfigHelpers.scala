@@ -28,13 +28,23 @@ object ConfigHelpers {
     }
   }
 
-  implicit val JaasOptionsFromConf: FromConf[List[Pair]] = FromConf[List[Pair]] { (conf, path) =>
-    conf
-      .getObject(path)
-      .entrySet
-      .asScala
-      .map(entry => (entry.getKey, entry.getValue.render(ConfigRenderOptions.defaults().setJson(false))))
-      .toList
+  implicit val JaasOptionsFromConf: FromConf[List[Pair]] = FromConf[List[Pair]] {
+
+    def asString(value: ConfigValue) = {
+      value.render()
+      value
+        .render(ConfigRenderOptions.concise().setJson(false))
+        .stripPrefix("\"") // sometimes pure config wrap value with quotes
+        .stripSuffix("\"")
+    }
+
+    (conf, path) =>
+      conf
+        .getObject(path)
+        .entrySet
+        .asScala
+        .map(entry => (entry.getKey, asString(entry.getValue)))
+        .toList
   }
 
   implicit val ConfigValueFromConfig: FromConf[ConfigValue] = (conf, path) => conf.getValue(path)

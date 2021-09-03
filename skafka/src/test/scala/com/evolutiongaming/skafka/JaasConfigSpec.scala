@@ -22,7 +22,7 @@ class JaasConfigSpec extends AnyFunSuite with Matchers {
       .asString() shouldEqual "com.evolutiongaming.skafka.JaasConfigSpec " +
       "optional " +
       "key='value' " +
-      "username='user' " +
+      "username='123USER123' " +
       "password='pass';"
   }
 }

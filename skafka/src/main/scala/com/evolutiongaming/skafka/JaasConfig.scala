@@ -39,17 +39,17 @@ object JaasConfig {
     }
   }
 
-  def apply(configByName: ConfigValue): JaasConfig = {
+  def apply(config: ConfigValue): JaasConfig = {
 
-    val config = configByName.atPath(EMPTY_PATH)
+    val value = config.atPath(EMPTY_PATH)
 
-    def getPlain = Try(config.getString(EMPTY_PATH)) match {
+    def getPlain = Try(value.getString(EMPTY_PATH)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(string)                       => Some(Plain(string))
     }
 
-    def getStructured = Try(config.getObject(EMPTY_PATH)) match {
+    def getStructured = Try(value.getObject(EMPTY_PATH)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(obj)                          => Structured.make(obj)
@@ -58,7 +58,7 @@ object JaasConfig {
     getPlain.orElse(getStructured) match {
       case Some(value) => value
       case None =>
-        throw new ConfigException.BadValue(config.origin(), EMPTY_PATH, "Unexpected format. Should be string or object")
+        throw new ConfigException.BadValue(value.origin(), EMPTY_PATH, "Unexpected format of JAAS. Should be string or object")
     }
   }
 }

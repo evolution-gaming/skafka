@@ -49,7 +49,7 @@ object CommonConfig {
 
   val Default: CommonConfig = CommonConfig()
 
-  implicit val SecurityProtocolFromConf: FromConf[SecurityProtocol] = FromConf[SecurityProtocol] { (conf, path) =>
+  private implicit val SecurityProtocolFromConf = FromConf[SecurityProtocol] { (conf, path) =>
     val str   = conf.getString(path)
     val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {

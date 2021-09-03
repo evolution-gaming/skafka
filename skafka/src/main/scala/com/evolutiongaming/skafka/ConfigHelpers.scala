@@ -51,15 +51,16 @@ object ConfigHelpers {
 
   implicit class ConfigHelpersOps(val config: Config) {
     def getMillis(path: String, pathWithUnit: => String): Option[FiniteDuration] =
-      getDuration(path, pathWithUnit, MILLISECONDS)
+      getDuration(path, MILLISECONDS, pathWithUnit)
 
     def getSeconds(path: String, pathWithUnit: => String): Option[FiniteDuration] =
-      getDuration(path, pathWithUnit, SECONDS)
+      getDuration(path, SECONDS, pathWithUnit)
 
-    private def getDuration(path: String, pathWithUnit: => String, timeUnit: TimeUnit): Option[FiniteDuration] = {
-      val value =
-        try config.getOpt[FiniteDuration](path)
-        catch { case _: ConfigException => None }
+    private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String) = {
+      val value = Try(config.getOpt[FiniteDuration](path)) match {
+          case Failure(_: ConfigException) => None
+          case Success(value) => value
+        }
       value orElse config.getOpt[Long](pathWithUnit).map { Duration(_, timeUnit) }
     }
   }

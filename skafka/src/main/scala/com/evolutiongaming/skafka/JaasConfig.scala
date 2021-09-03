@@ -12,7 +12,7 @@ sealed trait JaasConfig {
 
 object JaasConfig {
 
-  private val EMPTY_PATH = "\"\""
+  private val emptyPath = "\"\""
 
   case class Plain(entry: String) extends JaasConfig {
     override def asString(): String = entry
@@ -24,7 +24,7 @@ object JaasConfig {
 
     private def pairAsString() =
       options
-        .map(option => s"${option._1}='${option._2}'")
+        .map { case (key, value) => s"$key='$value'" }
         .mkString("", " ", ";")
   }
 
@@ -41,15 +41,15 @@ object JaasConfig {
 
   def apply(config: ConfigValue): JaasConfig = {
 
-    val value = config.atPath(EMPTY_PATH)
+    val value = config.atPath(emptyPath)
 
-    def getPlain = Try(value.getString(EMPTY_PATH)) match {
+    def getPlain = Try(value.getString(emptyPath)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(string)                       => Some(Plain(string))
     }
 
-    def getStructured = Try(value.getObject(EMPTY_PATH)) match {
+    def getStructured = Try(value.getObject(emptyPath)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(obj)                          => Structured.make(obj)
@@ -58,7 +58,11 @@ object JaasConfig {
     getPlain.orElse(getStructured) match {
       case Some(value) => value
       case None =>
-        throw new ConfigException.BadValue(value.origin(), EMPTY_PATH, "Unexpected format of JAAS. Should be string or object")
+        throw new ConfigException.BadValue(
+          value.origin(),
+          emptyPath,
+          "Unexpected format of JAAS. Should be string or object"
+        )
     }
   }
 }

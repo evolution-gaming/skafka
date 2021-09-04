@@ -12,7 +12,7 @@ object Dependencies {
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.9"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.3.2"
-  val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.0"
+  val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
   val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.1.5"
 
   object Kafka {

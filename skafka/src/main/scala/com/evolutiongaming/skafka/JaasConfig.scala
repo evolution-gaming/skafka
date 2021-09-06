@@ -14,11 +14,11 @@ object JaasConfig {
 
   private val emptyPath = "\"\""
 
-  case class Plain(entry: String) extends JaasConfig {
+  final case class Plain(entry: String) extends JaasConfig {
     override def asString(): String = entry
   }
 
-  case class Structured(loginModuleClass: Class[_], controlFlag: String, options: List[Pair]) extends JaasConfig {
+  final case class Structured(loginModuleClass: Class[_], controlFlag: String, options: List[Pair]) extends JaasConfig {
 
     override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${pairAsString()}"
 

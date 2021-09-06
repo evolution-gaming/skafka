@@ -59,6 +59,7 @@ object ConfigHelpers {
     private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String) = {
       val value = Try(config.getOpt[FiniteDuration](path)) match {
           case Failure(_: ConfigException) => None
+          case Failure(e) => throw e
           case Success(value) => value
         }
       value orElse config.getOpt[Long](pathWithUnit).map { Duration(_, timeUnit) }

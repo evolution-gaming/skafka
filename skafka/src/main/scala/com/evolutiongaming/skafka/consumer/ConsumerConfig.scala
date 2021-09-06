@@ -136,6 +136,51 @@ object ConsumerConfig {
       saslSupport                 = saslSupport,
     )
 
+  // Constructor for backward compatibility (version <= 11.5)
+  def apply(
+    common: CommonConfig,
+    groupId: Option[String],
+    maxPollRecords: Int,
+    maxPollInterval: FiniteDuration,
+    sessionTimeout: FiniteDuration,
+    heartbeatInterval: FiniteDuration,
+    autoCommit: Boolean,
+    autoCommitInterval: FiniteDuration,
+    partitionAssignmentStrategy: String,
+    autoOffsetReset: AutoOffsetReset,
+    defaultApiTimeout: FiniteDuration,
+    fetchMinBytes: Int,
+    fetchMaxBytes: Int,
+    fetchMaxWait: FiniteDuration,
+    maxPartitionFetchBytes: Int,
+    checkCrcs: Boolean,
+    interceptorClasses: List[String],
+    excludeInternalTopics: Boolean,
+    isolationLevel: IsolationLevel,
+  ): ConsumerConfig =
+    ConsumerConfig(
+      common                      = common,
+      groupId                     = groupId,
+      maxPollRecords              = maxPollRecords,
+      maxPollInterval             = maxPollInterval,
+      sessionTimeout              = sessionTimeout,
+      heartbeatInterval           = heartbeatInterval,
+      autoCommit                  = autoCommit,
+      autoCommitInterval          = Some(autoCommitInterval),
+      partitionAssignmentStrategy = partitionAssignmentStrategy,
+      autoOffsetReset             = autoOffsetReset,
+      defaultApiTimeout           = defaultApiTimeout,
+      fetchMinBytes               = fetchMinBytes,
+      fetchMaxBytes               = fetchMaxBytes,
+      fetchMaxWait                = fetchMaxWait,
+      maxPartitionFetchBytes      = maxPartitionFetchBytes,
+      checkCrcs                   = checkCrcs,
+      interceptorClasses          = interceptorClasses,
+      excludeInternalTopics       = excludeInternalTopics,
+      isolationLevel              = isolationLevel,
+      saslSupport                 = SaslSupportConfig.Default,
+    )
+
   def apply(config: Config, default: => ConsumerConfig): ConsumerConfig = {
 
     def get[T: FromConf](path: String, paths: String*) = {

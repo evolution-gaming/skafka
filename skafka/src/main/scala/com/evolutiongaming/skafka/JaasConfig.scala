@@ -29,7 +29,7 @@ object JaasConfig {
   }
 
   case object Structured {
-    def make(obj: ConfigObject): Option[Structured] = {
+    def fromConfig(obj: ConfigObject): Option[Structured] = {
       val config = obj.toConfig
       for {
         loginModuleClass <- config.getOpt[Class[_]]("login-module-class")
@@ -39,7 +39,7 @@ object JaasConfig {
     }
   }
 
-  def apply(config: ConfigValue): JaasConfig = {
+  def fromConfig(config: ConfigValue): JaasConfig = {
 
     val value = config.atPath(emptyPath)
 
@@ -52,7 +52,7 @@ object JaasConfig {
     def getStructured = Try(value.getObject(emptyPath)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
-      case Success(obj)                          => Structured.make(obj)
+      case Success(obj)                          => Structured.fromConfig(obj)
     }
 
     getPlain.orElse(getStructured) match {

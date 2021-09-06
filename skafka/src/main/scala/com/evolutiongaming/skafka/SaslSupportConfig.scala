@@ -93,7 +93,7 @@ object SaslSupportConfig {
         default.loginClass,
       jaasConfig = config
         .getOpt[ConfigValue]("sasl-jaas-config", "sasl.jaas.config")
-        .map(JaasConfig(_))
+        .map(JaasConfig.fromConfig)
         .orElse(default.jaasConfig),
     )
 }

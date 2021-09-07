@@ -4,7 +4,7 @@ import com.evolutiongaming.config.ConfigHelper.{ConfigOps, FromConf}
 import com.typesafe.config.{Config, ConfigException, ConfigRenderOptions, ConfigValue}
 
 import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS, SECONDS, TimeUnit}
-import scala.jdk.CollectionConverters.SetHasAsScala
+import scala.jdk.CollectionConverters._
 import scala.util.{Failure, Success, Try}
 
 object ConfigHelpers {
@@ -48,10 +48,10 @@ object ConfigHelpers {
 
     private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String) = {
       val value = Try(config.getOpt[FiniteDuration](path)) match {
-          case Failure(_: ConfigException) => None
-          case Failure(e) => throw e
-          case Success(value) => value
-        }
+        case Failure(_: ConfigException) => None
+        case Failure(e)                  => throw e
+        case Success(value)              => value
+      }
       value orElse config.getOpt[Long](pathWithUnit).map { Duration(_, timeUnit) }
     }
   }

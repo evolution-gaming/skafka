@@ -33,7 +33,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     isolationLevel              = IsolationLevel.ReadCommitted,
     saslSupport = new SaslSupportConfig(
       kerberosServiceName             = Some("service_name"),
-      kerberosKinitCmd                = Path.of("/bin/kinit"),
+      kerberosKinitCmd                = "/bin/kinit",
       kerberosTicketRenewWindowFactor = 0.4,
       kerberosTicketRenewJitter       = 0.1,
       kerberosMinTimeBeforeRelogin    = 1000.millis,

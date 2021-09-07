@@ -6,12 +6,11 @@ import com.evolutiongaming.skafka.ConfigHelpers._
 import com.typesafe.config.{Config, ConfigValue}
 import org.apache.kafka.common.config.SaslConfigs
 
-import java.nio.file.Path
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 final case class SaslSupportConfig(
   kerberosServiceName: Option[String]          = None,
-  kerberosKinitCmd: Path                       = Path.of(SaslConfigs.DEFAULT_KERBEROS_KINIT_CMD),
+  kerberosKinitCmd: String                     = SaslConfigs.DEFAULT_KERBEROS_KINIT_CMD,
   kerberosTicketRenewWindowFactor: Double      = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_WINDOW_FACTOR,
   kerberosTicketRenewJitter: Double            = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_JITTER,
   kerberosMinTimeBeforeRelogin: FiniteDuration = SaslConfigs.DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN.millis,
@@ -27,7 +26,7 @@ final case class SaslSupportConfig(
 ) {
   def bindings: Map[String, String] = {
     val bindings = Map[String, String](
-      (SaslConfigs.SASL_KERBEROS_KINIT_CMD, kerberosKinitCmd.toFile.toString),
+      (SaslConfigs.SASL_KERBEROS_KINIT_CMD, kerberosKinitCmd),
       (SaslConfigs.SASL_KERBEROS_TICKET_RENEW_WINDOW_FACTOR, kerberosTicketRenewWindowFactor.toString),
       (SaslConfigs.SASL_KERBEROS_TICKET_RENEW_JITTER, kerberosTicketRenewJitter.toString),
       (SaslConfigs.SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN, kerberosMinTimeBeforeRelogin.toMillis.toString),
@@ -57,7 +56,7 @@ object SaslSupportConfig {
     new SaslSupportConfig(
       kerberosServiceName = config.getOpt[String]("sasl-kerberos-service-name", "sasl.kerberos.service.name") orElse
         default.kerberosServiceName,
-      kerberosKinitCmd = config.getOpt[Path]("sasl-kerberos-kinit-cmd", "sasl.kerberos.kinit.cmd") getOrElse
+      kerberosKinitCmd = config.getOpt[String]("sasl-kerberos-kinit-cmd", "sasl.kerberos.kinit.cmd") getOrElse
         default.kerberosKinitCmd,
       kerberosTicketRenewWindowFactor = config.getOpt[Double](
         "sasl-kerberos-ticket-renew-window-factor",

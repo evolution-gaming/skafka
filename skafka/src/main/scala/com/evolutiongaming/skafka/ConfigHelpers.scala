@@ -12,14 +12,6 @@ object ConfigHelpers {
 
   type Pair = (String, String)
 
-  implicit val FilePathFromConf: FromConf[Path] = FromConf[Path] { (conf, path) =>
-    val str = conf.getString(path)
-    Try(Path.of(str)) match {
-      case Failure(exception) => throw new ConfigException.BadValue(conf.origin(), path, exception.getMessage)
-      case Success(value)     => value
-    }
-  }
-
   implicit val ClassFromConf: FromConf[Class[_]] = FromConf[Class[_]] { (conf, path) =>
     val className = conf.getString(path)
     Try(Class.forName(className)) match {

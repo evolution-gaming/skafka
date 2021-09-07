@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import com.typesafe.config.{Config, ConfigFactory, ConfigValue}
+import com.typesafe.config.{ConfigFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

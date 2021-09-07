@@ -3,7 +3,6 @@ package com.evolutiongaming.skafka
 import com.evolutiongaming.config.ConfigHelper.{ConfigOps, FromConf}
 import com.typesafe.config.{Config, ConfigException, ConfigRenderOptions, ConfigValue}
 
-import java.nio.file.Path
 import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS, SECONDS, TimeUnit}
 import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.{Failure, Success, Try}
@@ -23,7 +22,6 @@ object ConfigHelpers {
   implicit val JaasOptionsFromConf: FromConf[List[Pair]] = FromConf[List[Pair]] {
 
     def asString(value: ConfigValue) = {
-      value.render()
       value
         .render(ConfigRenderOptions.concise().setJson(false))
         .stripPrefix("\"") // sometimes pure config wrap value with quotes

@@ -9,8 +9,6 @@ import scala.util.{Failure, Success, Try}
 
 object ConfigHelpers {
 
-  type Pair = (String, String)
-
   implicit val ClassFromConf: FromConf[Class[_]] = FromConf[Class[_]] { (conf, path) =>
     val className = conf.getString(path)
     Try(Class.forName(className)) match {
@@ -19,7 +17,7 @@ object ConfigHelpers {
     }
   }
 
-  implicit val JaasOptionsFromConf: FromConf[List[Pair]] = FromConf[List[Pair]] {
+  implicit val JaasOptionsFromConf: FromConf[Map[String, String]] = FromConf[Map[String, String]] {
 
     def asString(value: ConfigValue) = {
       value
@@ -34,7 +32,7 @@ object ConfigHelpers {
         .entrySet
         .asScala
         .map(entry => (entry.getKey, asString(entry.getValue)))
-        .toList
+        .toMap
   }
 
   implicit val ConfigValueFromConfig: FromConf[ConfigValue] = (conf, path) => conf.getValue(path)

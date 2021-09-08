@@ -18,11 +18,11 @@ object JaasConfig {
     override def asString(): String = entry
   }
 
-  final case class Structured(loginModuleClass: Class[_], controlFlag: String, options: List[Pair]) extends JaasConfig {
+  final case class Structured(loginModuleClass: Class[_], controlFlag: String, options: Map[String, String]) extends JaasConfig {
 
-    override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${pairAsString()}"
+    override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${optionsAsString()}"
 
-    private def pairAsString() =
+    private def optionsAsString() =
       options
         .map { case (key, value) => s"$key='$value'" }
         .mkString("", " ", ";")
@@ -34,7 +34,7 @@ object JaasConfig {
       for {
         loginModuleClass <- config.getOpt[Class[_]]("login-module-class")
         controlFlag      <- config.getOpt[String]("control-flag")
-        options          <- config.getOpt[List[Pair]]("options")
+        options          <- config.getOpt[Map[String, String]]("options")
       } yield new Structured(loginModuleClass, controlFlag, options)
     }
   }

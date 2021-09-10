@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.config.ConfigHelper.{FromConf, _}
-import com.evolutiongaming.skafka.CommonConfig
+import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.consumer.{ConsumerConfig => C}
 
@@ -29,7 +29,8 @@ final case class ConsumerConfig(
   checkCrcs: Boolean                         = true,
   interceptorClasses: List[String]           = Nil,
   excludeInternalTopics: Boolean             = true,
-  isolationLevel: IsolationLevel             = IsolationLevel.ReadUncommitted
+  isolationLevel: IsolationLevel             = IsolationLevel.ReadUncommitted,
+  saslSupport: SaslSupportConfig             = SaslSupportConfig.Default,
 ) {
 
   def bindings: Map[String, String] = {
@@ -56,7 +57,7 @@ final case class ConsumerConfig(
       (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
     )
 
-    bindings ++ common.bindings
+    bindings ++ common.bindings ++ saslSupport.bindings
   }
 
   def properties: java.util.Properties = {
@@ -109,7 +110,8 @@ object ConsumerConfig {
     checkCrcs: Boolean,
     interceptorClasses: List[String],
     excludeInternalTopics: Boolean,
-    isolationLevel: IsolationLevel
+    isolationLevel: IsolationLevel,
+    saslSupport: SaslSupportConfig,
   ): ConsumerConfig =
     ConsumerConfig(
       common                      = common,
@@ -130,7 +132,53 @@ object ConsumerConfig {
       checkCrcs                   = checkCrcs,
       interceptorClasses          = interceptorClasses,
       excludeInternalTopics       = excludeInternalTopics,
-      isolationLevel              = isolationLevel
+      isolationLevel              = isolationLevel,
+      saslSupport                 = saslSupport,
+    )
+
+  // Constructor for backward compatibility (version <= 11.5)
+  def apply(
+    common: CommonConfig,
+    groupId: Option[String],
+    maxPollRecords: Int,
+    maxPollInterval: FiniteDuration,
+    sessionTimeout: FiniteDuration,
+    heartbeatInterval: FiniteDuration,
+    autoCommit: Boolean,
+    autoCommitInterval: FiniteDuration,
+    partitionAssignmentStrategy: String,
+    autoOffsetReset: AutoOffsetReset,
+    defaultApiTimeout: FiniteDuration,
+    fetchMinBytes: Int,
+    fetchMaxBytes: Int,
+    fetchMaxWait: FiniteDuration,
+    maxPartitionFetchBytes: Int,
+    checkCrcs: Boolean,
+    interceptorClasses: List[String],
+    excludeInternalTopics: Boolean,
+    isolationLevel: IsolationLevel,
+  ): ConsumerConfig =
+    ConsumerConfig(
+      common                      = common,
+      groupId                     = groupId,
+      maxPollRecords              = maxPollRecords,
+      maxPollInterval             = maxPollInterval,
+      sessionTimeout              = sessionTimeout,
+      heartbeatInterval           = heartbeatInterval,
+      autoCommit                  = autoCommit,
+      autoCommitInterval          = Some(autoCommitInterval),
+      partitionAssignmentStrategy = partitionAssignmentStrategy,
+      autoOffsetReset             = autoOffsetReset,
+      defaultApiTimeout           = defaultApiTimeout,
+      fetchMinBytes               = fetchMinBytes,
+      fetchMaxBytes               = fetchMaxBytes,
+      fetchMaxWait                = fetchMaxWait,
+      maxPartitionFetchBytes      = maxPartitionFetchBytes,
+      checkCrcs                   = checkCrcs,
+      interceptorClasses          = interceptorClasses,
+      excludeInternalTopics       = excludeInternalTopics,
+      isolationLevel              = isolationLevel,
+      saslSupport                 = SaslSupportConfig.Default,
     )
 
   def apply(config: Config, default: => ConsumerConfig): ConsumerConfig = {
@@ -175,7 +223,8 @@ object ConsumerConfig {
         get[List[String]]("interceptor-classes", "interceptor.classes") getOrElse default.interceptorClasses,
       excludeInternalTopics =
         get[Boolean]("exclude-internal-topics", "exclude.internal.topics") getOrElse default.excludeInternalTopics,
-      isolationLevel = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel
+      isolationLevel = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel,
+      saslSupport    = SaslSupportConfig(config, default.saslSupport)
     )
   }
 }

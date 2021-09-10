@@ -20,11 +20,10 @@ import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartitio
 
 import scala.util.control.NoStackTrace
 
-/**
-  * It is intentional to have all methods as `notImplemented` (throws NotImplementedOnPurpose)
+/** It is intentional to have all methods as `notImplemented` (throws NotImplementedOnPurpose)
   *
-  * It is used to verify the only expected interaction in corresponding tests
-  * by implementing the only expected method to be called in test
+  * It is used to verify the only expected interaction in corresponding tests by implementing the only expected method
+  * to be called in test
   */
 class ExplodingConsumer extends ConsumerJ[String, String] {
   def assignment(): SetJ[TopicPartitionJ] = notImplemented

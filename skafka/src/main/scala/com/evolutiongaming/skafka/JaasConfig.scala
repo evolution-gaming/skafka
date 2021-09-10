@@ -18,7 +18,8 @@ object JaasConfig {
     override def asString(): String = entry
   }
 
-  final case class Structured(loginModuleClass: Class[_], controlFlag: String, options: Map[String, String]) extends JaasConfig {
+  final case class Structured(loginModuleClass: Class[_], controlFlag: String, options: Map[String, String])
+      extends JaasConfig {
 
     override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${optionsAsString()}"
 

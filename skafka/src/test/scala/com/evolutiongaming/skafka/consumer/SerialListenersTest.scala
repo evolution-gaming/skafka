@@ -17,7 +17,15 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerRecord => ConsumerRecordJ,
+  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -170,7 +178,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       result  <- fiber.join.attempt.toResource
       _        = result shouldEqual error.asLeft
       actions <- actions.get.toResource
-      _        = actions shouldEqual List(Action.PollEnter, Action.PartitionsAssignedEnter, Action.Topics, Action.Topics)
+      _ = actions shouldEqual List(Action.PollEnter, Action.PartitionsAssignedEnter, Action.Topics, Action.Topics)
     } yield {}
 
     result.use { _.pure[F] }

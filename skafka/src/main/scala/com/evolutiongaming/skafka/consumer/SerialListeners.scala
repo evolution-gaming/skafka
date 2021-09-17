@@ -6,30 +6,21 @@ import cats.effect.concurrent.{Deferred, Ref, Semaphore}
 import cats.effect.implicits._
 import cats.implicits._
 
-/**
-  * This rather complex mechanism exists for sake of ensuring
-  * that "RebalanceListener" executed within scope of "Consumer.poll" asynchronously.
-  * however providing same order semantic as in native consumer, like:
+/** This rather complex mechanism exists for sake of ensuring that "RebalanceListener" executed within scope of
+  * "Consumer.poll" asynchronously. however providing same order semantic as in native consumer, like:
   *
-  * 1. poll enters
-  * 2. rebalanceListener
-  * 3. poll exits
+  *   1. poll enters 2. rebalanceListener 3. poll exits
   *
   * Calls order in details as following:
   *
-  *  1. Consumer.poll enters
-  *  2. ConsumerNative.poll enters
-  *  3. RebalanceListenerNative enters
-  *  4. Deferred created for partitionsAssigned & partitionsRevoked and stored in Ref
-  *  5. RebalanceListener launched, potentially asynchronously on different threads
-  *  6. RebalanceListenerNative exits, while RebalanceListener still running
-  *  7. ConsumerNative.poll exits
-  *  8. Consumer.poll cannot exit until Deferred is completed
-  *  9. RebalanceListener finishes and completes deferred
-  * 10. Consumer.poll exits as Deferred is completed
+  *   1. Consumer.poll enters 2. ConsumerNative.poll enters 3. RebalanceListenerNative enters 4. Deferred created for
+  *      partitionsAssigned & partitionsRevoked and stored in Ref 5. RebalanceListener launched, potentially
+  *      asynchronously on different threads 6. RebalanceListenerNative exits, while RebalanceListener still running 7.
+  *      ConsumerNative.poll exits 8. Consumer.poll cannot exit until Deferred is completed 9. RebalanceListener
+  *      finishes and completes deferred 10. Consumer.poll exits as Deferred is completed
   *
-  * This mechanism also allows calling Consumer withing RebalanceListener,
-  * with on exception: call of Consumer.poll will lead to deadlock
+  * This mechanism also allows calling Consumer withing RebalanceListener, with on exception: call of Consumer.poll will
+  * lead to deadlock
   */
 trait SerialListeners[F[_]] {
 

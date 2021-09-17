@@ -13,7 +13,6 @@ object CompressionType {
 
   def lz4: CompressionType = Lz4
 
-
   case object None extends CompressionType
   case object Gzip extends CompressionType
   case object Snappy extends CompressionType

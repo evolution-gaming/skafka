@@ -22,8 +22,7 @@ import org.apache.kafka.clients.producer.{
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, ExecutionException}
 
-/**
-  * See [[org.apache.kafka.clients.producer.Producer]]
+/** See [[org.apache.kafka.clients.producer.Producer]]
   */
 trait Producer[F[_]] {
 
@@ -40,9 +39,9 @@ trait Producer[F[_]] {
 
   def abortTransaction: F[Unit]
 
-  /**
-    * @return Outer F[_] is about sending event (including batching if required),
-    * inner F[_] is about waiting and getting the result of the send operation.
+  /** @return
+    *   Outer F[_] is about sending event (including batching if required), inner F[_] is about waiting and getting the
+    *   result of the send operation.
     */
   def send[K, V](
     record: ProducerRecord[K, V]
@@ -56,7 +55,6 @@ trait Producer[F[_]] {
 object Producer {
 
   def apply[F[_]](implicit F: Producer[F]): Producer[F] = F
-
 
   private sealed abstract class Empty
 
@@ -100,7 +98,6 @@ object Producer {
     val producer          = CreateProducerJ(config)
     fromProducerJ(producer)
   }
-
 
   private sealed abstract class Main
 
@@ -204,7 +201,6 @@ object Producer {
     } yield producer
   }
 
-
   private sealed abstract class WithMetrics
 
   def apply[F[_]: MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
@@ -305,7 +301,6 @@ object Producer {
       }
     }
   }
-
 
   private sealed abstract class MapK
 

@@ -17,30 +17,30 @@ object Dependencies {
 
   object Kafka {
     private val version = "2.7.1"
-    val kafka   = "org.apache.kafka" %% "kafka"         % version
-    val clients = "org.apache.kafka" %  "kafka-clients" % version
+    val kafka           = "org.apache.kafka" %% "kafka"         % version
+    val clients         = "org.apache.kafka"  % "kafka-clients" % version
   }
 
   object Logback {
     private val version = "1.2.4"
-    val core    = "ch.qos.logback" % "logback-core"    % version
-    val classic = "ch.qos.logback" % "logback-classic" % version
+    val core            = "ch.qos.logback" % "logback-core"    % version
+    val classic         = "ch.qos.logback" % "logback-classic" % version
   }
 
   object Slf4j {
-    private val version = "1.7.32"
+    private val version    = "1.7.32"
     val api                = "org.slf4j" % "slf4j-api"        % version
     val `log4j-over-slf4j` = "org.slf4j" % "log4j-over-slf4j" % version
   }
 
   object Cats {
     private val version = "2.6.1"
-    val core = "org.typelevel" %% "cats-core"   % version
-    val laws = "org.typelevel" %% "cats-laws"   % version
+    val core            = "org.typelevel" %% "cats-core" % version
+    val laws            = "org.typelevel" %% "cats-laws" % version
   }
 
   object CatsEffect {
     private val version = "2.5.1"
-    val effect = "org.typelevel" %% "cats-effect" % version
+    val effect          = "org.typelevel" %% "cats-effect" % version
   }
 }

@@ -65,7 +65,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
   test("bindings") {
     val configs = ConsumerConfig(
-      common             = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
+      common = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
       autoCommitInterval = Some(5.seconds),
       saslSupport = new SaslSupportConfig(
         kerberosServiceName        = Some("service_name"),

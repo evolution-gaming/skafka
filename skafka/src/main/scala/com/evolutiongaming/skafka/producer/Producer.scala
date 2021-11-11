@@ -156,16 +156,17 @@ object Producer {
                 }
             }
 
-            Sync[F].uncancelable {
-              for {
-                deferred <- Deferred.uncancelable[F, Either[Throwable, RecordMetadataJ]]
-                callback  = callbackOf(deferred)
-                _        <- blocking { producer.send(record, callback) }.recoverWith(executionException)
-              } yield {
-                val result = deferred.get.flatMap(Sync[F].fromEither)
-                result.recoverWith(executionException)
-              }
+            val result = for {
+              deferred <- Deferred.uncancelable[F, Either[Throwable, RecordMetadataJ]]
+              callback  = callbackOf(deferred)
+              _        <- blocking { producer.send(record, callback) }
+            } yield {
+              deferred
+                .get
+                .flatMap { _.liftTo[F] }
+                .recoverWith(executionException)
             }
+            result.recoverWith(executionException)
           }
 
           def toBytesError(error: Throwable) = {

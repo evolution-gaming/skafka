@@ -9,7 +9,7 @@ object Dependencies {
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"          % "0.0.11"
   val `play-json-jsoniter` = "com.evolutiongaming"    %% "play-json-jsoniter"      % "0.9.3"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "1.0.0"
-  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
+  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.6.0"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.10"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.3.2"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
@@ -17,14 +17,14 @@ object Dependencies {
 
   object Kafka {
     private val version = "2.7.2"
-    val kafka   = "org.apache.kafka" %% "kafka"         % version
-    val clients = "org.apache.kafka" %  "kafka-clients" % version
+    val kafka           = "org.apache.kafka" %% "kafka"         % version
+    val clients         = "org.apache.kafka"  % "kafka-clients" % version
   }
 
   object Logback {
     private val version = "1.2.7"
-    val core    = "ch.qos.logback" % "logback-core"    % version
-    val classic = "ch.qos.logback" % "logback-classic" % version
+    val core            = "ch.qos.logback" % "logback-core"    % version
+    val classic         = "ch.qos.logback" % "logback-classic" % version
   }
 
   object Slf4j {
@@ -41,6 +41,6 @@ object Dependencies {
 
   object CatsEffect {
     private val version = "2.5.4"
-    val effect = "org.typelevel" %% "cats-effect" % version
+    val effect          = "org.typelevel" %% "cats-effect" % version
   }
 }

@@ -46,7 +46,7 @@ object ProducerMetrics {
 
     def initTransactions(latency: FiniteDuration) = unit
 
-    val beginTransaction = unit
+    def beginTransaction = unit
 
     def sendOffsetsToTransaction(latency: FiniteDuration) = unit
 
@@ -128,7 +128,7 @@ object ProducerMetrics {
             observeLatency("init_transactions", latency)
           }
 
-          val beginTransaction = {
+          def beginTransaction = {
             callCount.labels(clientId, "begin_transaction").inc()
           }
 

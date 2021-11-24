@@ -62,22 +62,22 @@ object Producer {
 
   def empty[F[_]: Applicative]: Producer[F] = {
 
-    val empty = ().pure[F]
+    def empty = ().pure[F]
 
     new Empty with Producer[F] {
 
-      val initTransactions = empty
+      def initTransactions = empty
 
-      val beginTransaction = empty
+      def beginTransaction = empty
 
       def sendOffsetsToTransaction(
         offsets: Nem[TopicPartition, OffsetAndMetadata],
         consumerGroupId: String
       ) = empty
 
-      val commitTransaction = empty
+      def commitTransaction = empty
 
-      val abortTransaction = empty
+      def abortTransaction = empty
 
       def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
         val partition      = record.partition getOrElse Partition.min
@@ -88,7 +88,7 @@ object Producer {
 
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
-      val flush = empty
+      def flush = empty
     }
   }
 
@@ -111,11 +111,11 @@ object Producer {
     def apply(producer: ProducerJ[Bytes, Bytes]) = {
       new Main with Producer[F] {
 
-        val initTransactions = {
+        def initTransactions = {
           blocking { producer.initTransactions() }
         }
 
-        val beginTransaction = {
+        def beginTransaction = {
           Sync[F].delay { producer.beginTransaction() }
         }
 
@@ -126,11 +126,11 @@ object Producer {
           blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
         }
 
-        val commitTransaction = {
+        def commitTransaction = {
           blocking { producer.commitTransaction() }
         }
 
-        val abortTransaction = {
+        def abortTransaction = {
           blocking { producer.abortTransaction() }
         }
 
@@ -190,7 +190,7 @@ object Producer {
           } yield result
         }
 
-        val flush = {
+        def flush = {
           blocking { producer.flush() }
         }
       }
@@ -214,7 +214,7 @@ object Producer {
 
     new WithMetrics with Producer[F] {
 
-      val initTransactions = {
+      def initTransactions = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.initTransactions.attempt
@@ -224,7 +224,7 @@ object Producer {
         } yield r
       }
 
-      val beginTransaction = {
+      def beginTransaction = {
         for {
           r <- producer.beginTransaction
           _ <- metrics.beginTransaction
@@ -241,7 +241,7 @@ object Producer {
         } yield r
       }
 
-      val commitTransaction = {
+      def commitTransaction = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.commitTransaction.attempt
@@ -251,7 +251,7 @@ object Producer {
         } yield r
       }
 
-      val abortTransaction = {
+      def abortTransaction = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.abortTransaction.attempt
@@ -295,7 +295,7 @@ object Producer {
         } yield r
       }
 
-      val flush = {
+      def flush = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.flush.attempt

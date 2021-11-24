@@ -1,7 +1,8 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.effect.{ContextShift, Effect, Resource}
+import cats.effect.{Concurrent, ContextShift, Effect, Resource}
 import cats.{Defer, Monad, ~>}
+import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.smetrics.MeasureDuration
 
 import scala.concurrent.ExecutionContext
@@ -13,6 +14,7 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
+  @deprecated("use `apply1` instead", "11.7.0")
   def apply[F[_]: Effect: ContextShift: MeasureDuration](
     executorBlocking: ExecutionContext,
     metrics: Option[ProducerMetrics[F]] = None
@@ -21,6 +23,20 @@ object ProducerOf {
     def apply(config: ProducerConfig) = {
       for {
         producer <- Producer.of[F](config, executorBlocking)
+      } yield {
+        metrics.fold(producer)(producer.withMetrics[Throwable])
+      }
+    }
+  }
+
+  def apply1[F[_]: Concurrent: ContextShift: MeasureDuration: ToTry](
+    executorBlocking: ExecutionContext,
+    metrics: Option[ProducerMetrics[F]] = None
+  ): ProducerOf[F] = new ProducerOf[F] {
+
+    def apply(config: ProducerConfig) = {
+      for {
+        producer <- Producer.of1[F](config, executorBlocking)
       } yield {
         metrics.fold(producer)(producer.withMetrics[Throwable])
       }

@@ -87,7 +87,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
         c match {
           case Success(c) =>
             c match {
-              case c: Bind[F, Any @unchecked, A1 @unchecked] =>
+              case c: Bind[F @unchecked, Any @unchecked, A1 @unchecked] =>
                 val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
                 loop(Try(c.source()), s :: ss)
               case c: Pure[A1] =>
@@ -160,7 +160,7 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
         c match {
           case Success(c) =>
             c match {
-              case c: Bind[F, Any @unchecked, A1 @unchecked] =>
+              case c: Bind[F @unchecked, Any @unchecked, A1 @unchecked] =>
                 val s: Try[Any] => Try[RebalanceCallback[F, Any]] = Functor[Try].lift(c.fs)
                 loop(Try(c.source()), s :: ss)
               case c: Pure[A1] =>

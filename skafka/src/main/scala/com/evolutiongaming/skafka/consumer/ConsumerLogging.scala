@@ -31,7 +31,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val assignment = {
+      def assignment = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.assignment
@@ -110,7 +110,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val subscription = {
+      def subscription = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.subscription
@@ -119,7 +119,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val unsubscribe = {
+      def unsubscribe = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.unsubscribe
@@ -142,7 +142,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val commit = {
+      def commit = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit
@@ -178,7 +178,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val commitLater = {
+      def commitLater = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commitLater
@@ -290,7 +290,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val topics = {
+      def topics = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.topics
@@ -317,7 +317,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val paused = {
+      def paused = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.paused
@@ -408,7 +408,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val wakeup = {
+      def wakeup = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.wakeup
@@ -417,7 +417,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      val enforceRebalance = {
+      def enforceRebalance = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.enforceRebalance

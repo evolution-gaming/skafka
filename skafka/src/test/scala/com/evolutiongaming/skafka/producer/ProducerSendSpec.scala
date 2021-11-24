@@ -94,7 +94,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
         def abortTransaction() = {}
       }
 
-      Producer.fromProducerJ(producer.pure[F])
+      Producer.fromProducerJ1(producer.pure[F])
     }
 
     def start[A](fa: F[A]) = {

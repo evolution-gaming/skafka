@@ -14,17 +14,17 @@ object ProducerLogging {
 
     new WithLogging with Producer[F] {
 
-      val initTransactions = producer.initTransactions
+      def initTransactions = producer.initTransactions
 
-      val beginTransaction = producer.beginTransaction
+      def beginTransaction = producer.beginTransaction
 
       def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
         producer.sendOffsetsToTransaction(offsets, consumerGroupId)
       }
 
-      val commitTransaction = producer.commitTransaction
+      def commitTransaction = producer.commitTransaction
 
-      val abortTransaction = producer.abortTransaction
+      def abortTransaction = producer.abortTransaction
 
       def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
         val a = for {
@@ -50,7 +50,7 @@ object ProducerLogging {
 
       def partitions(topic: Topic) = producer.partitions(topic)
 
-      val flush = producer.flush
+      def flush = producer.flush
     }
   }
 }

@@ -197,7 +197,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     val producer: Producer[IO] = {
       implicit val measureDuration = MeasureDuration.empty[IO]
       Producer
-        .fromProducerJ[IO](jProducer.pure[IO])
+        .fromProducerJ1[IO](jProducer.pure[IO])
         .allocated
         .toTry
         .get

@@ -11,36 +11,36 @@ object Dependencies {
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "1.0.0"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.10"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.3.2"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "0.3.3"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
   val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.1.5"
 
   object Kafka {
     private val version = "2.7.2"
-    val kafka   = "org.apache.kafka" %% "kafka"         % version
-    val clients = "org.apache.kafka" %  "kafka-clients" % version
+    val kafka           = "org.apache.kafka" %% "kafka"         % version
+    val clients         = "org.apache.kafka"  % "kafka-clients" % version
   }
 
   object Logback {
     private val version = "1.2.7"
-    val core    = "ch.qos.logback" % "logback-core"    % version
-    val classic = "ch.qos.logback" % "logback-classic" % version
+    val core            = "ch.qos.logback" % "logback-core"    % version
+    val classic         = "ch.qos.logback" % "logback-classic" % version
   }
 
   object Slf4j {
-    private val version = "1.7.32"
+    private val version    = "1.7.32"
     val api                = "org.slf4j" % "slf4j-api"        % version
     val `log4j-over-slf4j` = "org.slf4j" % "log4j-over-slf4j" % version
   }
 
   object Cats {
     private val version = "2.6.1"
-    val core = "org.typelevel" %% "cats-core"   % version
-    val laws = "org.typelevel" %% "cats-laws"   % version
+    val core            = "org.typelevel" %% "cats-core" % version
+    val laws            = "org.typelevel" %% "cats-laws" % version
   }
 
   object CatsEffect {
     private val version = "2.5.4"
-    val effect = "org.typelevel" %% "cats-effect" % version
+    val effect          = "org.typelevel" %% "cats-effect" % version
   }
 }

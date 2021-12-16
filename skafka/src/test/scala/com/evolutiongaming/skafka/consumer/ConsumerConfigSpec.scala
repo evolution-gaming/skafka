@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.data.{NonEmptyList => Nel}
 import com.evolutiongaming.skafka.JaasConfig.Plain
-import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig}
+import com.evolutiongaming.skafka.{CommonConfig, KeystoreType, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.ConfigFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -45,6 +45,18 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       clientCallbackHandlerClass      = Some(classOf[ConsumerConfigSpec]),
       loginCallbackHandlerClass       = Some(classOf[ConsumerConfigSpec]),
       loginClass                      = Some(classOf[ConsumerConfigSpec]),
+    ),
+    sslSupport = new SslSupportConfig(
+      keystoreType                    = Some(KeystoreType.JKS),
+      keystoreKey                     = Some("---key1---"),
+      keystoreCertificateChain        = Some("---chain---"),
+      keystoreLocation                = Some("/tmp/keystore.jks"),
+      keystorePassword                = Some("some password 1"),
+      truststoreCertificates          = Some("---key2---"),
+      truststoreType                  = Some(KeystoreType.JKS),
+      truststoreLocation              = Some("/tmp/truststore.jks"),
+      truststorePassword              = Some("some password 2"),
+      endpointIdentificationAlgorithm = Some("algo")
     )
   )
 
@@ -73,6 +85,18 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
         clientCallbackHandlerClass = Some(classOf[ConsumerConfigSpec]),
         loginCallbackHandlerClass  = Some(classOf[ConsumerConfigSpec]),
         loginClass                 = Some(classOf[ConsumerConfigSpec])
+      ),
+      sslSupport = new SslSupportConfig(
+        keystoreType                    = Some(KeystoreType.JKS),
+        keystoreKey                     = Some("---key1---"),
+        keystoreCertificateChain        = Some("---chain---"),
+        keystoreLocation                = Some("/tmp/keystore.jks"),
+        keystorePassword                = Some("some password 1"),
+        truststoreCertificates          = Some("---key2---"),
+        truststoreType                  = Some(KeystoreType.JKS),
+        truststoreLocation              = Some("/tmp/truststore.jks"),
+        truststorePassword              = Some("some password 2"),
+        endpointIdentificationAlgorithm = Some("algo")
       )
     )
 
@@ -123,6 +147,16 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "sasl.login.callback.handler.class"        -> "com.evolutiongaming.skafka.consumer.ConsumerConfigSpec",
       "sasl.login.class"                         -> "com.evolutiongaming.skafka.consumer.ConsumerConfigSpec",
       "sasl.jaas.config"                         -> "plain config",
+      "ssl.keystore.type"                        -> "JKS",
+      "ssl.keystore.key"                         -> "---key1---",
+      "ssl.keystore.certificate.chain"           -> "---chain---",
+      "ssl.keystore.location"                    -> "/tmp/keystore.jks",
+      "ssl.keystore.password"                    -> "some password 1",
+      "ssl.truststore.certificates"              -> "---key2---",
+      "ssl.truststore.type"                      -> "JKS",
+      "ssl.truststore.location"                  -> "/tmp/truststore.jks",
+      "ssl.truststore.password"                  -> "some password 2",
+      "ssl.endpoint.identification.algorithm"    -> "algo",
     )
   }
 }

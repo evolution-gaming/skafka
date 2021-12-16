@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import com.evolutiongaming.config.ConfigHelper._
-import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig}
+import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
 
@@ -29,6 +29,7 @@ final case class ProducerConfig(
   transactionTimeout: FiniteDuration                = 1.minute,
   transactionalId: Option[String]                   = None,
   saslSupport: SaslSupportConfig                    = SaslSupportConfig.Default,
+  sslSupport: SslSupportConfig                      = SslSupportConfig.Default,
 ) {
 
   def bindings: Map[String, AnyRef] = {
@@ -52,7 +53,7 @@ final case class ProducerConfig(
       transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
     partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
 
-    bindings ++ common.bindings ++ saslSupport.bindings
+    bindings ++ common.bindings ++ saslSupport.bindings ++ sslSupport.bindings
   }
 
   def properties: java.util.Properties = {

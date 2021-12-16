@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.config.ConfigHelper.{FromConf, _}
-import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig}
+import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.consumer.{ConsumerConfig => C}
 
@@ -31,6 +31,7 @@ final case class ConsumerConfig(
   excludeInternalTopics: Boolean             = true,
   isolationLevel: IsolationLevel             = IsolationLevel.ReadUncommitted,
   saslSupport: SaslSupportConfig             = SaslSupportConfig.Default,
+  sslSupport: SslSupportConfig               = SslSupportConfig.Default,
 ) {
 
   def bindings: Map[String, String] = {
@@ -57,7 +58,7 @@ final case class ConsumerConfig(
       (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
     )
 
-    bindings ++ common.bindings ++ saslSupport.bindings
+    bindings ++ common.bindings ++ saslSupport.bindings ++ sslSupport.bindings
   }
 
   def properties: java.util.Properties = {
@@ -112,6 +113,7 @@ object ConsumerConfig {
     excludeInternalTopics: Boolean,
     isolationLevel: IsolationLevel,
     saslSupport: SaslSupportConfig,
+    sslSupport: SslSupportConfig,
   ): ConsumerConfig =
     ConsumerConfig(
       common                      = common,
@@ -134,6 +136,7 @@ object ConsumerConfig {
       excludeInternalTopics       = excludeInternalTopics,
       isolationLevel              = isolationLevel,
       saslSupport                 = saslSupport,
+      sslSupport                  = sslSupport,
     )
 
   // Constructor for backward compatibility (version <= 11.5)
@@ -179,6 +182,7 @@ object ConsumerConfig {
       excludeInternalTopics       = excludeInternalTopics,
       isolationLevel              = isolationLevel,
       saslSupport                 = SaslSupportConfig.Default,
+      sslSupport                  = SslSupportConfig.Default,
     )
 
   def apply(config: Config, default: => ConsumerConfig): ConsumerConfig = {
@@ -224,7 +228,8 @@ object ConsumerConfig {
       excludeInternalTopics =
         get[Boolean]("exclude-internal-topics", "exclude.internal.topics") getOrElse default.excludeInternalTopics,
       isolationLevel = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel,
-      saslSupport    = SaslSupportConfig(config, default.saslSupport)
+      saslSupport    = SaslSupportConfig(config, default.saslSupport),
+      sslSupport     = SslSupportConfig(config)
     )
   }
 }

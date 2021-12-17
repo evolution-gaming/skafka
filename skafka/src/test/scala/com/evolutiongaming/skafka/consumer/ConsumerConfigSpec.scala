@@ -30,7 +30,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     interceptorClasses          = List("interceptorClasses"),
     excludeInternalTopics       = false,
     isolationLevel              = IsolationLevel.ReadCommitted,
-    saslSupport = new SaslSupportConfig(
+    saslSupport = SaslSupportConfig(
       kerberosServiceName             = Some("service_name"),
       kerberosKinitCmd                = "/bin/kinit",
       kerberosTicketRenewWindowFactor = 0.4,
@@ -46,7 +46,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       loginCallbackHandlerClass       = Some(classOf[ConsumerConfigSpec]),
       loginClass                      = Some(classOf[ConsumerConfigSpec]),
     ),
-    sslSupport = new SslSupportConfig(
+    sslSupport = SslSupportConfig(
       keystoreType                    = Some(KeystoreType.JKS),
       keystoreKey                     = Some("---key1---"),
       keystoreCertificateChain        = Some("---chain---"),
@@ -86,7 +86,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
         loginCallbackHandlerClass  = Some(classOf[ConsumerConfigSpec]),
         loginClass                 = Some(classOf[ConsumerConfigSpec])
       ),
-      sslSupport = new SslSupportConfig(
+      sslSupport = SslSupportConfig(
         keystoreType                    = Some(KeystoreType.JKS),
         keystoreKey                     = Some("---key1---"),
         keystoreCertificateChain        = Some("---chain---"),

@@ -16,6 +16,7 @@ import org.typelevel.discipline.scalatest.FunSuiteDiscipline
 
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Try}
+import com.evolutiongaming.skafka.IOSuite._
 
 class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike with Configuration {
 

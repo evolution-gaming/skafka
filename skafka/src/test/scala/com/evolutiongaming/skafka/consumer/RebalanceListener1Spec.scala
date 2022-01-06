@@ -9,6 +9,7 @@ import cats.implicits._
 import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec._
 import com.evolutiongaming.skafka.{Offset, TopicPartition}
+import com.evolutiongaming.skafka.IOSuite._
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers

@@ -3,8 +3,8 @@ package consumer
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect._
-import cats.effect.concurrent.Semaphore
 import cats.effect.implicits._
+import cats.effect.std.Semaphore
 import cats.implicits._
 import cats.{Applicative, Monad, MonadError, ~>}
 import com.evolutiongaming.catshelper.Blocking.implicits._
@@ -14,7 +14,13 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import java.lang.{Long => LongJ}
@@ -230,10 +236,9 @@ object Consumer {
     }
   }
 
-
   private sealed abstract class Main
 
-  def of[F[_]: Concurrent: ContextShift: ToTry: ToFuture, K, V](
+  def of[F[_]: ToTry: ToFuture: Async, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext
   )(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]): Resource[F, Consumer[F, K, V]] = {
@@ -242,7 +247,7 @@ object Consumer {
     fromConsumerJ(consumer)
   }
 
-  def fromConsumerJ[F[_]: Concurrent: ToFuture: ToTry: Blocking, K, V](
+  def fromConsumerJ[F[_]: ToFuture: ToTry: Blocking: Async, K, V](
     consumer: F[ConsumerJ[K, V]]
   ): Resource[F, Consumer[F, K, V]] = {
 
@@ -259,7 +264,8 @@ object Consumer {
       around = new Around {
         def apply[A](f: => A) = {
           semaphore
-            .withPermit { serialListeners.around { blocking { f } } }
+            .permit
+            .use(_ => serialListeners.around { blocking { f } })
             .flatten
             .uncancelable
         }
@@ -268,7 +274,7 @@ object Consumer {
       _    <- Resource.release { close }
     } yield {
 
-      def serial[A](fa: F[A]) = semaphore.withPermit(fa).uncancelable
+      def serial[A](fa: F[A]) = semaphore.permit.use(_ => fa).uncancelable
 
       def serialNonBlocking[A](f: => A) = serial { Sync[F].delay { f } }
 
@@ -276,7 +282,7 @@ object Consumer {
 
       def commitLater1(f: OffsetCommitCallback => Unit) = {
         Async[F]
-          .async[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
+          .async_[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
             val offsetCommitCallback = new OffsetCommitCallback {
 
               def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
@@ -556,7 +562,6 @@ object Consumer {
       }
     }
   }
-
 
   private sealed abstract class WithMetrics
 

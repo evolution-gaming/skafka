@@ -14,8 +14,7 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
-  @deprecated("use `apply1` instead", "11.7.0")
-  def apply[F[_]: MeasureDuration: Async](
+  def apply[F[_]: MeasureDuration: ToTry: Async](
     executorBlocking: ExecutionContext,
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
@@ -23,20 +22,6 @@ object ProducerOf {
     def apply(config: ProducerConfig) = {
       for {
         producer <- Producer.of[F](config, executorBlocking)
-      } yield {
-        metrics.fold(producer)(producer.withMetrics[Throwable])
-      }
-    }
-  }
-
-  def apply1[F[_]: MeasureDuration: ToTry: Async](
-    executorBlocking: ExecutionContext,
-    metrics: Option[ProducerMetrics[F]] = None
-  ): ProducerOf[F] = new ProducerOf[F] {
-
-    def apply(config: ProducerConfig) = {
-      for {
-        producer <- Producer.of1[F](config, executorBlocking)
       } yield {
         metrics.fold(producer)(producer.withMetrics[Throwable])
       }

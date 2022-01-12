@@ -53,4 +53,14 @@ object ConfigHelpers {
       value orElse config.getOpt[Long](pathWithUnit).map { Duration(_, timeUnit) }
     }
   }
+
+  implicit val KeystoreTypeFromConfig: FromConf[KeystoreType] = (conf, path) => {
+    val value = conf.getString(path)
+    KeystoreType
+      .Values
+      .find(_.name.equalsIgnoreCase(value))
+      .getOrElse(
+        throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse KeystoreType from '$value'")
+      )
+  }
 }

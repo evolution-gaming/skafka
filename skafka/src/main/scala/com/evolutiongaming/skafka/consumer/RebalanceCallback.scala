@@ -378,7 +378,7 @@ private[consumer] trait RebalanceCallbackLowPrioInstances {
 
 abstract private[consumer] class RebalanceCallbackInstances extends RebalanceCallbackLowPrioInstances {
 
-  implicit def catsMonadThrowableForRebalanceCallback[F[_]: MonadThrowable]: MonadThrowable[RebalanceCallback[F, *]] =
+  implicit def catsMonadThrowableForRebalanceCallback[F[_]]: MonadThrowable[RebalanceCallback[F, *]] =
     new MonadThrowableForRebalanceCallback[F]
 
   private class MonadThrowableForRebalanceCallback[F[_]]

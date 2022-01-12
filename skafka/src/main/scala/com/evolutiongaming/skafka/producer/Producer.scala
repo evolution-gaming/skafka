@@ -2,14 +2,13 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.data.{NonEmptyMap => Nem}
-import cats.effect._
-import cats.effect.syntax.all._
-import cats.effect.concurrent.Deferred
-import cats.syntax.all._
+import cats.effect.{Resource, Sync, Async, Deferred}
+import cats.effect.implicits._
+import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
-import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable, ToTry}
 import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -20,8 +19,8 @@ import org.apache.kafka.clients.producer.{
   RecordMetadata => RecordMetadataJ
 }
 
-import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, ExecutionException}
+import scala.jdk.CollectionConverters._
 
 /**
   * See [[org.apache.kafka.clients.producer.Producer]]
@@ -58,7 +57,6 @@ object Producer {
 
   def apply[F[_]](implicit F: Producer[F]): Producer[F] = F
 
-
   private sealed abstract class Empty
 
   def empty[F[_]: Applicative]: Producer[F] = {
@@ -93,18 +91,7 @@ object Producer {
     }
   }
 
-  @deprecated("use `of1` instead", "11.7.0")
-  def of[F[_]: Effect: ContextShift](
-    config: ProducerConfig,
-    executorBlocking: ExecutionContext
-  ): Resource[F, Producer[F]] = {
-    implicit val blocking = Blocking.fromExecutionContext(executorBlocking)
-    val producer          = CreateProducerJ(config)
-    fromProducerJ(producer)
-  }
-
-
-  def of1[F[_]: Concurrent: ContextShift: ToTry](
+  def of[F[_]: ToTry: Async](
     config: ProducerConfig,
     executorBlocking: ExecutionContext
   ): Resource[F, Producer[F]] = {
@@ -113,114 +100,9 @@ object Producer {
     fromProducerJ1(producer)
   }
 
-
   private sealed abstract class Main
 
-  @deprecated("use `fromProducerJ1` instead", "11.7.0")
-  def fromProducerJ[F[_]: Effect: Blocking](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
-
-    def blocking[A](f: => A) = Sync[F].delay(f).blocking
-
-    def apply(producer: ProducerJ[Bytes, Bytes]) = {
-      new Main with Producer[F] {
-
-        def initTransactions = {
-          blocking { producer.initTransactions() }
-        }
-
-        def beginTransaction = {
-          Sync[F].delay { producer.beginTransaction() }
-        }
-
-        def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
-          blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
-        }
-
-        def commitTransaction = {
-          blocking { producer.commitTransaction() }
-        }
-
-        def abortTransaction = {
-          blocking { producer.abortTransaction() }
-        }
-
-        def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
-
-          def executionException[A]: PartialFunction[Throwable, F[A]] = {
-            case failure: ExecutionException => failure.getCause.raiseError[F, A]
-          }
-
-          def block(record: ProducerRecordJ[Bytes, Bytes]) = {
-
-            def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
-              (metadata: RecordMetadataJ, exception: Exception) =>
-                val result = if (exception != null) {
-                  exception.asLeft[RecordMetadataJ]
-                } else if (metadata != null) {
-                  metadata.asRight[Throwable]
-                } else {
-                  SkafkaError("both metadata & exception are nulls").asLeft[RecordMetadataJ]
-                }
-                deferred
-                  .complete(result)
-                  .toIO
-                  .unsafeRunSync()
-            }
-
-            val result = for {
-              deferred <- Deferred.uncancelable[F, Either[Throwable, RecordMetadataJ]]
-              callback  = callbackOf(deferred)
-              _        <- blocking { producer.send(record, callback) }
-            } yield {
-              deferred
-                .get
-                .flatMap { _.liftTo[F] }
-                .recoverWith(executionException)
-            }
-            result.recoverWith(executionException)
-          }
-
-          def toBytesError(error: Throwable) = {
-            SkafkaError(s"toBytes failed for $record", error).raiseError[F, ProducerRecord[Bytes, Bytes]]
-          }
-
-          for {
-            bytes  <- record.toBytes.handleErrorWith(toBytesError)
-            bytesJ  = bytes.asJava
-            result <- block(bytesJ)
-          } yield for {
-            result <- result
-            result <- result.asScala[F]
-          } yield result
-        }
-
-        def partitions(topic: Topic) = {
-          for {
-            result <- blocking { producer.partitionsFor(topic) }
-            result <- result.asScala.toList.traverse { _.asScala[F] }
-          } yield result
-        }
-
-        def flush = {
-          blocking { producer.flush() }
-        }
-      }
-    }
-
-    for {
-      producerJ <- producer.blocking.toResource
-      producer   = apply(producerJ)
-      close      = blocking { producerJ.close() }
-      flush      = producer.flush.attempt
-      _         <- Resource.release { flush *> close }
-    } yield producer
-  }
-
-
-  def fromProducerJ1[F[_]: Concurrent: Blocking: ToTry](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
+  def fromProducerJ1[F[_]: Blocking: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
 
     def blocking[A](f: => A) = Sync[F].delay(f).blocking
 
@@ -271,10 +153,11 @@ object Producer {
                   .complete(result)
                   .toTry
                   .get
+                ()
             }
 
             val result = for {
-              deferred <- Deferred[F, Either[Throwable, RecordMetadataJ]]
+              deferred <- Async[F].deferred[Either[Throwable, RecordMetadataJ]]
               callback  = callbackOf(deferred)
               _        <- blocking { producer.send(record, callback) }
             } yield {
@@ -321,8 +204,6 @@ object Producer {
       _         <- Resource.release { flush *> close }
     } yield producer
   }
-
-
 
   private sealed abstract class WithMetrics
 
@@ -424,7 +305,6 @@ object Producer {
       }
     }
   }
-
 
   private sealed abstract class MapK
 

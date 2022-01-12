@@ -88,7 +88,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val config = ProducerConfig.Default.copy(acks = acks)
     for {
       metrics    <- ProducerMetrics.of(CollectorRegistry.empty[IO])
-      producerOf  = ProducerOf(executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
+      producerOf  = ProducerOf.apply1(executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
       producer   <- producerOf(config)
     } yield {
       producer.withLogging(Log.empty)

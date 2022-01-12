@@ -132,7 +132,7 @@ object Consumer {
 
       def assign(partitions: Nes[TopicPartition]) = empty
 
-      val assignment = Set.empty[TopicPartition].pure[F]
+      def assignment = Set.empty[TopicPartition].pure[F]
 
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit] = empty
 
@@ -146,13 +146,13 @@ object Consumer {
 
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = empty
 
-      val subscription: F[Set[Topic]] = Set.empty[Topic].pure[F]
+      def subscription: F[Set[Topic]] = Set.empty[Topic].pure[F]
 
-      val unsubscribe = empty
+      def unsubscribe = empty
 
       def poll(timeout: FiniteDuration) = ConsumerRecords.empty[K, V].pure[F]
 
-      val commit = empty
+      def commit = empty
 
       def commit(timeout: FiniteDuration) = empty
 
@@ -160,7 +160,7 @@ object Consumer {
 
       def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = empty
 
-      val commitLater = Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
+      def commitLater = Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
 
       def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = empty
 
@@ -188,13 +188,13 @@ object Consumer {
 
       def partitions(topic: Topic, timeout: FiniteDuration) = List.empty[PartitionInfo].pure[F]
 
-      val topics = Map.empty[Topic, List[PartitionInfo]].pure[F]
+      def topics = Map.empty[Topic, List[PartitionInfo]].pure[F]
 
       def topics(timeout: FiniteDuration) = Map.empty[Topic, List[PartitionInfo]].pure[F]
 
       def pause(partitions: Nes[TopicPartition]) = empty
 
-      val paused = Set.empty[TopicPartition].pure[F]
+      def paused = Set.empty[TopicPartition].pure[F]
 
       def resume(partitions: Nes[TopicPartition]) = empty
 
@@ -224,9 +224,9 @@ object Consumer {
 
       def groupMetadata = ConsumerGroupMetadata.Empty.pure[F]
 
-      val wakeup = empty
+      def wakeup = empty
 
-      val enforceRebalance = empty
+      def enforceRebalance = empty
     }
   }
 
@@ -362,7 +362,7 @@ object Consumer {
           serialNonBlocking { consumer.assign(partitionsJ) }
         }
 
-        val assignment = {
+        def assignment = {
           for {
             result <- serialNonBlocking { consumer.assignment() }
             result <- topicPartitionsSetF[F](result)
@@ -400,7 +400,7 @@ object Consumer {
           serialNonBlocking { consumer.subscribe(pattern, listenerJ) }
         }
 
-        val subscription = {
+        def subscription = {
           for {
             result <- serialNonBlocking { consumer.subscription() }
           } yield {
@@ -408,7 +408,7 @@ object Consumer {
           }
         }
 
-        val unsubscribe = {
+        def unsubscribe = {
           serialBlocking { consumer.unsubscribe() }
         }
 
@@ -417,7 +417,7 @@ object Consumer {
           around { consumer.poll(timeoutJ) }.flatMap { _.asScala[F] }
         }
 
-        val commit = {
+        def commit = {
           serialBlocking { consumer.commitSync() }
         }
 
@@ -437,7 +437,7 @@ object Consumer {
           serialBlocking { consumer.commitSync(offsetsJ, timeoutJ) }
         }
 
-        val commitLater = {
+        def commitLater = {
           for {
             result <- commitLater1 { callback => consumer.commitAsync(callback) }
             result <- result.asScalaMap(_.asScala[F], _.asScala[F])
@@ -505,7 +505,7 @@ object Consumer {
           serialNonBlocking { consumer.pause(partitionsJ) }
         }
 
-        val paused = {
+        def paused = {
           for {
             result <- serialNonBlocking { consumer.paused() }
             result <- topicPartitionsSetF[F](result)
@@ -548,11 +548,11 @@ object Consumer {
           serialNonBlocking { consumer.groupMetadata() }.map { _.asScala }
         }
 
-        val wakeup = {
+        def wakeup = {
           serialBlocking { consumer.wakeup() }
         }
 
-        val enforceRebalance = serialBlocking { consumer.enforceRebalance() }
+        def enforceRebalance = serialBlocking { consumer.enforceRebalance() }
       }
     }
   }
@@ -647,7 +647,7 @@ object Consumer {
           } yield r
         }
 
-        val assignment = self.assignment
+        def assignment = self.assignment
 
         def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
           // TODO RebalanceListener1 add metrics - https://github.com/evolution-gaming/skafka/issues/124
@@ -697,9 +697,9 @@ object Consumer {
           } yield r
         }
 
-        val subscription = self.subscription
+        def subscription = self.subscription
 
-        val unsubscribe = {
+        def unsubscribe = {
           call1("unsubscribe") { self.unsubscribe }
         }
 
@@ -714,7 +714,7 @@ object Consumer {
             }
           } yield records
 
-        val commit = {
+        def commit = {
           call1("commit") { self.commit }
         }
 
@@ -738,7 +738,7 @@ object Consumer {
           call("commit", topics) { self.commit(offsets, timeout) }
         }
 
-        val commitLater = call1("commit_later") {
+        def commitLater = call1("commit_later") {
           self.commitLater
         }
 
@@ -830,7 +830,7 @@ object Consumer {
           } yield r
         }
 
-        val topics = {
+        def topics = {
           for {
             d <- MeasureDuration[F].start
             r <- self.topics.attempt
@@ -858,7 +858,7 @@ object Consumer {
           } yield r
         }
 
-        val paused = self.paused
+        def paused = self.paused
 
         def resume(partitions: Nes[TopicPartition]) = {
           val topics = partitions.map(_.topic).toList
@@ -902,14 +902,14 @@ object Consumer {
           call1("group_metadata") { self.groupMetadata }
         }
 
-        val wakeup = {
+        def wakeup = {
           for {
             _ <- count1("wakeup")
             r <- self.wakeup
           } yield r
         }
 
-        val enforceRebalance = {
+        def enforceRebalance = {
           for {
             _ <- count1("enforceRebalance")
             a <- self.enforceRebalance

@@ -6,9 +6,9 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import cats.data.{NonEmptySet => Nes}
-import cats.effect.concurrent.{Deferred, Ref}
-import cats.effect.{Concurrent, IO, Sync}
+import cats.effect.{Async, IO, Ref, Sync}
 import cats.effect.implicits._
+import cats.effect.kernel.Deferred
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{Blocking, ToFuture, ToTry}
@@ -17,7 +17,15 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRecord => ConsumerRecordJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerRecord => ConsumerRecordJ,
+  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -39,7 +47,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
   }
 
   @nowarn("cat=deprecation")
-  private def `consumer.poll`[F[_]: Concurrent: ToTry: ToFuture: Blocking] = {
+  private def `consumer.poll`[F[_]: Async: ToTry: ToFuture: Blocking] = {
 
     val result = for {
       actions   <- Actions.of[F].toResource
@@ -100,7 +108,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       _ <- consumer.topics.toResource
       _ <- lost1.complete(()).toResource
 
-      _       <- fiber.join.toResource
+      _       <- fiber.joinWithNever.toResource
       actions <- actions.get.toResource
       _ = actions shouldEqual List(
         Action.PollEnter,
@@ -121,7 +129,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
   }
 
   @nowarn("cat=deprecation")
-  private def `consumer.poll error`[F[_]: Concurrent: ToTry: ToFuture: Blocking] = {
+  private def `consumer.poll error`[F[_]: ToTry: ToFuture: Blocking: Async] = {
 
     val error: Throwable = new RuntimeException("error") with NoStackTrace
 
@@ -167,7 +175,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       _       <- consumer.topics.toResource
       _       <- deferred1.complete(()).toResource
       _       <- consumer.topics.toResource
-      result  <- fiber.join.attempt.toResource
+      result  <- fiber.joinWithNever.attempt.toResource
       _        = result shouldEqual error.asLeft
       actions <- actions.get.toResource
       _        = actions shouldEqual List(Action.PollEnter, Action.PartitionsAssignedEnter, Action.Topics, Action.Topics)

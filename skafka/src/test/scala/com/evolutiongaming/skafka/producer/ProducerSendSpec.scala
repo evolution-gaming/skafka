@@ -2,12 +2,10 @@ package com.evolutiongaming.skafka.producer
 
 import java.util.concurrent.CompletableFuture
 import java.util.{Map => MapJ}
-
-import cats.effect.concurrent.Deferred
-import cats.effect.{Concurrent, ConcurrentEffect, IO, Sync}
+import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
 import cats.implicits._
+import cats.effect.implicits._
 import com.evolutiongaming.catshelper.{Blocking, FromTry, ToFuture, ToTry}
-import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
@@ -32,7 +30,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
   }
 
   private def blockAndSend[
-    F[_]: ConcurrentEffect: ToTry: FromTry: ToFuture: Blocking
+    F[_]: ToTry: FromTry: ToFuture: Blocking: Async
   ] = {
 
     val topic          = "topic"
@@ -98,7 +96,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     }
 
     def start[A](fa: F[A]) = {
-      Sync[F].uncancelable {
+      Sync[F].uncancelable { _ =>
         for {
           started <- Deferred[F, Unit]
           fiber <- Concurrent[F].start {
@@ -109,7 +107,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
           }
           _ <- started.get
         } yield {
-          fiber.join
+          fiber.joinWithNever
         }
       }
     }

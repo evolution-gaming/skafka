@@ -11,6 +11,7 @@ import com.evolutiongaming.skafka.{Topic, TopicPartition}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
+import com.evolutiongaming.skafka.IOSuite._
 
 import scala.util.Try
 class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {

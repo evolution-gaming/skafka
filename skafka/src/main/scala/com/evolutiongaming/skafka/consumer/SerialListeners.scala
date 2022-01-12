@@ -1,9 +1,9 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.Applicative
-import cats.effect.Concurrent
-import cats.effect.concurrent.{Deferred, Ref, Semaphore}
+import cats.effect._
 import cats.effect.implicits._
+import cats.effect.std.Semaphore
 import cats.implicits._
 
 /**
@@ -72,13 +72,13 @@ object SerialListeners {
             d <- Deferred[F, Either[Throwable, Unit]]
             l <- ref.modify { a => (d.get.rethrow, a) }
             f = for {
-              a <- l.productR(semaphore.withPermit(fa)).attempt
+              a <- l.productR(semaphore.permit.use(_ => fa)).attempt
               _ <- d.complete(a.void)
               a <- a.liftTo[F]
             } yield a
             f <- f.start
           } yield {
-            f.join
+            f.joinWithNever
           }
           result.uncancelable
         }

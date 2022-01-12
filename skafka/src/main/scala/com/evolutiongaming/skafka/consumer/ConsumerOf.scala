@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect.{Concurrent, ContextShift, Resource}
-import cats.{Applicative, Defer, ~>}
+import cats.effect._
+import cats.~>
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.FromBytes
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -17,7 +17,7 @@ trait ConsumerOf[F[_]] {
 
 object ConsumerOf {
 
-  def apply[F[_]: Concurrent: ContextShift: ToTry: ToFuture: MeasureDuration](
+  def apply[F[_]: Async: ToTry: ToFuture: MeasureDuration](
     executorBlocking: ExecutionContext,
     metrics: Option[ConsumerMetrics[F]] = None
   ): ConsumerOf[F] = new ConsumerOf[F] {
@@ -33,10 +33,10 @@ object ConsumerOf {
 
   implicit class ConsumerOfOps[F[_]](val self: ConsumerOf[F]) extends AnyVal {
 
-    def mapK[G[_]: Applicative: Defer](
+    def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    ): ConsumerOf[G] = new ConsumerOf[G] {
+    )(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): ConsumerOf[G] = new ConsumerOf[G] {
 
       def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[G, K], fromBytesV: FromBytes[G, V]) = {
         for {

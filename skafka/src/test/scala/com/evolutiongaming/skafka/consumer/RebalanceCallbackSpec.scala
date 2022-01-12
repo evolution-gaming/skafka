@@ -29,6 +29,7 @@ import scala.concurrent.{Await, Future}
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Random, Success, Try}
+import com.evolutiongaming.skafka.IOSuite._
 
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 

@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.effect.{Concurrent, ContextShift, Effect, Resource}
-import cats.{Defer, Monad, ~>}
+import cats.effect.{Async, MonadCancel, Resource}
+import cats.~>
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.smetrics.MeasureDuration
 
@@ -14,8 +14,7 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
-  @deprecated("use `apply1` instead", "11.7.0")
-  def apply[F[_]: Effect: ContextShift: MeasureDuration](
+  def apply[F[_]: MeasureDuration: ToTry: Async](
     executorBlocking: ExecutionContext,
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
@@ -29,26 +28,12 @@ object ProducerOf {
     }
   }
 
-  def apply1[F[_]: Concurrent: ContextShift: MeasureDuration: ToTry](
-    executorBlocking: ExecutionContext,
-    metrics: Option[ProducerMetrics[F]] = None
-  ): ProducerOf[F] = new ProducerOf[F] {
-
-    def apply(config: ProducerConfig) = {
-      for {
-        producer <- Producer.of1[F](config, executorBlocking)
-      } yield {
-        metrics.fold(producer)(producer.withMetrics[Throwable])
-      }
-    }
-  }
-
   implicit class ProducerOfOps[F[_]](val self: ProducerOf[F]) extends AnyVal {
 
-    def mapK[G[_]: Monad: Defer](
+    def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    ): ProducerOf[G] = { (config: ProducerConfig) =>
+    )(implicit G: MonadCancel[G, _], F: MonadCancel[F, _]): ProducerOf[G] = { (config: ProducerConfig) =>
       {
         for {
           a <- self(config).mapK(fg)

@@ -11,7 +11,7 @@ object Dependencies {
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "1.0.0"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.5.0"
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.10"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "1.0.0"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "1.0.1"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
   val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.1.5"
 

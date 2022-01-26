@@ -5,7 +5,7 @@ import java.util.{Map => MapJ}
 import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
 import cats.implicits._
 import cats.effect.implicits._
-import com.evolutiongaming.catshelper.{Blocking, FromTry, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.{FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
@@ -30,7 +30,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
   }
 
   private def blockAndSend[
-    F[_]: ToTry: FromTry: ToFuture: Blocking: Async
+    F[_]: ToTry: FromTry: ToFuture: Async
   ] = {
 
     val topic          = "topic"
@@ -92,7 +92,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
         def abortTransaction() = {}
       }
 
-      Producer.fromProducerJ1(producer.pure[F])
+      Producer.fromProducerJ2(producer.pure[F])
     }
 
     def start[A](fa: F[A]) = {

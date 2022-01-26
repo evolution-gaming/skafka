@@ -14,14 +14,19 @@ trait ProducerOf[F[_]] {
 
 object ProducerOf {
 
+  @deprecated("Use apply1", since = "12.0.1")
   def apply[F[_]: MeasureDuration: ToTry: Async](
     executorBlocking: ExecutionContext,
+    metrics: Option[ProducerMetrics[F]] = None
+  ): ProducerOf[F] = apply1(metrics = metrics)
+
+  def apply1[F[_]: MeasureDuration: ToTry: Async](
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
 
     def apply(config: ProducerConfig) = {
       for {
-        producer <- Producer.of[F](config, executorBlocking)
+        producer <- Producer.of[F](config = config)
       } yield {
         metrics.fold(producer)(producer.withMetrics[Throwable])
       }

@@ -480,7 +480,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     val consumer: Consumer[IO, Bytes, Bytes] = {
       Consumer
-        .fromConsumerJ(consumerJ.pure[IO])
+        .fromConsumerJ1(consumerJ.pure[IO])
         .allocated
         .toTry
         .get

@@ -15,6 +15,6 @@ object CreateConsumerJ {
   ): F[ConsumerJ[K, V]] = {
     val deserializerK = fromBytesV.asJava
     val deserializerV = fromBytesK.asJava
-    Sync[F].delay { new KafkaConsumer(config.properties, deserializerV, deserializerK) }
+    Sync[F].blocking { new KafkaConsumer(config.properties, deserializerV, deserializerK) }
   }
 }

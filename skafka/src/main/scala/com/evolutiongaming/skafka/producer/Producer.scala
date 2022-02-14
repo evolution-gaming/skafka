@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.data.{NonEmptyMap => Nem}
-import cats.effect.{Resource, Sync, Async, Deferred}
+import cats.effect.{Async, Resource, Sync}
 import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
@@ -18,7 +18,7 @@ import org.apache.kafka.clients.producer.{
   RecordMetadata => RecordMetadataJ
 }
 
-import scala.concurrent.{ExecutionContext, ExecutionException}
+import scala.concurrent.{ExecutionContext, ExecutionException, Promise}
 import scala.jdk.CollectionConverters._
 
 /**
@@ -150,7 +150,7 @@ object Producer {
 
           def block(record: ProducerRecordJ[Bytes, Bytes]) = {
 
-            def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
+            def callbackOf(promise: Promise[Either[Throwable, RecordMetadataJ]]): Callback = {
               (metadata: RecordMetadataJ, exception: Exception) =>
                 val result = if (exception != null) {
                   exception.asLeft[RecordMetadataJ]
@@ -159,20 +159,16 @@ object Producer {
                 } else {
                   SkafkaError("both metadata & exception are nulls").asLeft[RecordMetadataJ]
                 }
-                deferred
-                  .complete(result)
-                  .toTry
-                  .get
-                ()
+                promise.success(result)
             }
 
             val result = for {
-              deferred <- Async[F].deferred[Either[Throwable, RecordMetadataJ]]
-              callback  = callbackOf(deferred)
-              _        <- blocking { producer.send(record, callback) }
+              promise <- Sync[F].delay(Promise[Either[Throwable, RecordMetadataJ]]())
+              callback = callbackOf(promise)
+              _       <- blocking { producer.send(record, callback) }
+              res      = Async[F].fromFuture(Sync[F].delay(promise.future))
             } yield {
-              deferred
-                .get
+              res
                 .flatMap { _.liftTo[F] }
                 .recoverWith(executionException)
             }

@@ -11,7 +11,12 @@ import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
+import org.apache.kafka.clients.producer.{
+  Callback,
+  Producer => ProducerJ,
+  ProducerRecord => ProducerRecordJ,
+  RecordMetadata => RecordMetadataJ
+}
 
 import scala.concurrent.{ExecutionContext, ExecutionException, Promise}
 import scala.jdk.CollectionConverters._
@@ -145,7 +150,7 @@ object Producer {
 
           def block(record: ProducerRecordJ[Bytes, Bytes]) = {
 
-            def callbackOf(promise: Promise[Either[Throwable, RecordMetadataJ]]): Callback = {
+            def callbackOf(promise: Promise[RecordMetadataJ]): Callback = {
               (metadata: RecordMetadataJ, exception: Exception) =>
                 val result = if (exception != null) {
                   exception.asLeft[RecordMetadataJ]
@@ -154,18 +159,16 @@ object Producer {
                 } else {
                   SkafkaError("both metadata & exception are nulls").asLeft[RecordMetadataJ]
                 }
-                promise.success(result)
+                promise.complete(result.toTry)
             }
 
             val result = for {
-              promise <- Sync[F].delay(Promise[Either[Throwable, RecordMetadataJ]]())
+              promise <- Sync[F].delay(Promise[RecordMetadataJ]())
               callback = callbackOf(promise)
               _       <- blocking { producer.send(record, callback) }
               res      = Async[F].fromFuture(Sync[F].delay(promise.future))
             } yield {
-              res
-                .flatMap { _.liftTo[F] }
-                .recoverWith(executionException)
+              res.recoverWith(executionException)
             }
             result.recoverWith(executionException)
           }

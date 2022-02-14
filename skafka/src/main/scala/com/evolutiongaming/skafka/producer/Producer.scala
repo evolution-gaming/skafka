@@ -2,8 +2,8 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.data.{NonEmptyMap => Nem}
-import cats.effect.{Async, Resource, Sync}
 import cats.effect.implicits._
+import cats.effect.{Async, Resource, Sync}
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
@@ -11,12 +11,7 @@ import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.producer.{
-  Callback,
-  Producer => ProducerJ,
-  ProducerRecord => ProducerRecordJ,
-  RecordMetadata => RecordMetadataJ
-}
+import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.concurrent.{ExecutionContext, ExecutionException, Promise}
 import scala.jdk.CollectionConverters._

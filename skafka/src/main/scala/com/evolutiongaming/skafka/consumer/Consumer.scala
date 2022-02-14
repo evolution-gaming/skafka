@@ -7,7 +7,6 @@ import cats.effect.implicits._
 import cats.effect.std.Semaphore
 import cats.implicits._
 import cats.{Applicative, Monad, MonadError, ~>}
-import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
@@ -238,20 +237,32 @@ object Consumer {
 
   private sealed abstract class Main
 
+  @deprecated("Use of(ConsumerConfig)", since = "12.0.1")
   def of[F[_]: ToTry: ToFuture: Async, K, V](
     config: ConsumerConfig,
     executorBlocking: ExecutionContext
   )(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]): Resource[F, Consumer[F, K, V]] = {
-    implicit val blocking = Blocking.fromExecutionContext(executorBlocking)
-    val consumer          = CreateConsumerJ(config, fromBytesK, fromBytesV)
-    fromConsumerJ(consumer)
+    of(config)
   }
 
+  def of[F[_]: ToTry: ToFuture: Async, K, V](
+    config: ConsumerConfig
+  )(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]): Resource[F, Consumer[F, K, V]] = {
+    fromConsumerJ1(CreateConsumerJ(config, fromBytesK, fromBytesV))
+  }
+
+  @deprecated("Use fromConsumerJ1", since = "12.0.1")
   def fromConsumerJ[F[_]: ToFuture: ToTry: Blocking: Async, K, V](
     consumer: F[ConsumerJ[K, V]]
   ): Resource[F, Consumer[F, K, V]] = {
+    fromConsumerJ1(consumer)
+  }
 
-    def blocking[A](f: => A) = Sync[F].delay { f }.blocking
+  def fromConsumerJ1[F[_]: ToFuture: ToTry: Async, K, V](
+    consumer: F[ConsumerJ[K, V]]
+  ): Resource[F, Consumer[F, K, V]] = {
+
+    def blocking[A](f: => A) = Sync[F].blocking { f }
 
     trait Around {
       def apply[A](f: => A): F[A]
@@ -260,7 +271,7 @@ object Consumer {
     for {
       serialListeners <- SerialListeners.of[F].toResource
       semaphore       <- Semaphore(1).toResource
-      consumer        <- consumer.blocking.toResource
+      consumer        <- consumer.toResource
       around = new Around {
         def apply[A](f: => A) = {
           semaphore
@@ -282,7 +293,7 @@ object Consumer {
 
       def commitLater1(f: OffsetCommitCallback => Unit) = {
         Async[F]
-          .async_[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
+          .async[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
             val offsetCommitCallback = new OffsetCommitCallback {
 
               def onComplete(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], exception: Exception) = {
@@ -296,9 +307,8 @@ object Consumer {
                 }
               }
             }
-            f(offsetCommitCallback)
+            Sync[F].blocking(f(offsetCommitCallback)).as(None)
           }
-          .blocking
       }
 
       def listenerOf(listener: Option[RebalanceListener[F]]) = {

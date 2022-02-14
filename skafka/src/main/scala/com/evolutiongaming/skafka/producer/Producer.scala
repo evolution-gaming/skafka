@@ -6,7 +6,6 @@ import cats.effect.{Resource, Sync, Async, Deferred}
 import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
-import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable, ToTry}
 import com.evolutiongaming.skafka.Converters._
@@ -91,20 +90,31 @@ object Producer {
     }
   }
 
+  @deprecated("Use of(ProducerConfig)", since = "12.0.1")
   def of[F[_]: ToTry: Async](
     config: ProducerConfig,
     executorBlocking: ExecutionContext
   ): Resource[F, Producer[F]] = {
-    implicit val blocking = Blocking.fromExecutionContext(executorBlocking)
-    val producer          = CreateProducerJ(config)
-    fromProducerJ1(producer)
+    of(config)
+  }
+
+  def of[F[_]: ToTry: Async](
+    config: ProducerConfig
+  ): Resource[F, Producer[F]] = {
+    val producer = CreateProducerJ(config)
+    fromProducerJ2(producer)
   }
 
   private sealed abstract class Main
 
+  @deprecated("Use fromProducerJ2", since = "12.0.1")
   def fromProducerJ1[F[_]: Blocking: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
+    fromProducerJ2(producer)
+  }
 
-    def blocking[A](f: => A) = Sync[F].delay(f).blocking
+  def fromProducerJ2[F[_]: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
+
+    def blocking[A](f: => A) = Sync[F].blocking(f)
 
     def apply(producer: ProducerJ[Bytes, Bytes]) = {
       new Main with Producer[F] {
@@ -197,7 +207,7 @@ object Producer {
     }
 
     for {
-      producerJ <- producer.blocking.toResource
+      producerJ <- producer.toResource
       producer   = apply(producerJ)
       close      = blocking { producerJ.close() }
       flush      = producer.flush.attempt

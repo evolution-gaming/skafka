@@ -10,6 +10,6 @@ object CreateProducerJ {
   def apply[F[_]: Sync](config: ProducerConfig): F[ProducerJ[Bytes, Bytes]] = {
     val properties = config.properties
     val serializer = new ByteArraySerializer()
-    Sync[F].delay { new KafkaProducer[Bytes, Bytes](properties, serializer, serializer) }
+    Sync[F].blocking { new KafkaProducer[Bytes, Bytes](properties, serializer, serializer) }
   }
 }

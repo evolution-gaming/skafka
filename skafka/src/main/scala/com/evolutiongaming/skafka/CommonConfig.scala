@@ -24,7 +24,7 @@ final case class CommonConfig(
   retryBackoff: FiniteDuration        = 100.millis,
   securityProtocol: SecurityProtocol  = SecurityProtocol.Plaintext,
   metrics: MetricsConfig              = MetricsConfig.Default,
-  rack: Option[String]                = None
+  clientRack: Option[String]          = None
 ) {
 
   private[skafka] def this(
@@ -59,7 +59,7 @@ final case class CommonConfig(
   }
 
   def bindings: Map[String, String] = {
-    val rackMap = rack.fold(Map.empty[String, String]) { a => Map((a, C.CLIENT_RACK_CONFIG)) }
+    val rackMap = clientRack.fold(Map.empty[String, String]) { a => Map((C.CLIENT_RACK_CONFIG, a)) }
     val bindings = Map[String, String](
       (C.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.toList mkString ","),
       (C.CLIENT_ID_CONFIG, clientId getOrElse ""),
@@ -88,6 +88,37 @@ object CommonConfig {
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
     }
+  }
+
+  def apply(
+    bootstrapServers: Nel[String],
+    clientId: Option[ClientId],
+    connectionsMaxIdle: FiniteDuration,
+    receiveBufferBytes: Int,
+    sendBufferBytes: Int,
+    requestTimeout: FiniteDuration,
+    metadataMaxAge: FiniteDuration,
+    reconnectBackoffMax: FiniteDuration,
+    reconnectBackoff: FiniteDuration,
+    retryBackoff: FiniteDuration,
+    securityProtocol: SecurityProtocol,
+    metrics: MetricsConfig,
+  ): CommonConfig = {
+    apply(
+      bootstrapServers,
+      clientId,
+      connectionsMaxIdle,
+      receiveBufferBytes,
+      sendBufferBytes,
+      requestTimeout,
+      metadataMaxAge,
+      reconnectBackoffMax,
+      reconnectBackoff,
+      retryBackoff,
+      securityProtocol,
+      metrics,
+      None
+    )
   }
 
   def apply(config: Config): CommonConfig = {
@@ -123,7 +154,7 @@ object CommonConfig {
       retryBackoff     = getDuration("retry-backoff", "retry.backoff.ms") getOrElse default.retryBackoff,
       securityProtocol = get[SecurityProtocol]("security-protocol", "security.protocol") getOrElse default.securityProtocol,
       metrics          = MetricsConfig(config),
-      rack             = get[String]("client-rack", "client.rack") orElse default.rack
+      clientRack             = get[String]("client-rack", "client.rack") orElse default.clientRack
     )
   }
 

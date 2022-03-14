@@ -23,10 +23,43 @@ final case class CommonConfig(
   reconnectBackoff: FiniteDuration    = 50.millis,
   retryBackoff: FiniteDuration        = 100.millis,
   securityProtocol: SecurityProtocol  = SecurityProtocol.Plaintext,
-  metrics: MetricsConfig              = MetricsConfig.Default
+  metrics: MetricsConfig              = MetricsConfig.Default,
+  clientRack: Option[String]          = None
 ) {
 
+  private[skafka] def this(
+    bootstrapServers: Nel[String],
+    clientId: Option[ClientId],
+    connectionsMaxIdle: FiniteDuration,
+    receiveBufferBytes: Int,
+    sendBufferBytes: Int,
+    requestTimeout: FiniteDuration,
+    metadataMaxAge: FiniteDuration,
+    reconnectBackoffMax: FiniteDuration,
+    reconnectBackoff: FiniteDuration,
+    retryBackoff: FiniteDuration,
+    securityProtocol: SecurityProtocol,
+    metrics: MetricsConfig,
+  ) = {
+    this(
+      bootstrapServers,
+      clientId,
+      connectionsMaxIdle,
+      receiveBufferBytes,
+      sendBufferBytes,
+      requestTimeout,
+      metadataMaxAge,
+      reconnectBackoffMax,
+      reconnectBackoff,
+      retryBackoff,
+      securityProtocol,
+      metrics,
+      None
+    )
+  }
+
   def bindings: Map[String, String] = {
+    val rackMap = clientRack.fold(Map.empty[String, String]) { a => Map((C.CLIENT_RACK_CONFIG, a)) }
     val bindings = Map[String, String](
       (C.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers.toList mkString ","),
       (C.CLIENT_ID_CONFIG, clientId getOrElse ""),
@@ -41,7 +74,7 @@ final case class CommonConfig(
       (C.SECURITY_PROTOCOL_CONFIG, securityProtocol.name)
     )
 
-    bindings ++ metrics.bindings
+    bindings ++ rackMap ++ metrics.bindings
   }
 }
 
@@ -55,6 +88,37 @@ object CommonConfig {
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
     }
+  }
+
+  def apply(
+    bootstrapServers: Nel[String],
+    clientId: Option[ClientId],
+    connectionsMaxIdle: FiniteDuration,
+    receiveBufferBytes: Int,
+    sendBufferBytes: Int,
+    requestTimeout: FiniteDuration,
+    metadataMaxAge: FiniteDuration,
+    reconnectBackoffMax: FiniteDuration,
+    reconnectBackoff: FiniteDuration,
+    retryBackoff: FiniteDuration,
+    securityProtocol: SecurityProtocol,
+    metrics: MetricsConfig,
+  ): CommonConfig = {
+    apply(
+      bootstrapServers,
+      clientId,
+      connectionsMaxIdle,
+      receiveBufferBytes,
+      sendBufferBytes,
+      requestTimeout,
+      metadataMaxAge,
+      reconnectBackoffMax,
+      reconnectBackoff,
+      retryBackoff,
+      securityProtocol,
+      metrics,
+      None
+    )
   }
 
   def apply(config: Config): CommonConfig = {
@@ -88,9 +152,9 @@ object CommonConfig {
         getDuration("reconnect-backoff-max", "reconnect.backoff.max.ms") getOrElse default.reconnectBackoffMax,
       reconnectBackoff = getDuration("reconnect-backoff", "reconnect.backoff.ms") getOrElse default.reconnectBackoff,
       retryBackoff     = getDuration("retry-backoff", "retry.backoff.ms") getOrElse default.retryBackoff,
-      securityProtocol =
-        get[SecurityProtocol]("security-protocol", "security.protocol") getOrElse default.securityProtocol,
-      metrics = MetricsConfig(config)
+      securityProtocol = get[SecurityProtocol]("security-protocol", "security.protocol") getOrElse default.securityProtocol,
+      metrics          = MetricsConfig(config),
+      clientRack             = get[String]("client-rack", "client.rack") orElse default.clientRack
     )
   }
 

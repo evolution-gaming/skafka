@@ -23,29 +23,33 @@ final case class SaslSupportConfig(
   clientCallbackHandlerClass: Option[Class[_]] = None,
   loginCallbackHandlerClass: Option[Class[_]]  = None,
   loginClass: Option[Class[_]]                 = None,
-) {
+) { self =>
   def bindings: Map[String, String] = {
-    val bindings = Map[String, String](
-      (SaslConfigs.SASL_KERBEROS_KINIT_CMD, kerberosKinitCmd),
-      (SaslConfigs.SASL_KERBEROS_TICKET_RENEW_WINDOW_FACTOR, kerberosTicketRenewWindowFactor.toString),
-      (SaslConfigs.SASL_KERBEROS_TICKET_RENEW_JITTER, kerberosTicketRenewJitter.toString),
-      (SaslConfigs.SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN, kerberosMinTimeBeforeRelogin.toMillis.toString),
-      (SaslConfigs.SASL_LOGIN_REFRESH_WINDOW_FACTOR, loginRefreshWindowFactor.toString),
-      (SaslConfigs.SASL_LOGIN_REFRESH_WINDOW_JITTER, loginRefreshWindowJitter.toString),
-      (SaslConfigs.SASL_LOGIN_REFRESH_MIN_PERIOD_SECONDS, loginRefreshMinPeriod.toSeconds.toString),
-      (SaslConfigs.SASL_LOGIN_REFRESH_BUFFER_SECONDS, loginRefreshBuffer.toSeconds.toString),
-      (SaslConfigs.SASL_MECHANISM, mechanism),
-    )
+    if (self == SaslSupportConfig.Default) {
+      Map.empty
+    } else {
+      val bindings = Map[String, String](
+        (SaslConfigs.SASL_KERBEROS_KINIT_CMD, kerberosKinitCmd),
+        (SaslConfigs.SASL_KERBEROS_TICKET_RENEW_WINDOW_FACTOR, kerberosTicketRenewWindowFactor.toString),
+        (SaslConfigs.SASL_KERBEROS_TICKET_RENEW_JITTER, kerberosTicketRenewJitter.toString),
+        (SaslConfigs.SASL_KERBEROS_MIN_TIME_BEFORE_RELOGIN, kerberosMinTimeBeforeRelogin.toMillis.toString),
+        (SaslConfigs.SASL_LOGIN_REFRESH_WINDOW_FACTOR, loginRefreshWindowFactor.toString),
+        (SaslConfigs.SASL_LOGIN_REFRESH_WINDOW_JITTER, loginRefreshWindowJitter.toString),
+        (SaslConfigs.SASL_LOGIN_REFRESH_MIN_PERIOD_SECONDS, loginRefreshMinPeriod.toSeconds.toString),
+        (SaslConfigs.SASL_LOGIN_REFRESH_BUFFER_SECONDS, loginRefreshBuffer.toSeconds.toString),
+        (SaslConfigs.SASL_MECHANISM, mechanism),
+      )
 
-    val optionalBindings = Map[String, Option[String]](
-      (SaslConfigs.SASL_KERBEROS_SERVICE_NAME, kerberosServiceName),
-      (SaslConfigs.SASL_JAAS_CONFIG, jaasConfig.map(_.asString())),
-      (SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS, clientCallbackHandlerClass.map(_.getName)),
-      (SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandlerClass.map(_.getName)),
-      (SaslConfigs.SASL_LOGIN_CLASS, loginClass.map(_.getName)),
-    ).flattenOption
+      val optionalBindings = Map[String, Option[String]](
+        (SaslConfigs.SASL_KERBEROS_SERVICE_NAME, kerberosServiceName),
+        (SaslConfigs.SASL_JAAS_CONFIG, jaasConfig.map(_.asString())),
+        (SaslConfigs.SASL_CLIENT_CALLBACK_HANDLER_CLASS, clientCallbackHandlerClass.map(_.getName)),
+        (SaslConfigs.SASL_LOGIN_CALLBACK_HANDLER_CLASS, loginCallbackHandlerClass.map(_.getName)),
+        (SaslConfigs.SASL_LOGIN_CLASS, loginClass.map(_.getName)),
+      ).flattenOption
 
-    bindings ++ optionalBindings
+      bindings ++ optionalBindings
+    }
   }
 }
 

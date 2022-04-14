@@ -6,7 +6,7 @@ sealed trait KeystoreType extends Product {
 
 object KeystoreType {
 
-  val Values: Set[KeystoreType] = Set(JKS, JCEKS, PKCS12, PKCS11, DKS, WindowsMY, BKS)
+  val Values: Set[KeystoreType] = Set(JKS, JCEKS, PKCS12, PKCS11, DKS, WindowsMY, BKS, PEM)
 
   case object JKS extends KeystoreType { def name = "JKS" }
   case object JCEKS extends KeystoreType { def name = "JCEKS" }
@@ -15,4 +15,5 @@ object KeystoreType {
   case object DKS extends KeystoreType { def name = "DKS" }
   case object WindowsMY extends KeystoreType { def name = "Windows-MY" }
   case object BKS extends KeystoreType { def name = "BKS" }
+  case object PEM extends KeystoreType { def name = "PEM" }
 }

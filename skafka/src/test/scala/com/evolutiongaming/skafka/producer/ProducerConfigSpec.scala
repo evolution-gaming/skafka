@@ -77,16 +77,7 @@ class ProducerConfigSpec extends AnyFunSuite with Matchers {
       "reconnect.backoff.ms"                  -> "50",
       "linger.ms"                             -> "0",
       "batch.size"                            -> "16384",
-      "send.buffer.bytes"                     -> "131072",
-      "sasl.kerberos.kinit.cmd"                  -> "/usr/bin/kinit",
-      "sasl.kerberos.min.time.before.relogin"    -> "60000",
-      "sasl.kerberos.ticket.renew.window.factor" -> "0.8",
-      "sasl.kerberos.ticket.renew.jitter"        -> "0.05",
-      "sasl.login.refresh.window.factor"         -> "0.8",
-      "sasl.login.refresh.window.jitter"         -> "0.05",
-      "sasl.login.refresh.min.period.seconds"    -> "60",
-      "sasl.login.refresh.buffer.seconds"        -> "300",
-      "sasl.mechanism"                           -> "GSSAPI",
+      "send.buffer.bytes"                     -> "131072"
     )
   }
 }

@@ -7,7 +7,7 @@ import cats.effect.syntax.all._
 import cats.effect.concurrent.Deferred
 import cats.syntax.all._
 import cats.{Applicative, Functor, MonadError, ~>}
-import com.evolutiongaming.catshelper.{Blocking, Log, MonadThrowable, ToTry}
+import com.evolutiongaming.catshelper.{Blocking, Log, ToTry}
 import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
@@ -430,8 +430,15 @@ object Producer {
 
   implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
-    def withLogging(log: Log[F])(implicit F: MonadThrowable[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+    def withLogging(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       ProducerLogging(self, log)
+    }
+
+    /**
+      * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+      */
+    def withLogging(log: Log[F], charsToTrim: Int)(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+      ProducerLogging(self, log, charsToTrim)
     }
 
     def withMetrics[E](

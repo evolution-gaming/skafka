@@ -12,10 +12,13 @@ object ProducerLogging {
 
   private sealed abstract class WithLogging
 
+  def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] =
+    apply(producer, log, charsToTrim = 1024)
+
   /**
     * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
     */
-  def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int = 1024): Producer[F] = {
+  def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int): Producer[F] = {
 
     new WithLogging with Producer[F] {
       def initTransactions = producer.initTransactions

@@ -2,7 +2,8 @@ package com.evolutiongaming.skafka.producer
 
 import cats.data.{NonEmptyMap => Nem}
 import cats.implicits._
-import com.evolutiongaming.catshelper.{Log, MonadThrowable}
+import cats.MonadThrow
+import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.common.errors.RecordTooLargeException
@@ -11,12 +12,12 @@ object ProducerLogging {
 
   private sealed abstract class WithLogging
 
-  def apply[F[_]: MonadThrowable: MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] = {
+  /**
+    * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+    */
+  def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int = 1024): Producer[F] = {
 
     new WithLogging with Producer[F] {
-      // A number of chars from record's value to log when producing fails
-      private val charsToTrim = 256
-
       def initTransactions = producer.initTransactions
 
       def beginTransaction = producer.beginTransaction
@@ -61,10 +62,10 @@ object ProducerLogging {
             val trimmed = record.value.map(_.toString().take(charsToTrim))
 
             log.error(
-              s"Failed to send too large record: topic = ${record.topic}, " +
-                s"partition = ${record.partition}, key = ${record.key}, " +
-                s"timestamp = ${record.timestamp}, headers = ${record.headers}, " +
-                s"trimmed value (first $charsToTrim chars) = $trimmed, error = $err"
+              s"Failed to send too large record, topic: ${record.topic}, " +
+                s"partition: ${record.partition}, key: ${record.key}, " +
+                s"timestamp: ${record.timestamp}, headers: ${record.headers}, " +
+                s"trimmed value (first $charsToTrim chars): $trimmed, error: $err"
             )
           case _ =>
             log.error(s"failed to send record $record: $err")

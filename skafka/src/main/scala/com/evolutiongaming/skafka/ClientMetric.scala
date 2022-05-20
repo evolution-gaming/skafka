@@ -5,5 +5,5 @@ final case class ClientMetric[F[_]](
   group: String,
   description: String,
   tags: Map[String, String],
-  value: F[Any]
+  value: F[AnyRef]
 )

@@ -51,6 +51,8 @@ object ProducerLogging {
       def partitions(topic: Topic) = producer.partitions(topic)
 
       def flush = producer.flush
+
+      def clientMetrics = producer.clientMetrics
     }
   }
 }

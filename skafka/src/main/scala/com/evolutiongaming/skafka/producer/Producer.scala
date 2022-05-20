@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.data.{NonEmptyMap => Nem}
-import cats.effect.{Resource, Sync, Async, Deferred}
+import cats.effect.{Async, Deferred, Resource, Sync}
 import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Functor, MonadError, ~>}
@@ -50,6 +50,8 @@ trait Producer[F[_]] {
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def flush: F[Unit]
+
+  def clientMetrics: Seq[ClientMetric[F]]
 }
 
 object Producer {
@@ -87,6 +89,8 @@ object Producer {
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
       def flush = empty
+
+      def clientMetrics = Seq.empty[ClientMetric[F]]
     }
   }
 
@@ -203,6 +207,10 @@ object Producer {
         def flush = {
           blocking { producer.flush() }
         }
+
+        private val metricsProvider = ClientMetricsProvider[F](producer)
+
+        def clientMetrics = metricsProvider.metricsValues
       }
     }
 
@@ -313,6 +321,8 @@ object Producer {
           r <- r.liftTo[F]
         } yield r
       }
+
+      def clientMetrics = producer.clientMetrics
     }
   }
 
@@ -355,6 +365,8 @@ object Producer {
       def partitions(topic: Topic) = fg(self.partitions(topic))
 
       def flush = fg(self.flush)
+
+      def clientMetrics = self.clientMetrics.map(m => m.copy(value = fg(m.value)))
     }
 
     def toSend: Send[F] = Send(self)

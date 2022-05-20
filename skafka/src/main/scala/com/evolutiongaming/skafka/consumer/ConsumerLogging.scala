@@ -425,6 +425,8 @@ object ConsumerLogging {
           _ <- log.debug(s"enforceRebalance in ${d.toMillis}ms")
         } yield a
       }
+
+      def clientMetrics = consumer.clientMetrics
     }
   }
 }

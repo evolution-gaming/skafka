@@ -123,6 +123,8 @@ trait Consumer[F[_], K, V] {
   def wakeup: F[Unit]
 
   def enforceRebalance: F[Unit]
+
+  def clientMetrics: Seq[ClientMetric[F]]
 }
 
 object Consumer {
@@ -232,6 +234,8 @@ object Consumer {
       def wakeup = empty
 
       def enforceRebalance = empty
+
+      def clientMetrics = Seq.empty[ClientMetric[F]]
     }
   }
 
@@ -269,9 +273,10 @@ object Consumer {
     }
 
     for {
-      serialListeners <- SerialListeners.of[F].toResource
-      semaphore       <- Semaphore(1).toResource
-      consumer        <- consumer.toResource
+      serialListeners      <- SerialListeners.of[F].toResource
+      semaphore            <- Semaphore(1).toResource
+      consumer             <- consumer.toResource
+      clientMetricsProvider = ClientMetricsProvider[F](consumer)
       around = new Around {
         def apply[A](f: => A) = {
           semaphore
@@ -569,6 +574,8 @@ object Consumer {
         }
 
         def enforceRebalance = serialBlocking { consumer.enforceRebalance() }
+
+        def clientMetrics = clientMetricsProvider.metricsValues
       }
     }
   }
@@ -930,6 +937,8 @@ object Consumer {
             a <- self.enforceRebalance
           } yield a
         }
+
+        def clientMetrics = self.clientMetrics
       }
     }
 
@@ -1052,6 +1061,8 @@ object Consumer {
       def wakeup = fg(self.wakeup)
 
       def enforceRebalance = fg(self.enforceRebalance)
+
+      def clientMetrics = self.clientMetrics.map(m => m.copy(value = fg(m.value)))
     }
   }
 }

@@ -9,7 +9,7 @@ import java.util
 import scala.jdk.CollectionConverters._
 
 private[skafka] trait ClientMetricsProvider[F[_]] {
-  def get: Seq[ClientMetric[F]]
+  def get: F[Seq[ClientMetric[F]]]
 }
 private[skafka] object ClientMetricsProvider {
 
@@ -22,15 +22,17 @@ private[skafka] object ClientMetricsProvider {
   private class ClientMetricsProviderImpl[F[_]: Sync](source: => util.Map[MetricName, _ <: Metric])
       extends ClientMetricsProvider[F] {
 
-    def get: Seq[ClientMetric[F]] = source.asScala.values.toSeq.map { m =>
-      val metricName = m.metricName()
-      ClientMetric(
-        metricName.name(),
-        metricName.group(),
-        metricName.description(),
-        metricName.tags().asScala.toMap,
-        Sync[F].delay(m.metricValue())
-      )
+    def get: F[Seq[ClientMetric[F]]] = Sync[F].delay {
+      source.asScala.values.toSeq.map { m =>
+        val metricName = m.metricName()
+        ClientMetric(
+          metricName.name(),
+          metricName.group(),
+          metricName.description(),
+          metricName.tags().asScala.toMap,
+          Sync[F].delay(m.metricValue())
+        )
+      }
     }
 
   }

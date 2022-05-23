@@ -124,7 +124,7 @@ trait Consumer[F[_], K, V] {
 
   def enforceRebalance: F[Unit]
 
-  def clientMetrics: Seq[ClientMetric[F]]
+  def clientMetrics: F[Seq[ClientMetric[F]]]
 }
 
 object Consumer {
@@ -235,7 +235,7 @@ object Consumer {
 
       def enforceRebalance = empty
 
-      def clientMetrics = Seq.empty[ClientMetric[F]]
+      def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
     }
   }
 
@@ -946,7 +946,7 @@ object Consumer {
       ConsumerLogging(log, self)
     }
 
-    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
+    def mapK[G[_]](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))
 
@@ -1062,7 +1062,7 @@ object Consumer {
 
       def enforceRebalance = fg(self.enforceRebalance)
 
-      def clientMetrics = self.clientMetrics.map(m => m.copy(value = fg(m.value)))
+      def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
     }
   }
 }

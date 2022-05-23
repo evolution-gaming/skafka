@@ -575,7 +575,7 @@ object Consumer {
 
         def enforceRebalance = serialBlocking { consumer.enforceRebalance() }
 
-        def clientMetrics = clientMetricsProvider.metricsValues
+        def clientMetrics = clientMetricsProvider.get
       }
     }
   }

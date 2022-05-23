@@ -210,7 +210,7 @@ object Producer {
 
         private val metricsProvider = ClientMetricsProvider[F](producer)
 
-        def clientMetrics = metricsProvider.metricsValues
+        def clientMetrics = metricsProvider.get
       }
     }
 
@@ -337,7 +337,10 @@ object Producer {
     /**
       * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
       */
-    def withLogging(log: Log[F], charsToTrim: Int)(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+    def withLogging(
+      log: Log[F],
+      charsToTrim: Int
+    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       ProducerLogging(self, log, charsToTrim)
     }
 

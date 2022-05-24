@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.effect.{Concurrent, ContextShift, Resource}
-import cats.{Applicative, Defer, ~>}
+import cats.{Applicative, Defer, Monad, ~>}
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.FromBytes
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -36,7 +36,7 @@ object ConsumerOf {
     def mapK[G[_]: Applicative: Defer](
       fg: F ~> G,
       gf: G ~> F
-    ): ConsumerOf[G] = new ConsumerOf[G] {
+    )(implicit F: Monad[F]): ConsumerOf[G] = new ConsumerOf[G] {
 
       def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[G, K], fromBytesV: FromBytes[G, V]) = {
         for {

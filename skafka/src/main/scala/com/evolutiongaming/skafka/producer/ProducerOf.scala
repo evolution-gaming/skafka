@@ -48,7 +48,7 @@ object ProducerOf {
     def mapK[G[_]: Monad: Defer](
       fg: F ~> G,
       gf: G ~> F
-    ): ProducerOf[G] = { (config: ProducerConfig) =>
+    )(implicit F: Monad[F]): ProducerOf[G] = { (config: ProducerConfig) =>
       {
         for {
           a <- self(config).mapK(fg)

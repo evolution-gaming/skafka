@@ -2,10 +2,10 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.data.{NonEmptyMap => Nem}
-import cats.effect.{Resource, Sync, Async, Deferred}
+import cats.effect.{Async, Deferred, Resource, Sync}
 import cats.effect.implicits._
 import cats.implicits._
-import cats.{Applicative, Functor, MonadError, MonadThrow, ~>}
+import cats.{Applicative, Functor, Monad, MonadError, MonadThrow, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{Blocking, Log, ToTry}
 import com.evolutiongaming.skafka.Converters._
@@ -50,6 +50,8 @@ trait Producer[F[_]] {
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def flush: F[Unit]
+
+  def clientMetrics: F[Seq[ClientMetric[F]]]
 }
 
 object Producer {
@@ -87,6 +89,8 @@ object Producer {
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
       def flush = empty
+
+      def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
     }
   }
 
@@ -203,6 +207,10 @@ object Producer {
         def flush = {
           blocking { producer.flush() }
         }
+
+        private val metricsProvider = ClientMetricsProvider[F](producer)
+
+        def clientMetrics = metricsProvider.get
       }
     }
 
@@ -313,6 +321,8 @@ object Producer {
           r <- r.liftTo[F]
         } yield r
       }
+
+      def clientMetrics = producer.clientMetrics
     }
   }
 
@@ -327,7 +337,10 @@ object Producer {
     /**
       * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
       */
-    def withLogging(log: Log[F], charsToTrim: Int)(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+    def withLogging(
+      log: Log[F],
+      charsToTrim: Int
+    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       ProducerLogging(self, log, charsToTrim)
     }
 
@@ -337,7 +350,7 @@ object Producer {
       Producer(self, metrics)
     }
 
-    def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F): Producer[G] = new MapK with Producer[G] {
+    def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {
 
       def initTransactions = fg(self.initTransactions)
 
@@ -362,6 +375,8 @@ object Producer {
       def partitions(topic: Topic) = fg(self.partitions(topic))
 
       def flush = fg(self.flush)
+
+      def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
     }
 
     def toSend: Send[F] = Send(self)

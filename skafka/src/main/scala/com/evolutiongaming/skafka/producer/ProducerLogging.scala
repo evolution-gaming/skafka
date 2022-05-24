@@ -59,6 +59,8 @@ object ProducerLogging {
 
       def flush = producer.flush
 
+      def clientMetrics = producer.clientMetrics
+
       private def logError[K, V](record: ProducerRecord[K, V], err: Throwable): F[Unit] =
         err match {
           case _: RecordTooLargeException =>

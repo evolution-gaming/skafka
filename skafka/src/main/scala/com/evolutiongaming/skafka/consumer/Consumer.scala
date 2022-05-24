@@ -14,7 +14,13 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
-import org.apache.kafka.clients.consumer.{OffsetCommitCallback, Consumer => ConsumerJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
 
 import java.lang.{Long => LongJ}
@@ -118,6 +124,8 @@ trait Consumer[F[_], K, V] {
   def wakeup: F[Unit]
 
   def enforceRebalance: F[Unit]
+
+  def clientMetrics: F[Seq[ClientMetric[F]]]
 }
 
 object Consumer {
@@ -227,9 +235,10 @@ object Consumer {
       def wakeup = empty
 
       def enforceRebalance = empty
+
+      def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
     }
   }
-
 
   private sealed abstract class Main
 
@@ -253,9 +262,10 @@ object Consumer {
     }
 
     for {
-      serialListeners <- SerialListeners.of[F].toResource
-      semaphore       <- Semaphore(1).toResource
-      consumer        <- consumer.blocking.toResource
+      serialListeners      <- SerialListeners.of[F].toResource
+      semaphore            <- Semaphore(1).toResource
+      consumer             <- consumer.blocking.toResource
+      clientMetricsProvider = ClientMetricsProvider[F](consumer)
       around = new Around {
         def apply[A](f: => A) = {
           semaphore
@@ -553,10 +563,11 @@ object Consumer {
         }
 
         def enforceRebalance = serialBlocking { consumer.enforceRebalance() }
+
+        def clientMetrics = clientMetricsProvider.get
       }
     }
   }
-
 
   private sealed abstract class WithMetrics
 
@@ -915,6 +926,8 @@ object Consumer {
             a <- self.enforceRebalance
           } yield a
         }
+
+        def clientMetrics = self.clientMetrics
       }
     }
 
@@ -922,7 +935,7 @@ object Consumer {
       ConsumerLogging(log, self)
     }
 
-    def mapK[G[_]](fg: F ~> G, gf: G ~> F): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
+    def mapK[G[_]](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))
 
@@ -1037,6 +1050,8 @@ object Consumer {
       def wakeup = fg(self.wakeup)
 
       def enforceRebalance = fg(self.enforceRebalance)
+
+      def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
     }
   }
 }

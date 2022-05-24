@@ -6,19 +6,14 @@ import cats.effect._
 import cats.effect.syntax.all._
 import cats.effect.concurrent.Deferred
 import cats.syntax.all._
-import cats.{Applicative, Functor, MonadError, ~>}
+import cats.{Applicative, Functor, Monad, MonadError, ~>}
 import com.evolutiongaming.catshelper.{Blocking, Log, ToTry}
 import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.smetrics.MeasureDuration
-import org.apache.kafka.clients.producer.{
-  Callback,
-  Producer => ProducerJ,
-  ProducerRecord => ProducerRecordJ,
-  RecordMetadata => RecordMetadataJ
-}
+import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.jdk.CollectionConverters._
 import scala.concurrent.{ExecutionContext, ExecutionException}
@@ -52,6 +47,8 @@ trait Producer[F[_]] {
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def flush: F[Unit]
+
+  def clientMetrics: F[Seq[ClientMetric[F]]]
 }
 
 object Producer {
@@ -90,6 +87,8 @@ object Producer {
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
       def flush = empty
+
+      def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
     }
   }
 
@@ -207,6 +206,10 @@ object Producer {
         def flush = {
           blocking { producer.flush() }
         }
+
+        private val metricsProvider = ClientMetricsProvider[F](producer)
+
+        def clientMetrics = metricsProvider.get
       }
     }
 
@@ -310,6 +313,10 @@ object Producer {
         def flush = {
           blocking { producer.flush() }
         }
+
+        private val metricsProvider = ClientMetricsProvider[F](producer)
+
+        def clientMetrics = metricsProvider.get
       }
     }
 
@@ -422,6 +429,8 @@ object Producer {
           r <- r.liftTo[F]
         } yield r
       }
+
+      def clientMetrics = producer.clientMetrics
     }
   }
 
@@ -447,7 +456,7 @@ object Producer {
       Producer(self, metrics)
     }
 
-    def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F): Producer[G] = new MapK with Producer[G] {
+    def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {
 
       def initTransactions = fg(self.initTransactions)
 
@@ -472,6 +481,8 @@ object Producer {
       def partitions(topic: Topic) = fg(self.partitions(topic))
 
       def flush = fg(self.flush)
+
+      def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
     }
 
     def toSend: Send[F] = Send(self)

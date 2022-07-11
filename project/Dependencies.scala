@@ -13,7 +13,7 @@ object Dependencies {
   val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.12"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "1.0.2"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
-  val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.1.5"
+  val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.2.0"
 
   object Kafka {
     private val version = "2.8.1"

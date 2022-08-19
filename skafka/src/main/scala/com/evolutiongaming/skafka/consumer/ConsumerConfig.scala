@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import com.evolutiongaming.config.ConfigHelper.{FromConf, _}
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
+import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.{ConsumerConfig => C}
 
 import scala.concurrent.duration.{FiniteDuration, _}
@@ -32,10 +33,12 @@ final case class ConsumerConfig(
   isolationLevel: IsolationLevel             = IsolationLevel.ReadUncommitted,
   saslSupport: SaslSupportConfig             = SaslSupportConfig.Default,
   sslSupport: SslSupportConfig               = SslSupportConfig.Default,
+  clientRack: Option[String]                 = None
 ) {
 
   def bindings: Map[String, String] = {
     val groupIdMap = groupId.fold(Map.empty[String, String]) { groupId => Map((C.GROUP_ID_CONFIG, groupId)) }
+    val rackMap = clientRack.fold(Map.empty[String, String]) { a => Map((CommonClientConfigs.CLIENT_RACK_CONFIG, a)) }
     val autoCommitIntervalMap = autoCommitInterval.fold(Map.empty[String, String]) { autoCommitInterval =>
       Map((C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString))
     }
@@ -58,7 +61,7 @@ final case class ConsumerConfig(
       (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
     )
 
-    bindings ++ common.bindings ++ saslSupport.bindings ++ sslSupport.bindings
+    bindings ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
   }
 
   def properties: java.util.Properties = {
@@ -66,97 +69,6 @@ final case class ConsumerConfig(
     bindings foreach { case (k, v) => properties.put(k, v) }
     properties
   }
-
-  //for binary compatibility
-  private[consumer] def this(
-    common: CommonConfig,
-    groupId: Option[String],
-    maxPollRecords: Int,
-    maxPollInterval: FiniteDuration,
-    sessionTimeout: FiniteDuration,
-    heartbeatInterval: FiniteDuration,
-    autoCommit: Boolean,
-    autoCommitInterval: Option[FiniteDuration],
-    partitionAssignmentStrategy: String,
-    autoOffsetReset: AutoOffsetReset,
-    defaultApiTimeout: FiniteDuration,
-    fetchMinBytes: Int,
-    fetchMaxBytes: Int,
-    fetchMaxWait: FiniteDuration,
-    maxPartitionFetchBytes: Int,
-    checkCrcs: Boolean,
-    interceptorClasses: List[String],
-    excludeInternalTopics: Boolean,
-    isolationLevel: IsolationLevel,
-    saslSupport: SaslSupportConfig,
-  ) = this(
-    common                      = common,
-    groupId                     = groupId,
-    maxPollRecords              = maxPollRecords,
-    maxPollInterval             = maxPollInterval,
-    sessionTimeout              = sessionTimeout,
-    heartbeatInterval           = heartbeatInterval,
-    autoCommit                  = autoCommit,
-    autoCommitInterval          = autoCommitInterval,
-    partitionAssignmentStrategy = partitionAssignmentStrategy,
-    autoOffsetReset             = autoOffsetReset,
-    defaultApiTimeout           = defaultApiTimeout,
-    fetchMinBytes               = fetchMinBytes,
-    fetchMaxBytes               = fetchMaxBytes,
-    fetchMaxWait                = fetchMaxWait,
-    maxPartitionFetchBytes      = maxPartitionFetchBytes,
-    checkCrcs                   = checkCrcs,
-    interceptorClasses          = interceptorClasses,
-    excludeInternalTopics       = excludeInternalTopics,
-    isolationLevel              = isolationLevel,
-    saslSupport                 = saslSupport,
-    sslSupport                  = SslSupportConfig.Default,
-  )
-
-  //for binary compatibility
-  private[consumer] def this(
-    common: CommonConfig,
-    groupId: Option[String],
-    maxPollRecords: Int,
-    maxPollInterval: FiniteDuration,
-    sessionTimeout: FiniteDuration,
-    heartbeatInterval: FiniteDuration,
-    autoCommit: Boolean,
-    autoCommitInterval: Option[FiniteDuration],
-    partitionAssignmentStrategy: String,
-    autoOffsetReset: AutoOffsetReset,
-    defaultApiTimeout: FiniteDuration,
-    fetchMinBytes: Int,
-    fetchMaxBytes: Int,
-    fetchMaxWait: FiniteDuration,
-    maxPartitionFetchBytes: Int,
-    checkCrcs: Boolean,
-    interceptorClasses: List[String],
-    excludeInternalTopics: Boolean,
-    isolationLevel: IsolationLevel,
-  ) = this(
-    common                      = common,
-    groupId                     = groupId,
-    maxPollRecords              = maxPollRecords,
-    maxPollInterval             = maxPollInterval,
-    sessionTimeout              = sessionTimeout,
-    heartbeatInterval           = heartbeatInterval,
-    autoCommit                  = autoCommit,
-    autoCommitInterval          = autoCommitInterval,
-    partitionAssignmentStrategy = partitionAssignmentStrategy,
-    autoOffsetReset             = autoOffsetReset,
-    defaultApiTimeout           = defaultApiTimeout,
-    fetchMinBytes               = fetchMinBytes,
-    fetchMaxBytes               = fetchMaxBytes,
-    fetchMaxWait                = fetchMaxWait,
-    maxPartitionFetchBytes      = maxPartitionFetchBytes,
-    checkCrcs                   = checkCrcs,
-    interceptorClasses          = interceptorClasses,
-    excludeInternalTopics       = excludeInternalTopics,
-    isolationLevel              = isolationLevel,
-    saslSupport                 = SaslSupportConfig.Default,
-    sslSupport                  = SslSupportConfig.Default,
-  )
 }
 
 object ConsumerConfig {
@@ -227,7 +139,8 @@ object ConsumerConfig {
         get[Boolean]("exclude-internal-topics", "exclude.internal.topics") getOrElse default.excludeInternalTopics,
       isolationLevel = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel,
       saslSupport    = SaslSupportConfig(config, default.saslSupport),
-      sslSupport     = SslSupportConfig(config)
+      sslSupport     = SslSupportConfig(config),
+      clientRack     = get[String]("client-rack", "client.rack") orElse default.clientRack
     )
   }
 

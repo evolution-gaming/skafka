@@ -3,7 +3,6 @@ package com.evolutiongaming.skafka.producer
 import com.evolutiongaming.config.ConfigHelper._
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
 
 import scala.concurrent.duration._
@@ -31,11 +30,9 @@ final case class ProducerConfig(
   transactionalId: Option[String]                   = None,
   saslSupport: SaslSupportConfig                    = SaslSupportConfig.Default,
   sslSupport: SslSupportConfig                      = SslSupportConfig.Default,
-  clientRack: Option[String]                        = None
 ) {
 
   def bindings: Map[String, AnyRef] = {
-    val rackMap = clientRack.fold(Map.empty[String, String]) { a => Map((CommonClientConfigs.CLIENT_RACK_CONFIG, a)) }
     val bindings1 = Map[String, String](
       (C.BATCH_SIZE_CONFIG, batchSize.toString),
       (C.DELIVERY_TIMEOUT_MS_CONFIG, deliveryTimeout.toMillis.toString),
@@ -56,7 +53,7 @@ final case class ProducerConfig(
       transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
     partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
 
-    bindings ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
+    bindings ++ common.bindings ++ saslSupport.bindings ++ sslSupport.bindings
   }
 
   def properties: java.util.Properties = {
@@ -156,7 +153,6 @@ object ProducerConfig {
       transactionalId = get[String]("transactional-id", "transactional.id") orElse default.transactionalId,
       saslSupport     = SaslSupportConfig(config, default.saslSupport),
       sslSupport      = SslSupportConfig(config),
-      clientRack      = get[String]("client-rack", "client.rack") orElse default.clientRack
     )
   }
 

@@ -5,7 +5,7 @@ import cats.implicits._
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import com.evolutiongaming.smetrics.MetricsHelper._
-import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantile, Quantiles}
+import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantiles}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -13,7 +13,7 @@ trait ConsumerMetrics[F[_]] {
 
   def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit]
 
-  def poll(topic: Topic, bytes: Int, records: Int): F[Unit]
+  def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit]
 
   def count(name: String, topic: Topic): F[Unit]
 
@@ -36,7 +36,7 @@ object ConsumerMetrics {
 
     def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = unit
 
-    def poll(topic: Topic, bytes: Int, records: Int) = unit
+    def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = unit
 
     def count(name: String, topic: Topic) = unit
 
@@ -65,7 +65,7 @@ object ConsumerMetrics {
     val latencySummary = registry.summary(
       name      = s"${prefix}_latency",
       help      = "Topic call latency in seconds",
-      quantiles = Quantiles(Quantile(value = 0.9, error = 0.05), Quantile(value = 0.99, error = 0.005)),
+      quantiles = Quantiles.Default,
       labels    = LabelNames("client", "topic", "type")
     )
 
@@ -92,7 +92,7 @@ object ConsumerMetrics {
     val topicsLatency = registry.summary(
       name      = s"${prefix}_topics_latency",
       help      = "List topics latency in seconds",
-      quantiles = Quantiles(Quantile(value = 0.9, error = 0.05), Quantile(value = 0.99, error = 0.005)),
+      quantiles = Quantiles.Default,
       labels    = LabelNames("client")
     )
 
@@ -104,6 +104,12 @@ object ConsumerMetrics {
       bytesSummary      <- bytesSummary
       rebalancesCounter <- rebalancesCounter
       topicsLatency     <- topicsLatency
+      ageSummary        <- registry.summary(
+        name = s"${ prefix }_age",
+        help = "Poll records age, time since record.timestamp",
+        quantiles = Quantiles.Empty,
+        labels = LabelNames("client", "topic")
+      )
     } yield { clientId: ClientId =>
       new ConsumerMetrics[F] {
 
@@ -115,11 +121,20 @@ object ConsumerMetrics {
           } yield {}
         }
 
-        def poll(topic: Topic, bytes: Int, records: Int) = {
+        def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = {
           for {
-            _ <- recordsSummary.labels(clientId, topic).observe(records.toDouble)
-            _ <- bytesSummary.labels(clientId, topic).observe(bytes.toDouble)
-          } yield {}
+            _ <- recordsSummary
+              .labels(clientId, topic)
+              .observe(records.toDouble)
+            _ <- bytesSummary
+              .labels(clientId, topic)
+              .observe(bytes.toDouble)
+            a <- age.foldMapM { age =>
+              ageSummary
+                .labels(clientId, topic)
+                .observe(age.toNanos.nanosToSeconds)
+            }
+          } yield a
         }
 
         def count(name: String, topic: Topic) = {
@@ -143,28 +158,32 @@ object ConsumerMetrics {
     }
   }
 
+  private sealed abstract class MapK
+
   implicit class ConsumerMetricsOps[F[_]](val self: ConsumerMetrics[F]) extends AnyVal {
 
-    def mapK[G[_]](f: F ~> G): ConsumerMetrics[G] = new ConsumerMetrics[G] {
+    def mapK[G[_]](f: F ~> G): ConsumerMetrics[G] = {
+      new MapK with ConsumerMetrics[G] {
 
-      def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
-        f(self.call(name, topic, latency, success))
-      }
+        def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
+          f(self.call(name, topic, latency, success))
+        }
 
-      def poll(topic: Topic, bytes: Int, records: Int) = {
-        f(self.poll(topic, bytes, records))
-      }
+        def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = {
+          f(self.poll(topic, bytes, records, age))
+        }
 
-      def count(name: String, topic: Topic) = {
-        f(self.count(name, topic))
-      }
+        def count(name: String, topic: Topic) = {
+          f(self.count(name, topic))
+        }
 
-      def rebalance(name: String, topicPartition: TopicPartition) = {
-        f(self.rebalance(name, topicPartition))
-      }
+        def rebalance(name: String, topicPartition: TopicPartition) = {
+          f(self.rebalance(name, topicPartition))
+        }
 
-      def topics(latency: FiniteDuration) = {
-        f(self.topics(latency))
+        def topics(latency: FiniteDuration) = {
+          f(self.topics(latency))
+        }
       }
     }
   }

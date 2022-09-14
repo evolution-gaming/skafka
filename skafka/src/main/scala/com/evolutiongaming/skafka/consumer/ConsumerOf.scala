@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect.{Concurrent, ContextShift, Resource}
+import cats.effect.{Clock, Concurrent, ContextShift, Resource}
 import cats.{Applicative, Defer, Monad, ~>}
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.FromBytes
@@ -17,16 +17,37 @@ trait ConsumerOf[F[_]] {
 
 object ConsumerOf {
 
+  @deprecated("use `apply1` instead", "11.13.0")
   def apply[F[_]: Concurrent: ContextShift: ToTry: ToFuture: MeasureDuration](
     executorBlocking: ExecutionContext,
     metrics: Option[ConsumerMetrics[F]] = None
-  ): ConsumerOf[F] = new ConsumerOf[F] {
+  ): ConsumerOf[F] = {
+    class Main
+    new Main with ConsumerOf[F] {
 
-    def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
-      for {
-        consumer <- Consumer.of[F, K, V](config, executorBlocking)
-      } yield {
-        metrics.fold(consumer)(consumer.withMetrics[Throwable])
+      def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
+        for {
+          consumer <- Consumer.of[F, K, V](config, executorBlocking)
+        } yield {
+          metrics.fold(consumer)(consumer.withMetrics[Throwable])
+        }
+      }
+    }
+  }
+
+  def apply1[F[_]: Concurrent: ContextShift: ToTry: ToFuture: MeasureDuration: Clock](
+    executorBlocking: ExecutionContext,
+    metrics: Option[ConsumerMetrics[F]] = None
+  ): ConsumerOf[F] = {
+    class Main
+    new Main with ConsumerOf[F] {
+
+      def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
+        Consumer
+          .of[F, K, V](config, executorBlocking)
+          .map { consumer =>
+            metrics.fold { consumer } { consumer.withMetrics1[Throwable] }
+          }
       }
     }
   }

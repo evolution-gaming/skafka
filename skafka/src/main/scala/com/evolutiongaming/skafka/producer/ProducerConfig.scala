@@ -26,7 +26,7 @@ final case class ProducerConfig(
   partitionerClass: Option[Class[_ <: Partitioner]] = None,
   interceptorClasses: List[String]                  = Nil,
   idempotence: Boolean                              = false,
-  transactionTimeout: FiniteDuration                = 1.minute,
+  transactionTimeout: FiniteDuration                = 1.minute, // TODO delete
   transactionalId: Option[String]                   = None,
   saslSupport: SaslSupportConfig                    = SaslSupportConfig.Default,
   sslSupport: SslSupportConfig                      = SslSupportConfig.Default,

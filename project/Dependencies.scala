@@ -5,18 +5,18 @@ object Dependencies {
   val `executor-tools`     = "com.evolutiongaming"    %% "executor-tools"          % "1.0.2"
   val `config-tools`       = "com.evolutiongaming"    %% "config-tools"            % "1.0.4"
   val `future-helper`      = "com.evolutiongaming"    %% "future-helper"           % "1.0.6"
-  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "3.0.3"
+  val `cats-helper`        = "com.evolutiongaming"    %% "cats-helper"             % "3.1.1"
   val `kafka-launcher`     = "com.evolutiongaming"    %% "kafka-launcher"          % "0.0.12"
   val `play-json-jsoniter` = "com.evolutiongaming"    %% "play-json-jsoniter"      % "0.10.0"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "1.0.2"
-  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.7.0"
-  val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.12"
-  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "1.0.2"
+  val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1"
+  val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.13"
+  val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "1.0.5"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
-  val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.1.5"
+  val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.2.0"
 
   object Kafka {
-    private val version = "2.8.1"
+    private val version = "2.8.2"
     val kafka           = "org.apache.kafka" %% "kafka"         % version
     val clients         = "org.apache.kafka"  % "kafka-clients" % version
   }
@@ -34,13 +34,13 @@ object Dependencies {
   }
 
   object Cats {
-    private val version = "2.7.0"
+    private val version = "2.8.0"
     val core            = "org.typelevel" %% "cats-core" % version
     val laws            = "org.typelevel" %% "cats-laws" % version
   }
 
   object CatsEffect {
-    private val version = "3.3.12"
+    private val version = "3.3.14"
     val effect          = "org.typelevel" %% "cats-effect"     % version
     val effectStd       = "org.typelevel" %% "cats-effect-std" % version
   }

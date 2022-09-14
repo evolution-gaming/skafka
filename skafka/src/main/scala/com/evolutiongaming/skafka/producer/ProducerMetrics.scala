@@ -73,7 +73,7 @@ object ProducerMetrics {
     val latencySummary = registry.summary(
       name      = s"${prefix}_latency",
       help      = "Latency in seconds",
-      quantiles = Quantiles(Quantile(value = 0.9, error = 0.05), Quantile(value = 0.99, error = 0.005)),
+      quantiles = Quantiles.Default,
       labels    = LabelNames("client", "topic", "type")
     )
 
@@ -93,7 +93,7 @@ object ProducerMetrics {
     val callLatency = registry.summary(
       name      = s"${prefix}_call_latency",
       help      = "Call latency in seconds",
-      quantiles = Quantiles(Quantile(value = 0.9, error = 0.05), Quantile(value = 0.99, error = 0.005)),
+      quantiles = Quantiles.Default,
       labels    = LabelNames("client", "type")
     )
 

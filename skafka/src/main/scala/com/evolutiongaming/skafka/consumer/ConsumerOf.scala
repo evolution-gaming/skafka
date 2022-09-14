@@ -25,13 +25,16 @@ object ConsumerOf {
 
   def apply1[F[_]: Async: ToTry: ToFuture: MeasureDuration](
     metrics: Option[ConsumerMetrics[F]] = None
-  ): ConsumerOf[F] = new ConsumerOf[F] {
+  ): ConsumerOf[F] = {
+    class Main
+    new Main with ConsumerOf[F] {
 
-    def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
-      for {
-        consumer <- Consumer.of[F, K, V](config)
-      } yield {
-        metrics.fold(consumer)(consumer.withMetrics[Throwable])
+      def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
+        Consumer
+          .of[F, K, V](config)
+          .map { consumer =>
+            metrics.fold { consumer } { consumer.withMetrics1[Throwable] }
+          }
       }
     }
   }

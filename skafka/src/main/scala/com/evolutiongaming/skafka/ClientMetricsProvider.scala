@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.effect.kernel.Sync
+import cats.effect.Sync
 import org.apache.kafka.clients.consumer.Consumer
 import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.common.{Metric, MetricName}

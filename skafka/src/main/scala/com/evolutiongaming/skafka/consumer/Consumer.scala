@@ -1107,8 +1107,16 @@ object Consumer {
                   .foldLeft(none[Long]) { case (timestamp, record) =>
                     record
                       .timestampAndType
-                      .map { _.timestamp.toEpochMilli }
-                      .min(timestamp)
+                      .fold {
+                        timestamp
+                      } { timestampAndType =>
+                        val timestamp1 = timestampAndType
+                          .timestamp
+                          .toEpochMilli
+                        timestamp
+                          .fold { timestamp1 } { _ min timestamp1 }
+                          .some
+                      }
                   }
                   .map { timestamp => now - timestamp.millis }
                 metrics.poll(topic, bytes = bytes, records = records.size, age = age)

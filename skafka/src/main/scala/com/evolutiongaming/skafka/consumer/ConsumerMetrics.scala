@@ -107,7 +107,7 @@ object ConsumerMetrics {
       ageSummary        <- registry.summary(
         name = s"${ prefix }_poll_age",
         help = "Poll records age, time since record.timestamp",
-        quantiles = Quantiles.Empty,
+        quantiles = Quantiles.Default,
         labels = LabelNames("client", "topic")
       )
     } yield { clientId: ClientId =>

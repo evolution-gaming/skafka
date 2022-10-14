@@ -10,7 +10,7 @@ object Dependencies {
   val `play-json-jsoniter` = "com.evolutiongaming"    %% "play-json-jsoniter"      % "0.10.0"
   val `scala-java8-compat` = "org.scala-lang.modules" %% "scala-java8-compat"      % "1.0.2"
   val `collection-compat`  = "org.scala-lang.modules" %% "scala-collection-compat" % "2.8.1"
-  val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.13"
+  val scalatest            = "org.scalatest"          %% "scalatest"               % "3.2.14"
   val smetrics             = "com.evolutiongaming"    %% "smetrics"                % "1.0.5"
   val `kind-projector`     = "org.typelevel"           % "kind-projector"          % "0.13.2"
   val discipline           = "org.typelevel"          %% "discipline-scalatest"    % "2.2.0"

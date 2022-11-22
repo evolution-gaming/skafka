@@ -63,7 +63,6 @@ class ProducerConfigSpec extends AnyFunSuite with Matchers {
       "max.block.ms"                          -> "60000",
       "client.id"                             -> "clientId",
       "metric.reporters"                      -> "",
-      "transaction.timeout.ms"                -> "60000",
       "interceptor.classes"                   -> "",
       "delivery.timeout.ms"                   -> "120000",
       "acks"                                  -> "1",

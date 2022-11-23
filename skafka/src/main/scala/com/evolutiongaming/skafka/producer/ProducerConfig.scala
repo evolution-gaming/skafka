@@ -26,7 +26,7 @@ final case class ProducerConfig(
   partitionerClass: Option[Class[_ <: Partitioner]] = None,
   interceptorClasses: List[String]                  = Nil,
   idempotence: Boolean                              = false,
-  transactionTimeout: FiniteDuration                = 1.minute, // TODO delete
+  transactionTimeout: FiniteDuration                = 1.minute,
   transactionalId: Option[String]                   = None,
   saslSupport: SaslSupportConfig                    = SaslSupportConfig.Default,
   sslSupport: SslSupportConfig                      = SslSupportConfig.Default,
@@ -46,12 +46,16 @@ final case class ProducerConfig(
       (C.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
-      (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString)
     )
 
-    val bindings = bindings1 ++
-      transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
-    partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
+    val transactions = transactionalId.toList.flatMap { id =>
+      Map(
+        C.TRANSACTIONAL_ID_CONFIG -> id,
+        C.TRANSACTION_TIMEOUT_CONFIG -> transactionTimeout.toMillis.toString
+      )
+    }
+
+    val bindings = bindings1 ++ transactions ++ partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
 
     bindings ++ common.bindings ++ saslSupport.bindings ++ sslSupport.bindings
   }

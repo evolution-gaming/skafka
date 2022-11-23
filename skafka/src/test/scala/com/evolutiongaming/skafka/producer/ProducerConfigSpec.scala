@@ -46,7 +46,8 @@ class ProducerConfigSpec extends AnyFunSuite with Matchers {
 
   test("bindings") {
     val configs = ProducerConfig(
-      common = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId"))
+      common = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
+      transactionalId = Some("transactionId")
     )
 
     configs.bindings shouldEqual Map(
@@ -64,6 +65,7 @@ class ProducerConfigSpec extends AnyFunSuite with Matchers {
       "client.id"                             -> "clientId",
       "metric.reporters"                      -> "",
       "transaction.timeout.ms"                -> "60000",
+      "transactional.id"                      -> "transactionId",
       "interceptor.classes"                   -> "",
       "delivery.timeout.ms"                   -> "120000",
       "acks"                                  -> "1",

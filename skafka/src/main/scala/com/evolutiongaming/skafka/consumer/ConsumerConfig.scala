@@ -20,7 +20,7 @@ final case class ConsumerConfig(
   heartbeatInterval: FiniteDuration          = 3.seconds,
   autoCommit: Boolean                        = true,
   autoCommitInterval: Option[FiniteDuration] = None,
-  partitionAssignmentStrategy: String        = "org.apache.kafka.clients.consumer.RangeAssignor",
+  partitionAssignmentStrategy: String        = "org.apache.kafka.clients.consumer.CooperativeStickyAssignor,org.apache.kafka.clients.consumer.RangeAssignor",
   autoOffsetReset: AutoOffsetReset           = AutoOffsetReset.Latest,
   defaultApiTimeout: FiniteDuration          = 1.minute,
   fetchMinBytes: Int                         = 1,

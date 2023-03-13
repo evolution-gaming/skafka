@@ -4,10 +4,8 @@ import java.lang.{Long => LongJ}
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, Duration => DurationJ}
 import java.util
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import java.util.{Optional, Collection => CollectionJ, Map => MapJ}
-
+import java.util.{Optional, OptionalLong, Collection => CollectionJ, Map => MapJ}
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.effect.IO
@@ -19,14 +17,7 @@ import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import org.apache.kafka.clients.consumer.{
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetCommitCallback => OffsetCommitCallbackJ
-}
+import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -469,13 +460,15 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def close() = {}
 
-      def close(timeout: Long, unit: TimeUnit) = {}
-
       def close(timeout: DurationJ) = {}
 
       def wakeup() = {
         Scope.this.wakeup = true
       }
+
+      def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.empty()
+
+      def enforceRebalance(reason: Metadata): Unit = {}
     }
 
     val consumer: Consumer[IO, Bytes, Bytes] = {

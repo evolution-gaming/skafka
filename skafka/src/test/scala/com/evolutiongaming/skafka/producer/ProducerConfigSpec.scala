@@ -78,7 +78,6 @@ class ProducerConfigSpec extends AnyFunSuite with Matchers {
       "linger.ms"                                -> "0",
       "batch.size"                               -> "16384",
       "send.buffer.bytes"                        -> "131072",
-      "send.buffer.bytes"                        -> "131072",
       "client.dns.lookup"                        -> "use_all_dns_ips",
       "metadata.max.idle.ms"                     -> "300000",
       "partitioner.adaptive.partitioning.enable" -> "true",

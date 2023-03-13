@@ -33,7 +33,7 @@ final case class ProducerConfig(
   partitionerIgnoreKeys: Boolean                    = false,
   partitionerAdaptivePartitioningEnable: Boolean    = true,
   partitionerAvailabilityTimeout: FiniteDuration    = 0.seconds,
-  metadataMaxIdleMs: FiniteDuration                 = 5.minutes,
+  metadataMaxIdle: FiniteDuration                   = 5.minutes,
 ) {
 
   def bindings: Map[String, AnyRef] = {
@@ -54,7 +54,7 @@ final case class ProducerConfig(
       (C.PARTITIONER_IGNORE_KEYS_CONFIG, partitionerIgnoreKeys.toString),
       (C.PARTITIONER_ADPATIVE_PARTITIONING_ENABLE_CONFIG, partitionerAdaptivePartitioningEnable.toString),
       (C.PARTITIONER_AVAILABILITY_TIMEOUT_MS_CONFIG, partitionerAvailabilityTimeout.toMillis.toString),
-      (C.METADATA_MAX_IDLE_CONFIG, metadataMaxIdleMs.toMillis.toString),
+      (C.METADATA_MAX_IDLE_CONFIG, metadataMaxIdle.toMillis.toString),
     )
 
     val bindings = bindings1 ++
@@ -170,7 +170,7 @@ object ProducerConfig {
         getDuration("partitioner-availability-timeout", "partitioner.availability.timeout.ms").getOrElse(
           default.partitionerAvailabilityTimeout
         ),
-      metadataMaxIdleMs = getDuration("metadata-max-idle", "metadata.max.idle.ms").getOrElse(default.metadataMaxIdleMs),
+      metadataMaxIdle = getDuration("metadata-max-idle", "metadata.max.idle.ms").getOrElse(default.metadataMaxIdle),
     )
   }
 

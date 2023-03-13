@@ -87,8 +87,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     } yield consumer
   }
 
-  def producerOf(acks: Acks): Resource[IO, Producer[IO]] = {
-    val config = ProducerConfig.Default.copy(acks = acks)
+  def producerOf(acks: Acks, idempotence: Boolean): Resource[IO, Producer[IO]] = {
+    val config = ProducerConfig.Default.copy(acks = acks, idempotence = idempotence)
     for {
       metrics   <- ProducerMetrics.of(CollectorRegistry.empty[IO])
       producerOf = ProducerOf.apply1(metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
@@ -210,7 +210,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       } yield completed
 
       consumer = consumerOf(topic, none)
-      producer = producerOf(Acks.One)
+      producer = producerOf(Acks.One, idempotence = false)
 
       _ <- producer.use { producer =>
         for {
@@ -312,7 +312,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       } yield completed
 
       consumer = consumerOf(topic, none)
-      producer = producerOf(Acks.One)
+      producer = producerOf(Acks.One, idempotence = false)
 
       _ <- producer.use { producer =>
         // send 1 record just to create the topic
@@ -382,7 +382,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     }
 
     val consumer = consumerOf(topic, none)
-    val producer = producerOf(Acks.One)
+    val producer = producerOf(Acks.One, idempotence = false)
 
     producer
       .use { producer =>
@@ -409,7 +409,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
   lazy val combinations: Seq[(Acks, List[(Producer[IO], IO[Unit])])] = for {
     acks <- List(Acks.One, Acks.None)
   } yield {
-    val producer = producerOf(acks)
+    val producer = producerOf(acks, idempotence = false)
     (acks, List(producer.allocated.unsafeRunSync()))
   }
 

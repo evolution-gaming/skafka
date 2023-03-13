@@ -4,7 +4,6 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.{lang, util}
-
 import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec._
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
@@ -16,6 +15,7 @@ import org.apache.kafka.common.TopicPartition
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
+import java.util.OptionalLong
 import scala.util.control.NoStackTrace
 
 class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
@@ -79,12 +79,14 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
         supported // rebalanceConsumer.endOffsets(partitions)
       def endOffsets(partitions: util.Collection[TopicPartition], timeout: Duration) =
         supported // rebalanceConsumer.endOffsets(partitions, timeout)
-      def groupMetadata()                      = supported // rebalanceConsumer.groupMetadata()
-      def enforceRebalance()                   = unsupported
-      def close()                              = unsupported
-      def close(timeout: Long, unit: TimeUnit) = unsupported
-      def close(timeout: Duration)             = unsupported
-      def wakeup()                             = unsupported
+      def groupMetadata()                                          = supported // rebalanceConsumer.groupMetadata()
+      def enforceRebalance()                                       = unsupported
+      def close()                                                  = unsupported
+      def close(timeout: Long, unit: TimeUnit)                     = unsupported
+      def close(timeout: Duration)                                 = unsupported
+      def wakeup()                                                 = unsupported
+      def currentLag(topicPartition: TopicPartition): OptionalLong = unsupported
+      def enforceRebalance(reason: String): Unit                   = unsupported
     }
 
     // useless test to suppress unused consumerJ warning

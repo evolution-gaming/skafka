@@ -71,9 +71,8 @@ object ProducerConverters {
       new RecordMetadataJ(
         self.topicPartition.asJava,
         0,
-        self.offset.fold(ProduceResponse.INVALID_OFFSET) { _.value },
+        self.offset.fold(ProduceResponse.INVALID_OFFSET.toInt) { _.value.toInt },
         self.timestamp.fold(RecordBatch.NO_TIMESTAMP)(_.toEpochMilli),
-        null,
         self.keySerializedSize getOrElse -1,
         self.valueSerializedSize getOrElse -1
       )

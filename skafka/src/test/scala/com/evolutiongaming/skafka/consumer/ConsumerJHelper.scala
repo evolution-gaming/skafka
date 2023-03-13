@@ -2,10 +2,9 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
-import java.util.{ConcurrentModificationException, Collection => CollectionJ, Map => MapJ, Set => SetJ}
+import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 import cats.implicits._
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
@@ -170,12 +169,13 @@ object ConsumerJHelper {
 
       def close() = f { self.close() }
 
-      @nowarn("cat=deprecation")
-      def close(timeout: Long, unit: TimeUnit) = f { self.close(timeout, unit) }
-
       def close(timeout: Duration) = f { self.close(timeout) }
 
       def wakeup() = f { self.wakeup() }
+
+      def currentLag(topicPartition: TopicPartitionJ): OptionalLong = f { self.currentLag(topicPartition) }
+
+      def enforceRebalance(reason: String): Unit = f { self.enforceRebalance(reason) }
     }
   }
 

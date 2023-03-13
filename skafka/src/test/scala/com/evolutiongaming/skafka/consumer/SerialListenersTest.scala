@@ -4,7 +4,7 @@ import java.lang.{Long => LongJ}
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import cats.data.{NonEmptySet => Nes}
 import cats.effect.concurrent.{Deferred, Ref}
 import cats.effect.{Concurrent, IO, Sync}
@@ -368,6 +368,10 @@ object SerialListenersTest {
         def close(timeout: Duration) = {}
 
         def wakeup() = {}
+
+        def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.empty()
+
+        def enforceRebalance(reason: String): Unit = {}
       }
 
       consumer.errorOnConcurrentAccess

@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-click-blue)](https://evolution.jfrog.io/artifactory/api/search/latestVersion?g=com.evolutiongaming&a=skafka_2.13&repos=public)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
 
-Scala wrapper for [kafka-clients v2.7.1](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/2.7.1)
+Scala wrapper for [kafka-clients v3.4.0](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/3.4.0)
 
 ## Key features
 
@@ -47,5 +47,5 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 ```scala
 addSbtPlugin("com.evolution" % "sbt-artifactory-plugin" % "0.0.2")
 
-libraryDependencies += "com.evolutiongaming" %% "skafka" % "11.5.0"
+libraryDependencies += "com.evolutiongaming" %% "skafka" % "11.6.0"
 ``` 

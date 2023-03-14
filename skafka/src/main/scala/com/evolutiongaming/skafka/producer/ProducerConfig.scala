@@ -15,7 +15,7 @@ final case class ProducerConfig(
   common: CommonConfig                              = CommonConfig.Default,
   batchSize: Int                                    = 16384,
   deliveryTimeout: FiniteDuration                   = 2.minutes,
-  acks: Acks                                        = Acks.One,
+  acks: Acks                                        = Acks.All,
   linger: FiniteDuration                            = 0.millis,
   maxRequestSize: Int                               = 1048576,
   maxBlock: FiniteDuration                          = 1.minute,
@@ -25,11 +25,15 @@ final case class ProducerConfig(
   maxInFlightRequestsPerConnection: Int             = 5,
   partitionerClass: Option[Class[_ <: Partitioner]] = None,
   interceptorClasses: List[String]                  = Nil,
-  idempotence: Boolean                              = false,
-  transactionTimeout: FiniteDuration                = 1.minute, // TODO delete
+  idempotence: Boolean                              = true,
+  transactionTimeout: FiniteDuration                = 1.minute,
   transactionalId: Option[String]                   = None,
   saslSupport: SaslSupportConfig                    = SaslSupportConfig.Default,
   sslSupport: SslSupportConfig                      = SslSupportConfig.Default,
+  partitionerIgnoreKeys: Boolean                    = false,
+  partitionerAdaptivePartitioningEnable: Boolean    = true,
+  partitionerAvailabilityTimeout: FiniteDuration    = 0.seconds,
+  metadataMaxIdle: FiniteDuration                   = 5.minutes,
 ) {
 
   def bindings: Map[String, AnyRef] = {
@@ -46,12 +50,20 @@ final case class ProducerConfig(
       (C.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, maxInFlightRequestsPerConnection.toString),
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
-      (C.TRANSACTION_TIMEOUT_CONFIG, transactionTimeout.toMillis.toString)
+      (C.PARTITIONER_IGNORE_KEYS_CONFIG, partitionerIgnoreKeys.toString),
+      (C.PARTITIONER_ADPATIVE_PARTITIONING_ENABLE_CONFIG, partitionerAdaptivePartitioningEnable.toString),
+      (C.PARTITIONER_AVAILABILITY_TIMEOUT_MS_CONFIG, partitionerAvailabilityTimeout.toMillis.toString),
+      (C.METADATA_MAX_IDLE_CONFIG, metadataMaxIdle.toMillis.toString),
     )
 
-    val bindings = bindings1 ++
-      transactionalId.map { (C.TRANSACTIONAL_ID_CONFIG, _) }
-    partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
+    val transactions = transactionalId.toList.flatMap { id =>
+      Map(
+        C.TRANSACTIONAL_ID_CONFIG    -> id,
+        C.TRANSACTION_TIMEOUT_CONFIG -> transactionTimeout.toMillis.toString
+      )
+    }
+
+    val bindings = bindings1 ++ transactions ++ partitionerClass.map { value => (C.PARTITIONER_CLASS_CONFIG, value) }
 
     bindings ++ common.bindings ++ saslSupport.bindings ++ sslSupport.bindings
   }
@@ -153,6 +165,16 @@ object ProducerConfig {
       transactionalId = get[String]("transactional-id", "transactional.id") orElse default.transactionalId,
       saslSupport     = SaslSupportConfig(config, default.saslSupport),
       sslSupport      = SslSupportConfig(config),
+      partitionerIgnoreKeys =
+        get[Boolean]("partitioner-ignore-keys", "partitioner.ignore.keys") getOrElse default.partitionerIgnoreKeys,
+      partitionerAdaptivePartitioningEnable =
+        get[Boolean]("partitioner-adaptive-partitioning-enable", "partitioner.adaptive.partitioning.enable")
+          .getOrElse(default.partitionerAdaptivePartitioningEnable),
+      partitionerAvailabilityTimeout =
+        getDuration("partitioner-availability-timeout", "partitioner.availability.timeout.ms").getOrElse(
+          default.partitionerAvailabilityTimeout
+        ),
+      metadataMaxIdle = getDuration("metadata-max-idle", "metadata.max.idle.ms").getOrElse(default.metadataMaxIdle),
     )
   }
 

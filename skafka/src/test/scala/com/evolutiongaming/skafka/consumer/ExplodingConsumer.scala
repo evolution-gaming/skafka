@@ -4,18 +4,9 @@ import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
-
+import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
-import org.apache.kafka.clients.consumer.{
-  ConsumerRebalanceListener,
-  OffsetCommitCallback,
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
-}
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
@@ -117,6 +108,10 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def wakeup(): Unit                                                                = notImplemented
 
   def asRebalanceConsumer: RebalanceConsumer = RebalanceConsumer(this)
+
+  def currentLag(topicPartition: TopicPartitionJ): OptionalLong = notImplemented
+
+  def enforceRebalance(reason: String): Unit = notImplemented
 }
 
 object ExplodingConsumer {

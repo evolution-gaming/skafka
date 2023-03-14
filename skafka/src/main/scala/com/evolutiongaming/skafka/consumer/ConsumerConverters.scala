@@ -195,12 +195,12 @@ object ConsumerConverters {
         self.offset.value,
         timestamp,
         timestampType,
-        null,
         self.key.map(_.serializedSize) getOrElse -1,
         self.value.map(_.serializedSize) getOrElse -1,
         self.key.map(_.value) getOrElse null.asInstanceOf[K],
         self.value.map(_.value) getOrElse null.asInstanceOf[V],
-        new RecordHeaders(headers)
+        new RecordHeaders(headers),
+        Option.empty[Integer].toOptional
       )
     }
   }

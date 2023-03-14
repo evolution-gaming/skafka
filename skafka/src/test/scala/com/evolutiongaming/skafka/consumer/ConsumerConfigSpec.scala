@@ -157,6 +157,9 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "ssl.truststore.location"                  -> "/tmp/truststore.jks",
       "ssl.truststore.password"                  -> "some password 2",
       "ssl.endpoint.identification.algorithm"    -> "algo",
+      "client.dns.lookup"                        -> "use_all_dns_ips",
+      "socket.connection.setup.timeout.max.ms"   -> "30000",
+      "socket.connection.setup.timeout.ms"       -> "10000",
     )
   }
 }

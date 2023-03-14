@@ -30,6 +30,7 @@ trait Producer[F[_]] {
 
   def beginTransaction: F[Unit]
 
+  @deprecated("Deprecated in kafka-clients since 3.0.0", since = "15.0.0")
   def sendOffsetsToTransaction(
     offsets: Nem[TopicPartition, OffsetAndMetadata],
     consumerGroupId: String

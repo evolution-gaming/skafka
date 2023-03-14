@@ -45,21 +45,24 @@ class CommonConfigSpec extends AnyFunSuite with Matchers {
       CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId"))
 
     configs.bindings shouldEqual Map(
-      "bootstrap.servers"        -> "localhost:9092,127.0.0.1:9092",
-      "client.id"                -> "clientId",
-      "connections.max.idle.ms"  -> "540000",
-      "receive.buffer.bytes"     -> "32768",
-      "send.buffer.bytes"        -> "131072",
-      "request.timeout.ms"       -> "30000",
-      "metadata.max.age.ms"      -> "300000",
-      "reconnect.backoff.max.ms" -> "1000",
-      "retry.backoff.ms"         -> "100",
-      "security.protocol"        -> "PLAINTEXT",
-      "reconnect.backoff.ms"     -> "50",
-      "metrics.sample.window.ms" -> "30000",
-      "metrics.num.samples"      -> "2",
-      "metrics.recording.level"  -> "INFO",
-      "metric.reporters"         -> ""
+      "bootstrap.servers"                      -> "localhost:9092,127.0.0.1:9092",
+      "client.id"                              -> "clientId",
+      "connections.max.idle.ms"                -> "540000",
+      "receive.buffer.bytes"                   -> "32768",
+      "send.buffer.bytes"                      -> "131072",
+      "request.timeout.ms"                     -> "30000",
+      "metadata.max.age.ms"                    -> "300000",
+      "reconnect.backoff.max.ms"               -> "1000",
+      "retry.backoff.ms"                       -> "100",
+      "security.protocol"                      -> "PLAINTEXT",
+      "reconnect.backoff.ms"                   -> "50",
+      "metrics.sample.window.ms"               -> "30000",
+      "metrics.num.samples"                    -> "2",
+      "metrics.recording.level"                -> "INFO",
+      "metric.reporters"                       -> "",
+      "client.dns.lookup"                      -> "use_all_dns_ips",
+      "socket.connection.setup.timeout.max.ms" -> "30000",
+      "socket.connection.setup.timeout.ms"     -> "10000",
     )
   }
 }

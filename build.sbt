@@ -39,7 +39,7 @@ lazy val root = (project in file(".")
   settings (name := "skafka")
   settings commonSettings
   settings (publish / skip := true)
-  aggregate (skafka, `play-json`, tests))
+  aggregate (skafka, `play-json`, metrics, tests))
 
 lazy val skafka = (project in file("skafka")
   disablePlugins (MimaPlugin)
@@ -54,7 +54,7 @@ lazy val skafka = (project in file("skafka")
     Kafka.clients,
     `future-helper`,
     `cats-helper`,
-    smetrics,
+    Smetrics.smetrics,
     scalatest  % Test,
     Cats.laws  % Test,
     discipline % Test,
@@ -67,6 +67,13 @@ lazy val `play-json` = (project in file("modules/play-json")
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Dependencies.`play-json-jsoniter`, scalatest % Test)))
+
+lazy val metrics = (project in file("modules/metrics")
+  settings (name := "skafka-metrics")
+  disablePlugins (MimaPlugin)
+  settings commonSettings
+  dependsOn skafka
+  settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))
 
 lazy val tests = (project in file("tests")
   disablePlugins (MimaPlugin)

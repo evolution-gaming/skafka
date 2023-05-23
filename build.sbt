@@ -68,6 +68,7 @@ lazy val `play-json` = (project in file("modules/play-json")
 
 lazy val metrics = (project in file("modules/metrics")
   settings (name := "skafka-metrics")
+  disablePlugins (MimaPlugin)
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))

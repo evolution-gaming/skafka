@@ -2,11 +2,11 @@ package com.evolutiongaming.skafka.metrics
 
 import cats.Monad
 import cats.syntax.all._
+import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.ToTry
+import com.evolutiongaming.skafka.ClientMetric
 import io.prometheus.client.Collector
 import io.prometheus.client.Collector.MetricFamilySamples
-import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.skafka.ClientMetric
 import io.prometheus.client.Collector.MetricFamilySamples.Sample
 
 import java.util

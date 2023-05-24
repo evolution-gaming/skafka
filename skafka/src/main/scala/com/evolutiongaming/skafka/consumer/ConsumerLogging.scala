@@ -4,9 +4,8 @@ import java.util.regex.Pattern
 import cats.Monad
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
-import com.evolutiongaming.smetrics.MeasureDuration
 
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration

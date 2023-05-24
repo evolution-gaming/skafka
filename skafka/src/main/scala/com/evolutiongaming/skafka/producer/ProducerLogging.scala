@@ -3,9 +3,8 @@ package com.evolutiongaming.skafka.producer
 import cats.data.{NonEmptyMap => Nem}
 import cats.implicits._
 import cats.MonadThrow
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
-import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.common.errors.RecordTooLargeException
 
 object ProducerLogging {

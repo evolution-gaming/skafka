@@ -3,9 +3,8 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Applicative, FlatMap, ~>}
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.TopicPartition
-import com.evolutiongaming.smetrics.MeasureDuration
 
 /**
   * See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]

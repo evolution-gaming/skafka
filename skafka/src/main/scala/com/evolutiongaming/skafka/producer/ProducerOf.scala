@@ -2,8 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import cats.effect.{Async, MonadCancel, Resource}
 import cats.~>
-import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.catshelper.{MeasureDuration, ToTry}
 
 import scala.concurrent.ExecutionContext
 

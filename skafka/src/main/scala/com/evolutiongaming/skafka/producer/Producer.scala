@@ -7,12 +7,11 @@ import cats.effect.syntax.all._
 import cats.effect.concurrent.Deferred
 import cats.syntax.all._
 import cats.{Applicative, Functor, Monad, MonadError, ~>}
-import com.evolutiongaming.catshelper.{Blocking, Log, ToTry}
+import com.evolutiongaming.catshelper.{Blocking, Log, MeasureDuration, ToTry}
 import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.jdk.CollectionConverters._

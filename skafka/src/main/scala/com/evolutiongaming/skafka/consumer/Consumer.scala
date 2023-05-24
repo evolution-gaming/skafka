@@ -13,7 +13,6 @@ import com.evolutiongaming.catshelper.ClockHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.{
   OffsetCommitCallback,

@@ -3,6 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Applicative, FlatMap, ~>}
+import com.evolutiongaming.{catshelper => ch}
 import com.evolutiongaming.catshelper.Log
 import com.evolutiongaming.skafka.TopicPartition
 import com.evolutiongaming.smetrics.MeasureDuration
@@ -48,6 +49,7 @@ object RebalanceListener {
       }
     }
 
+    @deprecated("use `withLogging1` instead", "15.2.0")
     def withLogging(log: Log[F])(implicit F: FlatMap[F], measureDuration: MeasureDuration[F]): RebalanceListener[F] =
       new RebalanceListener[F] {
 
@@ -78,5 +80,39 @@ object RebalanceListener {
           } yield a
         }
       }
+
+    def withLogging1(log: Log[F])(implicit F: FlatMap[F], measureDuration: ch.MeasureDuration[F]): RebalanceListener[F] =
+      new RebalanceListener[F] {
+
+        import ch.MeasureDuration
+
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+          for {
+            d <- MeasureDuration[F].start
+            a <- self.onPartitionsAssigned(partitions)
+            d <- d
+            _ <- log.debug(s"onPartitionsAssigned ${partitions.mkString_(", ")} in ${d.toMillis}ms")
+          } yield a
+        }
+
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
+          for {
+            d <- MeasureDuration[F].start
+            a <- self.onPartitionsRevoked(partitions)
+            d <- d
+            _ <- log.debug(s"onPartitionsRevoked ${partitions.mkString_(", ")} in ${d.toMillis}ms")
+          } yield a
+        }
+
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = {
+          for {
+            d <- MeasureDuration[F].start
+            a <- self.onPartitionsLost(partitions)
+            d <- d
+            _ <- log.debug(s"onPartitionsLost ${partitions.mkString_(", ")} in ${d.toMillis}ms")
+          } yield a
+        }
+      }
+
   }
 }

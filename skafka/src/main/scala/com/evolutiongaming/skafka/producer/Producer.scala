@@ -6,12 +6,11 @@ import cats.effect.{Async, Deferred, Resource, Sync}
 import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Functor, Monad, MonadError, MonadThrow, ~>}
-import com.evolutiongaming.{catshelper => ch}
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{Blocking, Log, ToTry}
+import com.evolutiongaming.catshelper.{Blocking, Log, MeasureDuration, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.smetrics
 import org.apache.kafka.clients.producer.{
   Callback,
   Producer => ProducerJ,
@@ -228,112 +227,16 @@ object Producer {
   private sealed abstract class WithMetrics
 
   @deprecated("Use `apply1` instead", "15.2.0")
-  def apply[F[_]: MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
+  def apply[F[_]: smetrics.MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
     implicit F: MonadError[F, E],
   ): Producer[F] = {
-
-    new WithMetrics with Producer[F] {
-
-      def initTransactions = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.initTransactions.attempt
-          d <- d
-          _ <- metrics.initTransactions(d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def beginTransaction = {
-        for {
-          r <- producer.beginTransaction
-          _ <- metrics.beginTransaction
-        } yield r
-      }
-
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt
-          d <- d
-          _ <- metrics.sendOffsetsToTransaction(d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def commitTransaction = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.commitTransaction.attempt
-          d <- d
-          _ <- metrics.commitTransaction(d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def abortTransaction = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.abortTransaction.attempt
-          d <- d
-          _ <- metrics.abortTransaction(d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
-        val topic = record.topic
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.send(record).attempt
-          d <- d
-          _ <- metrics.block(topic, d)
-          _ <- r match {
-            case Right(_) => ().pure[F]
-            case Left(_)  => metrics.failure(topic, d)
-          }
-          r <- r.liftTo[F]
-        } yield for {
-          d <- MeasureDuration[F].start
-          r <- r.attempt
-          d <- d
-          _ <- r match {
-            case Right(r) => metrics.send(topic, d, r.valueSerializedSize getOrElse 0)
-            case Left(_)  => metrics.failure(topic, d)
-          }
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def partitions(topic: Topic) = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.partitions(topic).attempt
-          d <- d
-          _ <- metrics.partitions(topic, d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def flush = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.flush.attempt
-          d <- d
-          _ <- metrics.flush(d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
-      def clientMetrics = producer.clientMetrics
-    }
+    implicit val md: MeasureDuration[F] = smetrics.MeasureDuration[F].toCatsHelper
+    apply1(producer, metrics)
   }
 
-  def apply1[F[_]: ch.MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
+  def apply1[F[_]: MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
     implicit F: MonadError[F, E],
   ): Producer[F] = {
-
-    import ch.MeasureDuration
 
     new WithMetrics with Producer[F] {
 
@@ -437,11 +340,14 @@ object Producer {
   implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
     @deprecated("Use `withLogging1` instead", "15.2.0")
-    def withLogging(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      ProducerLogging(self, log)
+    def withLogging(
+      log: Log[F]
+    )(implicit F: MonadThrow[F], measureDuration: smetrics.MeasureDuration[F]): Producer[F] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withLogging1(log)
     }
 
-    def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: ch.MeasureDuration[F]): Producer[F] = {
+    def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       ProducerLogging.apply1(self, log)
     }
 
@@ -452,8 +358,9 @@ object Producer {
     def withLogging(
       log: Log[F],
       charsToTrim: Int
-    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      ProducerLogging(self, log, charsToTrim)
+    )(implicit F: MonadThrow[F], measureDuration: smetrics.MeasureDuration[F]): Producer[F] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withLogging1(log, charsToTrim)
     }
 
     /**
@@ -462,20 +369,21 @@ object Producer {
     def withLogging1(
       log: Log[F],
       charsToTrim: Int
-    )(implicit F: MonadThrow[F], measureDuration: ch.MeasureDuration[F]): Producer[F] = {
+    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       ProducerLogging.apply1(self, log, charsToTrim)
     }
 
     @deprecated("Use `withMetrics1` instead", "15.2.0")
     def withMetrics[E](
       metrics: ProducerMetrics[F]
-    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
-      Producer(self, metrics)
+    )(implicit F: MonadError[F, E], measureDuration: smetrics.MeasureDuration[F]): Producer[F] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withMetrics1(metrics)
     }
 
     def withMetrics1[E](
       metrics: ProducerMetrics[F]
-    )(implicit F: MonadError[F, E], measureDuration: ch.MeasureDuration[F]): Producer[F] = {
+    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
       Producer.apply1(self, metrics)
     }
 

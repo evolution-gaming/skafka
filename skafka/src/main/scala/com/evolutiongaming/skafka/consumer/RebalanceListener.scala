@@ -3,9 +3,9 @@ package com.evolutiongaming.skafka.consumer
 import cats.data.{NonEmptySet => Nes}
 import cats.implicits._
 import cats.{Applicative, FlatMap, ~>}
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.TopicPartition
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.smetrics
 
 /**
   * See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
@@ -48,7 +48,15 @@ object RebalanceListener {
       }
     }
 
-    def withLogging(log: Log[F])(implicit F: FlatMap[F], measureDuration: MeasureDuration[F]): RebalanceListener[F] =
+    @deprecated("use `withLogging1` instead", "15.2.0")
+    def withLogging(
+      log: Log[F]
+    )(implicit F: FlatMap[F], measureDuration: smetrics.MeasureDuration[F]): RebalanceListener[F] = {
+      implicit val md: MeasureDuration[F] = smetrics.MeasureDuration[F].toCatsHelper
+      withLogging1(log)
+    }
+
+    def withLogging1(log: Log[F])(implicit F: FlatMap[F], measureDuration: MeasureDuration[F]): RebalanceListener[F] =
       new RebalanceListener[F] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
@@ -78,5 +86,6 @@ object RebalanceListener {
           } yield a
         }
       }
+
   }
 }

@@ -4,9 +4,9 @@ import java.util.regex.Pattern
 import cats.Monad
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.smetrics
 
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
@@ -15,7 +15,16 @@ object ConsumerLogging {
 
   private sealed abstract class WithLogging
 
-  def apply[F[_]: Monad: MeasureDuration, K, V](
+  @deprecated("use `apply1` instead", "15.2.0")
+  def apply[F[_]: Monad: smetrics.MeasureDuration, K, V](
+    log: Log[F],
+    consumer: Consumer[F, K, V]
+  ): Consumer[F, K, V] = {
+    implicit val md: MeasureDuration[F] = smetrics.MeasureDuration[F].toCatsHelper
+    apply1(log, consumer)
+  }
+
+  def apply1[F[_]: Monad: MeasureDuration, K, V](
     log: Log[F],
     consumer: Consumer[F, K, V]
   ): Consumer[F, K, V] = {
@@ -85,7 +94,7 @@ object ConsumerLogging {
       @nowarn("cat=deprecation")
       def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
 
-        val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging(log)
+        val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging1(log)
 
         for {
           d <- MeasureDuration[F].start
@@ -100,7 +109,7 @@ object ConsumerLogging {
       @nowarn("cat=deprecation")
       def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
 
-        val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging(log)
+        val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging1(log)
 
         for {
           d <- MeasureDuration[F].start

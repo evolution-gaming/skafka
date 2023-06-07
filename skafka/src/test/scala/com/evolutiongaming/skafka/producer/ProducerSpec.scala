@@ -2,17 +2,16 @@ package com.evolutiongaming.skafka.producer
 
 import java.util
 import java.util.concurrent.CompletableFuture
-
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyMap => Nem}
 import cats.effect.IO
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.MeasureDuration
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite._
-import com.evolutiongaming.smetrics.MeasureDuration
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata => OffsetAndMetadataJ
@@ -202,7 +201,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         .toTry
         .get
         ._1
-        .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id))
+        .withMetrics1(ProducerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
     }
   }

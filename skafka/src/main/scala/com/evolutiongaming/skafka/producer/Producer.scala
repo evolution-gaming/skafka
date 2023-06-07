@@ -7,12 +7,12 @@ import cats.effect.syntax.all._
 import cats.effect.concurrent.Deferred
 import cats.syntax.all._
 import cats.{Applicative, Functor, Monad, MonadError, ~>}
-import com.evolutiongaming.catshelper.{Blocking, Log, ToTry}
+import com.evolutiongaming.catshelper.{Blocking, Log, MeasureDuration, ToTry}
 import com.evolutiongaming.catshelper.Blocking.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.smetrics
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 
 import scala.jdk.CollectionConverters._
@@ -334,7 +334,15 @@ object Producer {
 
   private sealed abstract class WithMetrics
 
-  def apply[F[_]: MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
+  @deprecated("Use `apply1` instead", "11.15.1")
+  def apply[F[_]: smetrics.MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
+    implicit F: MonadError[F, E],
+  ): Producer[F] = {
+    implicit val md: MeasureDuration[F] = smetrics.MeasureDuration[F].toCatsHelper
+    apply1(producer, metrics)
+  }
+
+  def apply1[F[_]: MeasureDuration, E](producer: Producer[F], metrics: ProducerMetrics[F])(
     implicit F: MonadError[F, E],
   ): Producer[F] = {
 
@@ -440,21 +448,49 @@ object Producer {
 
   implicit class ProducerOps[F[_]](val self: Producer[F]) extends AnyVal {
 
-    def withLogging(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      ProducerLogging(self, log)
+    @deprecated("Use `withLogging1` instead", "11.15.1")
+    def withLogging(
+      log: Log[F]
+    )(implicit F: MonadThrow[F], measureDuration: smetrics.MeasureDuration[F]): Producer[F] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withLogging1(log)
+    }
+
+    def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+      ProducerLogging.apply1(self, log)
     }
 
     /**
       * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
       */
-    def withLogging(log: Log[F], charsToTrim: Int)(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      ProducerLogging(self, log, charsToTrim)
+    @deprecated("Use `withLogging1` instead", "11.15.1")
+    def withLogging(log: Log[F], charsToTrim: Int)(implicit F: MonadThrow[F], measureDuration: smetrics.MeasureDuration[F]): Producer[F] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withLogging1(log, charsToTrim)
     }
 
+    /**
+      * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+      */
+    def withLogging1(
+      log: Log[F],
+      charsToTrim: Int
+    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+      ProducerLogging.apply1(self, log, charsToTrim)
+    }
+
+    @deprecated("Use `withMetrics1` instead", "11.15.1")
     def withMetrics[E](
       metrics: ProducerMetrics[F]
+    )(implicit F: MonadError[F, E], measureDuration: smetrics.MeasureDuration[F]): Producer[F] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withMetrics1(metrics)
+    }
+
+    def withMetrics1[E](
+      metrics: ProducerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
-      Producer(self, metrics)
+      Producer.apply1(self, metrics)
     }
 
     def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {

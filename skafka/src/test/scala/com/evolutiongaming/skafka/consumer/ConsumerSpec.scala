@@ -478,9 +478,9 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         .toTry
         .get
         ._1
-        .withMetrics1(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
+        .withMetrics2(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
-        .withLogging(Log.empty)
+        .withLogging1(Log.empty)
     }
   }
 

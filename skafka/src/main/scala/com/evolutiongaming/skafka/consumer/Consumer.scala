@@ -13,7 +13,7 @@ import com.evolutiongaming.catshelper.ClockHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.smetrics
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.clients.consumer.{
   OffsetCommitCallback,
@@ -579,7 +579,7 @@ object Consumer {
     @deprecated("use `withMetrics1` instead", "14.1.0")
     def withMetrics[E](
       metrics: ConsumerMetrics[F]
-    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
+    )(implicit F: MonadError[F, E], measureDuration: smetrics.MeasureDuration[F]): Consumer[F, K, V] = {
 
       implicit val monoidUnit = Applicative.monoid[F, Unit]
 
@@ -593,7 +593,7 @@ object Consumer {
 
       def call[A](name: String, topics: Iterable[Topic])(fa: F[A]): F[A] = {
         for {
-          d <- MeasureDuration[F].start
+          d <- smetrics.MeasureDuration[F].start
           r <- fa.attempt
           d <- d
           _ <- topics.toList.foldMap { topic => metrics.call(name, topic, d, r.isRight) }
@@ -852,7 +852,7 @@ object Consumer {
 
         def topics = {
           for {
-            d <- MeasureDuration[F].start
+            d <- smetrics.MeasureDuration[F].start
             r <- self.topics.attempt
             d <- d
             _ <- metrics.topics(d)
@@ -862,7 +862,7 @@ object Consumer {
 
         def topics(timeout: FiniteDuration) = {
           for {
-            d <- MeasureDuration[F].start
+            d <- smetrics.MeasureDuration[F].start
             r <- self.topics(timeout).attempt
             d <- d
             _ <- metrics.topics(d)
@@ -940,7 +940,19 @@ object Consumer {
       }
     }
 
+    @deprecated("use `withMetrics2` instead", "11.15.1")
     def withMetrics1[E](
+      metrics: ConsumerMetrics[F]
+    )(
+      implicit F: MonadError[F, E],
+      measureDuration: smetrics.MeasureDuration[F],
+      clock: Clock[F]
+    ): Consumer[F, K, V] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withMetrics2(metrics)
+    }
+
+    def withMetrics2[E](
       metrics: ConsumerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F], clock: Clock[F]): Consumer[F, K, V] = {
 
@@ -978,7 +990,7 @@ object Consumer {
       def count1(name: String): F[Unit] = {
         for {
           topics <- topics
-          r <- count(name, topics)
+          r      <- count(name, topics)
         } yield r
       }
 
@@ -1321,8 +1333,16 @@ object Consumer {
       }
     }
 
-    def withLogging(log: Log[F])(implicit F: Monad[F], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
-      ConsumerLogging(log, self)
+    @deprecated("use `withLogging1` instead", "11.15.1")
+    def withLogging(
+      log: Log[F]
+    )(implicit F: Monad[F], measureDuration: smetrics.MeasureDuration[F]): Consumer[F, K, V] = {
+      implicit val md: MeasureDuration[F] = measureDuration.toCatsHelper
+      withLogging1(log)
+    }
+
+    def withLogging1(log: Log[F])(implicit F: Monad[F], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
+      ConsumerLogging.apply1(log, self)
     }
 
     def mapK[G[_]](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {

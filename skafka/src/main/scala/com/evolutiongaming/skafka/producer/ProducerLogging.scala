@@ -3,22 +3,37 @@ package com.evolutiongaming.skafka.producer
 import cats.data.{NonEmptyMap => Nem}
 import cats.implicits._
 import cats.MonadThrow
-import com.evolutiongaming.catshelper.Log
+import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
-import com.evolutiongaming.smetrics.MeasureDuration
+import com.evolutiongaming.smetrics
 import org.apache.kafka.common.errors.RecordTooLargeException
 
 object ProducerLogging {
 
   private sealed abstract class WithLogging
 
-  def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] =
-    apply(producer, log, charsToTrim = 1024)
+  @deprecated("Use `apply1` instead", "11.15.1")
+  def apply[F[_]: MonadThrow: smetrics.MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] = {
+    implicit val md: MeasureDuration[F] = smetrics.MeasureDuration[F].toCatsHelper
+    apply1(producer, log, charsToTrim = 1024)
+  }
+
+  def apply1[F[_] : MonadThrow : MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] =
+    apply1(producer, log, charsToTrim = 1024)
 
   /**
     * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
     */
-  def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int = 1024): Producer[F] = {
+  @deprecated("Use `apply1` instead", "11.15.1")
+  def apply[F[_]: MonadThrow: smetrics.MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int = 1024): Producer[F] = {
+    implicit val md: MeasureDuration[F] = smetrics.MeasureDuration[F].toCatsHelper
+    apply1(producer, log, charsToTrim)
+  }
+
+  /**
+    * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+    */
+  def apply1[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int = 1024): Producer[F] = {
 
     new WithLogging with Producer[F] {
       def initTransactions = producer.initTransactions

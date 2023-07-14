@@ -82,8 +82,7 @@ lazy val tests = (project in file("tests")
   settings Seq(publish / skip := true, Test / fork := true, Test / parallelExecution := false)
   dependsOn skafka % "compile->compile;test->test"
   settings (libraryDependencies ++= Seq(
-    Kafka.kafka              % Test,
-    `kafka-launcher`         % Test,
+    `testcontainers-kafka`   % Test,
     Slf4j.api                % Test,
     Slf4j.`log4j-over-slf4j` % Test,
     Logback.core             % Test,

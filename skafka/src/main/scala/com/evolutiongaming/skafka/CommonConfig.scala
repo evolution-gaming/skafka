@@ -12,18 +12,21 @@ import scala.concurrent.duration.{FiniteDuration, _}
   * @param clientId         An id string to pass to the server when making requests
   */
 final case class CommonConfig(
-  bootstrapServers: Nel[String]       = Nel.of("localhost:9092"),
-  clientId: Option[ClientId]          = None,
-  connectionsMaxIdle: FiniteDuration  = 9.minutes,
-  receiveBufferBytes: Int             = 32768,
-  sendBufferBytes: Int                = 131072,
-  requestTimeout: FiniteDuration      = 30.seconds,
-  metadataMaxAge: FiniteDuration      = 5.minutes,
-  reconnectBackoffMax: FiniteDuration = 1.second,
-  reconnectBackoff: FiniteDuration    = 50.millis,
-  retryBackoff: FiniteDuration        = 100.millis,
-  securityProtocol: SecurityProtocol  = SecurityProtocol.Plaintext,
-  metrics: MetricsConfig              = MetricsConfig.Default
+  bootstrapServers: Nel[String]                   = Nel.of("localhost:9092"),
+  clientId: Option[ClientId]                      = None,
+  connectionsMaxIdle: FiniteDuration              = 9.minutes,
+  receiveBufferBytes: Int                         = 32768,
+  sendBufferBytes: Int                            = 131072,
+  requestTimeout: FiniteDuration                  = 30.seconds,
+  metadataMaxAge: FiniteDuration                  = 5.minutes,
+  reconnectBackoffMax: FiniteDuration             = 1.second,
+  reconnectBackoff: FiniteDuration                = 50.millis,
+  retryBackoff: FiniteDuration                    = 100.millis,
+  securityProtocol: SecurityProtocol              = SecurityProtocol.Plaintext,
+  metrics: MetricsConfig                          = MetricsConfig.Default,
+  clientDnsLookup: ClientDnsLookup                = ClientDnsLookup.UseAllDnsIps,
+  socketConnectionSetupTimeoutMax: FiniteDuration = 30.seconds,
+  socketConnectionSetupTimeout: FiniteDuration    = 10.seconds,
 ) {
 
   def bindings: Map[String, String] = {
@@ -38,7 +41,10 @@ final case class CommonConfig(
       (C.RECONNECT_BACKOFF_MAX_MS_CONFIG, reconnectBackoffMax.toMillis.toString),
       (C.RECONNECT_BACKOFF_MS_CONFIG, reconnectBackoff.toMillis.toString),
       (C.RETRY_BACKOFF_MS_CONFIG, retryBackoff.toMillis.toString),
-      (C.SECURITY_PROTOCOL_CONFIG, securityProtocol.name)
+      (C.SECURITY_PROTOCOL_CONFIG, securityProtocol.name),
+      (C.CLIENT_DNS_LOOKUP_CONFIG, clientDnsLookup.name),
+      (C.SOCKET_CONNECTION_SETUP_TIMEOUT_MAX_MS_CONFIG, socketConnectionSetupTimeoutMax.toMillis.toString),
+      (C.SOCKET_CONNECTION_SETUP_TIMEOUT_MS_CONFIG, socketConnectionSetupTimeout.toMillis.toString),
     )
 
     bindings ++ metrics.bindings
@@ -55,6 +61,12 @@ object CommonConfig {
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
     }
+  }
+
+  private implicit val ClientDnsLookupFromConf = FromConf[ClientDnsLookup] { (conf, path) =>
+    val str   = conf.getString(path)
+    val value = ClientDnsLookup.Values.find { _.name.equalsIgnoreCase(str) }
+    value.getOrElse(throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse ClientDnsLookup from $str"))
   }
 
   def apply(config: Config): CommonConfig = {
@@ -88,8 +100,19 @@ object CommonConfig {
         getDuration("reconnect-backoff-max", "reconnect.backoff.max.ms") getOrElse default.reconnectBackoffMax,
       reconnectBackoff = getDuration("reconnect-backoff", "reconnect.backoff.ms") getOrElse default.reconnectBackoff,
       retryBackoff     = getDuration("retry-backoff", "retry.backoff.ms") getOrElse default.retryBackoff,
-      securityProtocol = get[SecurityProtocol]("security-protocol", "security.protocol") getOrElse default.securityProtocol,
-      metrics          = MetricsConfig(config),
+      securityProtocol =
+        get[SecurityProtocol]("security-protocol", "security.protocol") getOrElse default.securityProtocol,
+      metrics = MetricsConfig(config),
+      clientDnsLookup =
+        get[ClientDnsLookup]("client-dns-lookup", "client.dns.lookup") getOrElse default.clientDnsLookup,
+      socketConnectionSetupTimeoutMax =
+        getDuration("socket-connection-setup-timeout-max", "socket.connection.setup.timeout.max.ms").getOrElse(
+          default.socketConnectionSetupTimeoutMax
+        ),
+      socketConnectionSetupTimeout =
+        getDuration("socket-connection-setup-timeout", "socket.connection.setup.timeout.ms").getOrElse(
+          default.socketConnectionSetupTimeout
+        ),
     )
   }
 

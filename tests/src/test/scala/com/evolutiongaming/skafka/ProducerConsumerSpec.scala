@@ -5,13 +5,13 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import cats.arrow.FunctionK
-import cats.data.{NonEmptySet => Nes}
+import cats.data.{NonEmptyList, NonEmptySet => Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
 import cats.implicits._
 import cats.effect.implicits._
+import com.dimafeng.testcontainers.KafkaContainer
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.kafka.StartKafka
 import com.evolutiongaming.skafka.FiberWithBlockingCancel._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer._
@@ -29,7 +29,11 @@ import scala.concurrent.duration._
 class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
   import ProducerConsumerSpec._
 
-  private lazy val shutdown = StartKafka()
+  private val kafkaContainer = KafkaContainer()
+
+  // We need to start the container before the test suite, because the container might not be ready yet when the
+  // `consumerOf` / `producerOf` method is called, and the class's `init` method is called before the `beforeAll` method
+  kafkaContainer.start()
 
   private val instant = Instant.now().truncatedTo(ChronoUnit.MILLIS)
 
@@ -37,7 +41,6 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   override def beforeAll() = {
     super.beforeAll()
-    shutdown
     ()
   }
 
@@ -58,7 +61,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     closeAll.unsafeRunTimed(timeout)
 
-    shutdown()
+    kafkaContainer.stop()
     super.afterAll()
   }
 
@@ -76,7 +79,10 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         groupId         = Some(s"group-$topic"),
         autoOffsetReset = AutoOffsetReset.Earliest,
         autoCommit      = false,
-        common          = CommonConfig(clientId = Some(UUID.randomUUID().toString))
+        common = CommonConfig(
+          bootstrapServers = NonEmptyList.one(kafkaContainer.bootstrapServers),
+          clientId         = Some(UUID.randomUUID().toString)
+        )
       )
 
     for {
@@ -88,7 +94,14 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
   }
 
   def producerOf(acks: Acks, idempotence: Boolean): Resource[IO, Producer[IO]] = {
-    val config = ProducerConfig.Default.copy(acks = acks, idempotence = idempotence)
+    val config = ProducerConfig
+      .Default
+      .copy(
+        acks        = acks,
+        idempotence = idempotence,
+        common      = CommonConfig(bootstrapServers = NonEmptyList.one(kafkaContainer.bootstrapServers))
+      )
+
     for {
       metrics   <- ProducerMetrics.of(CollectorRegistry.empty[IO])
       producerOf = ProducerOf.apply1(metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)

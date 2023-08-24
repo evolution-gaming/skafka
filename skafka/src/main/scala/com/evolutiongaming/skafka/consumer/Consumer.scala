@@ -1335,6 +1335,16 @@ object Consumer {
       ConsumerLogging(log, self)
     }
 
+    /** The sole purpose of this method is to support binary compatibility with an intermediate
+     * version (namely, 11.15.1) which had `withLogging` method using `MeasureDuration` from `smetrics`
+     * and `withLogging1` using `MeasureDuration` from `cats-helper`.
+     * This should not be used and should be removed in a reasonable amount of time.
+     */
+    @deprecated("Use `withLogging`", since = "11.16.2")
+    def withLogging1(log: Log[F])(implicit F: Monad[F], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
+      withLogging(log)
+    }
+
     def mapK[G[_]](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Consumer[G, K, V] = new MapK with Consumer[G, K, V] {
 
       def assign(partitions: Nes[TopicPartition]) = fg(self.assign(partitions))

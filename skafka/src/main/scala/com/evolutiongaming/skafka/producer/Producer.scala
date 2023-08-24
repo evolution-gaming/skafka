@@ -334,6 +334,16 @@ object Producer {
       ProducerLogging(self, log)
     }
 
+    /** The sole purpose of this method is to support binary compatibility with an intermediate
+     *  version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
+     *  and `withLogging1` using `MeasureDuration` from `cats-helper`.
+     *  This should not be used and should be removed in a reasonable amount of time.
+     */
+    @deprecated("Use `withLogging`", since = "16.0.2")
+    def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+      withLogging(log)
+    }
+
     /**
       * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
       */
@@ -342,6 +352,22 @@ object Producer {
       charsToTrim: Int
     )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       ProducerLogging(self, log, charsToTrim)
+    }
+
+    /**
+     * The sole purpose of this method is to support binary compatibility with an intermediate
+     * version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
+     * and `withLogging1` using `MeasureDuration` from `cats-helper`.
+     * This should not be used and should be removed in a reasonable amount of time.
+     *
+     * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+     */
+    @deprecated("Use `withLogging`", since = "16.0.2")
+    def withLogging1(
+      log: Log[F],
+      charsToTrim: Int
+    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
+      withLogging(log, charsToTrim)
     }
 
     def withMetrics[E](

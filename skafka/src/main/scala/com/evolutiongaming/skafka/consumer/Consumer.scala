@@ -1330,6 +1330,17 @@ object Consumer {
       }
     }
 
+    /** The sole purpose of this method is to support binary compatibility with an intermediate
+      * version (namely, 15.2.0) which had `withMetrics1` method using `MeasureDuration` from `smetrics`
+      * and `withMetrics2` using `MeasureDuration` from `cats-helper`.
+      * This should not be used and should be removed in a reasonable amount of time.
+      */
+    @deprecated("Use `withMetrics1`", since = "16.0.2")
+    def withMetrics2[E](
+      metrics: ConsumerMetrics[F]
+    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F], clock: Clock[F]): Consumer[F, K, V] =
+      withMetrics1(metrics)
+
     def withLogging(log: Log[F])(implicit F: Monad[F], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
       ConsumerLogging(log, self)
     }

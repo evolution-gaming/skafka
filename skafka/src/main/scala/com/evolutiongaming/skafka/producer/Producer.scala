@@ -350,6 +350,18 @@ object Producer {
       Producer(self, metrics)
     }
 
+    /** The sole purpose of this method is to support binary compatibility with an intermediate
+      * version (namely, 15.2.0) which had `withMetrics` method using `MeasureDuration` from `smetrics`
+      * and `withMetrics1` using `MeasureDuration` from `cats-helper`.
+      * This should not be used and should be removed in a reasonable amount of time.
+      */
+    @deprecated("Use `withMetrics`", since = "16.0.2")
+    def withMetrics1[E](
+      metrics: ProducerMetrics[F]
+    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
+      withMetrics(metrics)
+    }
+
     def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {
 
       def initTransactions = fg(self.initTransactions)

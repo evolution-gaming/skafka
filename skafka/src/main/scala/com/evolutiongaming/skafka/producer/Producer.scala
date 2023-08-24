@@ -355,6 +355,7 @@ object Producer {
       * and `withMetrics1` using `MeasureDuration` from `cats-helper`.
       * This should not be used and should be removed in a reasonable amount of time.
       */
+    @deprecated("Use `withMetrics`", since = "16.0.2")
     def withMetrics1[E](
       metrics: ProducerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {

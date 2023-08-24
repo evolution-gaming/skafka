@@ -1325,7 +1325,7 @@ object Consumer {
       * and `withMetrics2` using `MeasureDuration` from `cats-helper`.
       * This should not be used and should be removed in a reasonable amount of time.
       */
-    @deprecated("Use `withMetrics1`", since = "11.16.2")
+    @deprecated("Use `withMetrics1`", since = "11.16.1")
     def withMetrics2[E](
       metrics: ConsumerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F], clock: Clock[F]): Consumer[F, K, V] =

@@ -51,6 +51,17 @@ object ConsumerOf {
     }
   }
 
+  /** The sole purpose of this method is to support binary compatibility with an intermediate
+   *  version (namely, 11.15.1) which had `apply1` method using `MeasureDuration` from `smetrics`
+   *  and `apply2` using `MeasureDuration` from `cats-helper`.
+   *  This should not be used and should be removed in a reasonable amount of time.
+   */
+  @deprecated("Use `apply1`", since = "11.16.3")
+  def apply2[F[_] : Concurrent : ContextShift : ToTry : ToFuture : MeasureDuration : Clock](
+    executorBlocking: ExecutionContext,
+    metrics: Option[ConsumerMetrics[F]] = None
+  ): ConsumerOf[F] = apply1(executorBlocking, metrics)
+
   implicit class ConsumerOfOps[F[_]](val self: ConsumerOf[F]) extends AnyVal {
 
     def mapK[G[_]: Applicative: Defer](

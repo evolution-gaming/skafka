@@ -2,21 +2,21 @@ import sbt._
 
 object Dependencies {
 
-  val `executor-tools`        = "com.evolutiongaming"    %% "executor-tools"              % "1.0.2"
-  val `config-tools`          = "com.evolutiongaming"    %% "config-tools"                % "1.0.4"
-  val `future-helper`         = "com.evolutiongaming"    %% "future-helper"               % "1.0.6"
-  val `cats-helper`           = "com.evolutiongaming"    %% "cats-helper"                 % "3.5.0"
-  val `testcontainers-kafka`  = "com.dimafeng"           %% "testcontainers-scala-kafka"  % "0.40.17"
-  val `play-json-jsoniter`    = "com.evolutiongaming"    %% "play-json-jsoniter"          % "0.10.0"
-  val `scala-java8-compat`    = "org.scala-lang.modules" %% "scala-java8-compat"          % "1.0.2"
-  val `collection-compat`     = "org.scala-lang.modules" %% "scala-collection-compat"     % "2.8.1"
-  val scalatest               = "org.scalatest"          %% "scalatest"                   % "3.2.13"
-  val `kind-projector`        = "org.typelevel"           % "kind-projector"              % "0.13.2"
-  val discipline              = "org.typelevel"          %% "discipline-scalatest"        % "2.2.0"
+  val `executor-tools`       = "com.evolutiongaming"    %% "executor-tools"             % "1.0.2"
+  val `config-tools`         = "com.evolutiongaming"    %% "config-tools"               % "1.0.4"
+  val `future-helper`        = "com.evolutiongaming"    %% "future-helper"              % "1.0.6"
+  val `cats-helper`          = "com.evolutiongaming"    %% "cats-helper"                % "3.5.0"
+  val `testcontainers-kafka` = "com.dimafeng"           %% "testcontainers-scala-kafka" % "0.40.17"
+  val `play-json-jsoniter`   = "com.evolutiongaming"    %% "play-json-jsoniter"         % "0.10.0"
+  val `scala-java8-compat`   = "org.scala-lang.modules" %% "scala-java8-compat"         % "1.0.2"
+  val `collection-compat`    = "org.scala-lang.modules" %% "scala-collection-compat"    % "2.8.1"
+  val scalatest              = "org.scalatest"          %% "scalatest"                  % "3.2.17"
+  val `kind-projector`       = "org.typelevel"           % "kind-projector"             % "0.13.2"
+  val discipline             = "org.typelevel"          %% "discipline-scalatest"       % "2.2.0"
 
   object Kafka {
     private val version = "3.4.0"
-    val clients         = "org.apache.kafka"  % "kafka-clients" % version
+    val clients         = "org.apache.kafka" % "kafka-clients" % version
   }
 
   object Logback {

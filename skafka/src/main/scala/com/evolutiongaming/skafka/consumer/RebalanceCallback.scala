@@ -225,6 +225,9 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
       }
     }
 
+    @deprecated("For for Scala 3 compact only in places where RebalanceCallback is correctly inferred to `RebalanceCallback[F, ?]` instead of `RebalanceCallback[Nothing, ?]`", since = "16.0.5")
+    def effectAs[G[_]]: RebalanceCallback[F, A] = self
+
   }
 
   implicit class RebalanceCallbackNothingOps[A](val self: RebalanceCallback[Nothing, A]) extends AnyVal {

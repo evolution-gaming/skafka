@@ -17,9 +17,15 @@ final case class ProducerRecord[+K, +V](
 
 object ProducerRecord {
 
-  def apply[K, V](topic: Topic, value: V, key: K): ProducerRecord[K, V] = {
-    ProducerRecord(topic = topic, value = Some(value), key = Some(key))
-  }
+  def apply[K, V](topic: Topic, value: V, key: K): ProducerRecord[K, V] =
+    ProducerRecord(
+      topic = topic, 
+      value = Some(value), 
+      key = Some(key), 
+      partition = None, 
+      timestamp = None, 
+      headers = Nil
+    )
 
   implicit class ProducerRecordOps[K, V](val self: ProducerRecord[K, V]) extends AnyVal {
 

@@ -386,7 +386,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       new RebalanceListener1WithConsumer[IO] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
-          partitions.foldMapM(consumer.seek(_, Offset.unsafe(1)))
+          partitions.foldMapM(this.consumer.seek(_, Offset.unsafe(1)))
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
 

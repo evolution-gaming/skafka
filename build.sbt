@@ -5,6 +5,13 @@ ThisBuild / versionScheme := Some("early-semver")
 
 ThisBuild / evictionErrorLevel := Level.Warn
 
+def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
+  CrossVersion.partialVersion(scalaVersion) match {
+    case Some((3, _)) => if3
+    case Some((2, 12 | 13)) => if2
+    case _ => Nil
+  }
+
 lazy val commonSettings = Seq(
   organization := "com.evolutiongaming",
   homepage := Some(new URL("https://github.com/evolution-gaming/skafka")),
@@ -12,11 +19,20 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.12", "2.12.18"),
+  crossScalaVersions := Seq("2.13.12", "3.3.1", "2.12.18"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",
-  libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.full),
+  scalacOptions ++= crossSettings(
+    scalaVersion.value,
+    if3 = List("-Ykind-projector", "-language:implicitConversions", "-explain", "-deprecation"),
+    if2 = List("-Xsource:3"),
+  ),
+  libraryDependencies ++= crossSettings(
+    scalaVersion.value,
+    if3 = Nil,
+    if2 = List(compilerPlugin(`kind-projector` cross CrossVersion.full))
+  ),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
   // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled

@@ -94,8 +94,8 @@ object Converters {
     }
   }
 
-  implicit class MapJOps[K, V](val self: MapJ[K, V]) extends AnyVal {
-
+  // TODO: bring back `AnyVal` after https://github.com/lampepfl/dotty/issues/18769 is fixed
+  implicit class MapJOps[K, V](val self: MapJ[K, V]) {
     def asScalaMap[F[_]: Monad, A, B](ka: K => F[A], vb: V => F[B], keepNullValues: Boolean): F[Map[A, B]] = {
       self
         .asScala

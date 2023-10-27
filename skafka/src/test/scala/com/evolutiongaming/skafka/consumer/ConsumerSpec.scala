@@ -18,7 +18,7 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
-import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -399,7 +399,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         else
           Map(new TopicPartitionJ(topic, partition.value) -> null).asJavaMap(identity, identity)
 
-      def metrics() = new java.util.HashMap()
+      def metrics(): MapJ[MetricName, _ <: Metric] = new java.util.HashMap()
 
       def partitionsFor(topic: Topic) = {
         List(partitionInfo.asJava).asJava

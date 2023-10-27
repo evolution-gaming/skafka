@@ -6,24 +6,24 @@ import com.evolutiongaming.skafka.{Bytes, Partition, ToBytes, TopicPartition}
 import play.api.libs.json.{JsString, Json}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
+import scala.util.Try
 
 class JsonProducerSpec extends AnyFunSuite with Matchers {
-
   test("apply") {
     val metadata = RecordMetadata(TopicPartition("topic", Partition.min))
     var actual = Option.empty[(Option[Bytes], Option[Bytes])]
-    type Id[A] = A
-    val send = new Producer.Send[Id] {
+
+    val send = new Producer.Send[Try] {
       def apply[K, V](
         record: ProducerRecord[K, V])(implicit
-        toBytesK: ToBytes[Id, K],
-        toBytesV: ToBytes[Id, V]
-      ) = {
+        toBytesK: ToBytes[Try, K],
+        toBytesV: ToBytes[Try, V]
+      ): Try[Try[RecordMetadata]] = {
         val topic = record.topic
-        val value = record.value.map(toBytesV(_, topic))
-        val key = record.key.map(toBytesK(_, topic))
+        val value = record.value.flatMap(toBytesV(_, topic).toOption)
+        val key = record.key.flatMap(toBytesK(_, topic).toOption)
         actual = Some((key, value))
-        metadata
+        Try(Try(metadata))
       }
     }
     val producer = JsonProducer(send)
@@ -31,7 +31,7 @@ class JsonProducerSpec extends AnyFunSuite with Matchers {
     val value = JsString("value")
     val key = "key"
     val record = ProducerRecord("topic", value, key)
-    producer(record) shouldEqual metadata
+    producer(record) shouldEqual Try(Try(metadata))
     val (Some(keyBytes), valueBytes) = actual.get
     new String(keyBytes, UTF_8) shouldEqual key
     valueBytes.map(Json.parse) shouldEqual Some(value)

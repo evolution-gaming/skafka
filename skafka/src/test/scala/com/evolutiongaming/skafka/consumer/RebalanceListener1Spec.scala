@@ -98,7 +98,7 @@ object RebalanceListener1Spec {
       } yield a
 
     // do not need to save the offsets since these partitions are probably owned by other consumers already
-    def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F,Unit] = RebalanceCallback.empty
   }
 
   def readOffsetsFromExternalStore[F[_]: Applicative](

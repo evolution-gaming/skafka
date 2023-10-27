@@ -309,7 +309,7 @@ object SerialListenersTest {
           Map.empty[TopicPartitionJ, OffsetAndMetadataJ].asJava
         }
 
-        def metrics() = Map.empty[MetricName, Metric].asJava
+        def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 
         def partitionsFor(topic: String) = List.empty[PartitionInfo].asJava
 

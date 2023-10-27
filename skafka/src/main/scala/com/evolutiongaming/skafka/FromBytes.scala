@@ -22,7 +22,7 @@ object FromBytes {
 
   implicit def functorFromBytes[F[_]: Functor]: Functor[FromBytes[F, *]] = new Functor[FromBytes[F, *]] {
 
-    def map[A, B](fa: FromBytes[F, A])(f: A => B) = new FromBytes[F, B] {
+    def map[A, B](fa: FromBytes[F, A])(f: A => B): FromBytes[F, B] = new FromBytes[F, B] {
 
       def apply(bytes: Bytes, topic: Topic) = fa(bytes, topic).map(f)
     }

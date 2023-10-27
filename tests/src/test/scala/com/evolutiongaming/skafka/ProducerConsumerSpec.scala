@@ -8,7 +8,6 @@ import cats.arrow.FunctionK
 import cats.data.{NonEmptyList, NonEmptySet => Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
 import cats.implicits._
-import cats.effect.implicits._
 import com.dimafeng.testcontainers.KafkaContainer
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.Log
@@ -203,9 +202,9 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
       }
     }
 
@@ -311,7 +310,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
             )
           } yield a
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
       }
     }
 
@@ -388,9 +387,9 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
           partitions.foldMapM(this.consumer.seek(_, Offset.unsafe(1)))
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
       }
     }
 

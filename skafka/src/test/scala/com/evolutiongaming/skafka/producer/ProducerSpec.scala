@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import java.util
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.{CompletableFuture, Future => FutureJ}
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyMap => Nem}
@@ -17,7 +17,7 @@ import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata => OffsetAndMetadataJ
 }
-import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
+import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
@@ -178,15 +178,15 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         Nil.asJava
       }
 
-      def metrics() = Map.empty[MetricName, Metric].asJava
+      def metrics(): util.Map[MetricName, Metric] = Map.empty.asJava
 
       def close() = {}
 
       def close(timeout: java.time.Duration) = {}
 
-      def send(record: ProducerRecordJ[Bytes, Bytes]) = completableFuture
+      def send(record: ProducerRecordJ[Bytes, Bytes]): FutureJ[RecordMetadataJ] = completableFuture
 
-      def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback) = {
+      def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback): FutureJ[RecordMetadataJ] = {
         callback.onCompletion(metadata.asJava, null)
         completableFuture
       }

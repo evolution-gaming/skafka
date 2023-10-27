@@ -6,7 +6,7 @@ import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ,
 
 import cats.Monad
 import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes, NonEmptyMap => Nem}
-import cats.implicits._
+import cats.syntax.all.*
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
@@ -94,21 +94,16 @@ object Converters {
     }
   }
 
-  // TODO: bring back `AnyVal` after https://github.com/lampepfl/dotty/issues/18769 is fixed
-  implicit class MapJOps[K, V](val self: MapJ[K, V]) {
+  implicit class MapJOps[K, V](val self: MapJ[K, V]) extends AnyVal {
     def asScalaMap[F[_]: Monad, A, B](ka: K => F[A], vb: V => F[B], keepNullValues: Boolean): F[Map[A, B]] = {
       self
         .asScala
         .toList
-        .collect {
-          case (k, v) if k != null && (keepNullValues || v != null) =>
-            for {
-              a <- ka(k)
-              b <- vb(v)
-            } yield (a, b)
+        .traverseFilter { case (k, v) => 
+          if (k != null && (keepNullValues || v != null)) (ka(k), vb(v)).mapN((_, _).some)
+          else none[(A, B)].pure[F]
         }
-        .sequence
-        .map { _.toMap }
+        .map(_.toMap)
     }
 
     def asScalaMap[F[_]: Monad, A, B](ka: K => F[A], vb: V => F[B]): F[Map[A, B]] = {

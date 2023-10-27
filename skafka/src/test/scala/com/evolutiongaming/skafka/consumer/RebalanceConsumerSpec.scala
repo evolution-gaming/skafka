@@ -8,12 +8,12 @@ import java.lang.{Long => LongJ}
 import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec._
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
-  ConsumerGroupMetadata,
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata,
   OffsetCommitCallback,
-  OffsetAndTimestamp,
+  OffsetAndTimestamp => OffsetAndTimestampJ,
   Consumer => ConsumerJ,
-  ConsumerRecords
+  ConsumerRecords => ConsumerRecordsJ
 }
 import org.apache.kafka.common.{TopicPartition, PartitionInfo, MetricName, Metric}
 import org.scalatest.freespec.AnyFreeSpec
@@ -37,8 +37,8 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit                = unsupported
       def subscribe(pattern: Pattern): Unit                                                     = unsupported
       def unsubscribe(): Unit                                                                   = unsupported
-      def poll(timeout: Long): ConsumerRecords[String, String]                                  = unsupported
-      def poll(timeout: Duration): ConsumerRecords[String, String]                              = unsupported
+      def poll(timeout: Long): ConsumerRecordsJ[String, String]                                 = unsupported
+      def poll(timeout: Duration): ConsumerRecordsJ[String, String]                             = unsupported
       def commitSync(): Unit                                                                    = supported // rebalanceConsumer.commit()
       def commitSync(timeout: Duration): Unit                                                   = supported // rebalanceConsumer.commit(timeout)
       def commitSync(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit =
@@ -80,12 +80,12 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def resume(partitions: util.Collection[TopicPartition]): Unit = unsupported
       def offsetsForTimes(
         timestampsToSearch: util.Map[TopicPartition, lang.Long]
-      ): util.Map[TopicPartition, OffsetAndTimestamp] =
+      ): util.Map[TopicPartition, OffsetAndTimestampJ] =
         supported // rebalanceConsumer.offsetsForTimes(timestampsToSearch)
       def offsetsForTimes(
         timestampsToSearch: util.Map[TopicPartition, lang.Long],
         timeout: Duration
-      ): util.Map[TopicPartition, OffsetAndTimestamp] =
+      ): util.Map[TopicPartition, OffsetAndTimestampJ] =
         supported // rebalanceConsumer.offsetsForTimes(timestampsToSearch, timeout)
       def beginningOffsets(partitions: util.Collection[TopicPartition]): util.Map[TopicPartition, LongJ] =
         supported // rebalanceConsumer.beginningOffsets(partitions)
@@ -98,7 +98,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
         supported // rebalanceConsumer.endOffsets(partitions)
       def endOffsets(partitions: util.Collection[TopicPartition], timeout: Duration): util.Map[TopicPartition, LongJ] =
         supported // rebalanceConsumer.endOffsets(partitions, timeout)
-      def groupMetadata(): ConsumerGroupMetadata                   = supported // rebalanceConsumer.groupMetadata()
+      def groupMetadata(): ConsumerGroupMetadataJ                  = supported // rebalanceConsumer.groupMetadata()
       def enforceRebalance(): Unit                                 = unsupported
       def close(): Unit                                            = unsupported
       def close(timeout: Long, unit: TimeUnit): Unit               = unsupported

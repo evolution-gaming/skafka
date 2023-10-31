@@ -40,7 +40,13 @@ lazy val commonSettings = Seq(
     val versions = List(
       "11.0.0",
     )
-    versions.map(organization.value %% moduleName.value % _).toSet
+
+    // check against all versions once Scala 3 lib version is published
+    crossSettings(
+      scalaVersion.value,
+      if3 = Nil,
+      if2 = versions.map(organization.value %% moduleName.value % _)
+    ).toSet
   },
   mimaBinaryIssueFilters ++= Seq(
     ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.subscribe"),

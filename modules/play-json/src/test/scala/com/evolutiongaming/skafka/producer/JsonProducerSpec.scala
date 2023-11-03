@@ -6,7 +6,7 @@ import com.evolutiongaming.skafka.{Bytes, Partition, ToBytes, TopicPartition}
 import play.api.libs.json.{JsString, Json}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import scala.util.Try
+import scala.util.{Try, Success}
 
 class JsonProducerSpec extends AnyFunSuite with Matchers {
   test("apply") {
@@ -23,7 +23,7 @@ class JsonProducerSpec extends AnyFunSuite with Matchers {
         val value = record.value.flatMap(toBytesV(_, topic).toOption)
         val key = record.key.flatMap(toBytesK(_, topic).toOption)
         actual = Some((key, value))
-        Try(Try(metadata))
+        Success(Success(metadata))
       }
     }
     val producer = JsonProducer(send)

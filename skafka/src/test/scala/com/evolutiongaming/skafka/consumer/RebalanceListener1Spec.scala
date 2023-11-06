@@ -38,7 +38,9 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
 
     listener1.onPartitionsRevoked(partitions.s).run(consumer) mustBe Try(())
 
-    listener1.onPartitionsLost(partitions.s).effectAs[IO].run(consumer) mustBe Try(())
+    val rebalanceCallback: RebalanceCallback[IO,Unit] = listener1.onPartitionsLost(partitions.s)
+
+    rebalanceCallback.run(consumer) mustBe Try(())
 
   }
 }

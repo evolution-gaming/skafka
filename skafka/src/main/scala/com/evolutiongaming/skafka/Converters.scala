@@ -99,6 +99,7 @@ object Converters {
       self
         .asScala
         .toList
+        // at the moment we cannot use partial functions inside `AnyVal`, see: https://github.com/lampepfl/dotty/issues/18769
         .traverseFilter { case (k, v) => 
           if (k != null && (keepNullValues || v != null)) (ka(k), vb(v)).mapN((_, _).some)
           else none[(A, B)].pure[F]

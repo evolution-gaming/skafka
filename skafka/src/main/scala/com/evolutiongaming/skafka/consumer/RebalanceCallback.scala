@@ -224,7 +224,6 @@ object RebalanceCallback extends RebalanceCallbackInstances with RebalanceCallba
         case HandleErrorWith(source, fe) => HandleErrorWith(() => source().mapK(fg), fe andThen (_.mapK(fg)))
       }
     }
-
   }
 
   implicit class RebalanceCallbackNothingOps[A](val self: RebalanceCallback[Nothing, A]) extends AnyVal {

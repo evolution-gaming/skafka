@@ -106,7 +106,7 @@ object ProducerMetrics {
       resultCounter  <- resultCounter
       callLatency    <- callLatency
       callCount      <- callCount
-    } yield { clientId: ClientId =>
+    } yield { (clientId: ClientId) =>
       {
 
         def sendMeasure(result: String, topic: Topic, latency: FiniteDuration) = {

@@ -203,9 +203,9 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
       }
     }
 
@@ -311,7 +311,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
             )
           } yield a
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
       }
     }
 
@@ -386,11 +386,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       new RebalanceListener1WithConsumer[IO] {
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
-          partitions.foldMapM(consumer.seek(_, Offset.unsafe(1)))
+          partitions.foldMapM(this.consumer.seek(_, Offset.unsafe(1)))
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
       }
     }
 

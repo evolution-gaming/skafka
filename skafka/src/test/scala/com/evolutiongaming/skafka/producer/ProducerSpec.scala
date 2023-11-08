@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import java.util
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.{CompletableFuture, Future => FutureJ}
 
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyMap => Nem}
@@ -17,7 +17,7 @@ import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata => OffsetAndMetadataJ
 }
-import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ}
+import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
@@ -85,7 +85,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     }
 
     "partitions" in new Scope {
-      verify(producer.partitions(topic)) { result: List[PartitionInfo] =>
+      verify(producer.partitions(topic)) { (result: List[PartitionInfo]) =>
         result shouldEqual Nil
         partitionsFor shouldEqual topic
       }
@@ -101,7 +101,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
   "Producer.empty" should {
 
-    implicit val empty = Producer.empty[IO]
+    implicit val empty: Producer[IO] = Producer.empty[IO]
 
     "initTransactions" in {
       verify(Producer[IO].initTransactions) { _ => }
@@ -178,15 +178,15 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         Nil.asJava
       }
 
-      def metrics() = Map.empty[MetricName, Metric].asJava
+      def metrics(): util.Map[MetricName, Metric] = Map.empty.asJava
 
       def close() = {}
 
       def close(timeout: java.time.Duration) = {}
 
-      def send(record: ProducerRecordJ[Bytes, Bytes]) = completableFuture
+      def send(record: ProducerRecordJ[Bytes, Bytes]): FutureJ[RecordMetadataJ] = completableFuture
 
-      def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback) = {
+      def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback): FutureJ[RecordMetadataJ] = {
         callback.onCompletion(metadata.asJava, null)
         completableFuture
       }
@@ -195,7 +195,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     }
 
     val producer: Producer[IO] = {
-      implicit val measureDuration = MeasureDuration.empty[IO]
+      implicit val measureDuration: MeasureDuration[IO] = MeasureDuration.empty[IO]
       Producer
         .fromProducerJ2[IO](jProducer.pure[IO])
         .allocated

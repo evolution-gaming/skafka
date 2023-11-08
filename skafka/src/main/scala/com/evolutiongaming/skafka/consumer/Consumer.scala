@@ -6,7 +6,7 @@ import cats.effect._
 import cats.effect.implicits._
 import cats.effect.std.Semaphore
 import cats.implicits._
-import cats.{Applicative, Monad, MonadError, ~>}
+import cats.{Applicative, Monad, Monoid, MonadError, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
@@ -590,7 +590,7 @@ object Consumer {
       metrics: ConsumerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
 
-      implicit val monoidUnit = Applicative.monoid[F, Unit]
+      implicit val monoidUnit: Monoid[F[Unit]] = Applicative.monoid[F, Unit]
 
       val topics = for {
         topicPartitions <- self.assignment
@@ -953,7 +953,7 @@ object Consumer {
       metrics: ConsumerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F], clock: Clock[F]): Consumer[F, K, V] = {
 
-      implicit val monoidUnit = Applicative.monoid[F, Unit]
+      implicit val monoidUnit: Monoid[F[Unit]] = Applicative.monoid[F, Unit]
 
       val topics = for {
         topicPartitions <- self.assignment

@@ -55,7 +55,7 @@ object CommonConfig {
 
   val Default: CommonConfig = CommonConfig()
 
-  private implicit val SecurityProtocolFromConf = FromConf[SecurityProtocol] { (conf, path) =>
+  private implicit val SecurityProtocolFromConf: FromConf[SecurityProtocol] = FromConf[SecurityProtocol] { (conf, path) =>
     val str   = conf.getString(path)
     val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {
@@ -63,7 +63,7 @@ object CommonConfig {
     }
   }
 
-  private implicit val ClientDnsLookupFromConf = FromConf[ClientDnsLookup] { (conf, path) =>
+  private implicit val ClientDnsLookupFromConf: FromConf[ClientDnsLookup] = FromConf[ClientDnsLookup] { (conf, path) =>
     val str   = conf.getString(path)
     val value = ClientDnsLookup.Values.find { _.name.equalsIgnoreCase(str) }
     value.getOrElse(throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse ClientDnsLookup from $str"))

@@ -110,7 +110,7 @@ object ConsumerMetrics {
         quantiles = Quantiles.Default,
         labels = LabelNames("client", "topic")
       )
-    } yield { clientId: ClientId =>
+    } yield { (clientId: ClientId) =>
       new ConsumerMetrics[F] {
 
         def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {

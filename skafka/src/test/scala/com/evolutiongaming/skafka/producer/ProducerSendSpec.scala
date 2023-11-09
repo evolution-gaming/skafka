@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.{CompletableFuture, Future => FutureJ}
 import java.util.{Map => MapJ}
 import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
 import cats.implicits._
@@ -61,17 +61,17 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
         def partitionsFor(topic: String) = Nil.asJava
 
-        def metrics() = Map.empty[MetricName, Metric].asJava
+        def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 
         def close() = {}
 
         def close(timeout: java.time.Duration) = {}
 
-        def send(record: ProducerRecordJ[Bytes, Bytes]) = {
+        def send(record: ProducerRecordJ[Bytes, Bytes]): FutureJ[RecordMetadataJ] = {
           CompletableFuture.completedFuture(metadata.asJava)
         }
 
-        def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback) = {
+        def send(record: ProducerRecordJ[Bytes, Bytes], callback: Callback): FutureJ[RecordMetadataJ] = {
           val a = for {
             f <- block
           } yield {

@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import cats.Applicative
 import com.evolutiongaming.catshelper.FromTry
-import com.evolutiongaming.jsonitertool.PlayJsonJsoniter
+import com.evolution.playjson.jsoniter.PlayJsonJsoniter
 import com.evolutiongaming.skafka.{ToBytes, Topic}
 import play.api.libs.json.{JsValue, Json}
 

@@ -75,7 +75,7 @@ object ConsumerConfig {
 
   val Default: ConsumerConfig = ConsumerConfig()
 
-  private implicit val AutoOffsetResetFromConf = FromConf[AutoOffsetReset] { (conf, path) =>
+  private implicit val AutoOffsetResetFromConf: FromConf[AutoOffsetReset] = FromConf[AutoOffsetReset] { (conf, path) =>
     val str   = conf.getString(path)
     val value = AutoOffsetReset.Values.find { _.toString equalsIgnoreCase str }
     value getOrElse {
@@ -83,7 +83,7 @@ object ConsumerConfig {
     }
   }
 
-  private implicit val IsolationLevelFromConf = FromConf[IsolationLevel] { (conf, path) =>
+  private implicit val IsolationLevelFromConf: FromConf[IsolationLevel] = FromConf[IsolationLevel] { (conf, path) =>
     val str   = conf.getString(path)
     val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {

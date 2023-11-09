@@ -23,10 +23,10 @@ object ConsumerRecord {
   implicit def orderConsumerRecord[K: Order, V]: Order[ConsumerRecord[K, V]] = {
     Order.whenEqual(
       Order.whenEqual(
-        Order.by { a: ConsumerRecord[K, V] => a.topicPartition },
-        Order.by { a: ConsumerRecord[K, V] => a.key }
+        Order.by(_.topicPartition),
+        Order.by(_.key)
       ),
-      Order.by { a: ConsumerRecord[K, V] => a.offset }
+      Order.by(_.offset)
     )
   }
 

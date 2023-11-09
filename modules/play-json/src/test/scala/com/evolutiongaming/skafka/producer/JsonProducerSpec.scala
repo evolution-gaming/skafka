@@ -8,7 +8,6 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
 class JsonProducerSpec extends AnyFunSuite with Matchers {
-
   test("apply") {
     val metadata = RecordMetadata(TopicPartition("topic", Partition.min))
     var actual = Option.empty[(Option[Bytes], Option[Bytes])]
@@ -18,7 +17,7 @@ class JsonProducerSpec extends AnyFunSuite with Matchers {
         record: ProducerRecord[K, V])(implicit
         toBytesK: ToBytes[Id, K],
         toBytesV: ToBytes[Id, V]
-      ) = {
+      ): RecordMetadata = {
         val topic = record.topic
         val value = record.value.map(toBytesV(_, topic))
         val key = record.key.map(toBytesK(_, topic))

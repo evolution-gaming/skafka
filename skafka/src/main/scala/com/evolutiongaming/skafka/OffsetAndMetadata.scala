@@ -19,7 +19,7 @@ object OffsetAndMetadata {
   implicit val showOffset: Show[OffsetAndMetadata] = Show.fromToString
 
   implicit val orderOffset: Order[OffsetAndMetadata] =
-    Order.whenEqual(Order.by { a: OffsetAndMetadata => a.offset }, Order.by { a: OffsetAndMetadata => a.metadata })
+    Order.whenEqual(Order.by(_.offset), Order.by(_.metadata))
 
   implicit val orderingOffset: Ordering[OffsetAndMetadata] = orderOffset.toOrdering
 }

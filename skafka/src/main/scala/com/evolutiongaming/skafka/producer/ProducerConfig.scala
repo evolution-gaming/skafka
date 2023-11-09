@@ -79,7 +79,7 @@ object ProducerConfig {
 
   val Default: ProducerConfig = ProducerConfig()
 
-  private implicit val CompressionTypeFromConf = FromConf[CompressionType] { (conf, path) =>
+  private implicit val CompressionTypeFromConf: FromConf[CompressionType] = FromConf[CompressionType] { (conf, path) =>
     val str   = conf.getString(path)
     val value = CompressionType.Values.find { _.toString equalsIgnoreCase str }
     value getOrElse {
@@ -87,7 +87,7 @@ object ProducerConfig {
     }
   }
 
-  private implicit val AcksFromConf = FromConf[Acks] { (conf, path) =>
+  private implicit val AcksFromConf: FromConf[Acks] = FromConf[Acks] { (conf, path) =>
     val str = conf.getString(path)
 
     val values = Acks.Values.filter(_.names.exists(str.equalsIgnoreCase))

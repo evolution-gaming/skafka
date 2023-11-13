@@ -104,7 +104,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "exclude.internal.topics"                  -> "true",
       "reconnect.backoff.max.ms"                 -> "1000",
       "auto.offset.reset"                        -> "latest",
-      "partition.assignment.strategy"            -> "org.apache.kafka.clients.consumer.RangeAssignor",
+      "partition.assignment.strategy"            -> "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
       "heartbeat.interval.ms"                    -> "3000",
       "check.crcs"                               -> "true",
       "auto.commit.interval.ms"                  -> "5000",

@@ -311,7 +311,7 @@ object Consumer {
                 }
               }
             }
-            Sync[F].blocking(f(offsetCommitCallback)).as(None)
+            Sync[F].blocking(f(offsetCommitCallback)).as(Applicative[F].unit.some)
           }
       }
 

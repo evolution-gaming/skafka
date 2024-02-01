@@ -27,12 +27,12 @@ provide a ready-made Cats Effect API and handle some corner cases concerning
 
 Comparing to more full-featured libraries such as
 [FS2 Kafka](https://fd4s.github.io/fs2-kafka), it might be a little bit more
-reliable, because there is little code/logic to do hide the accidenital bugs in.
+reliable, because there is little code/logic to hide the accidenital bugs in.
 
 To summarize:
 1. If it suits your goals (i.e. you only ever need to do `consumer.poll()`
 without acting on rebalance etc.) then using an official Kafka client directly,
-optionally, wrapping all the calls with `cats.effect.IO` is a totally fine idea.
+optionally, wrapping all the calls with `cats.effect.IO`, is a totally fine idea.
 2. If more complicated integration to Cats Effect is required, i.e.
 _ConsumerRebalanceListener_ is going to be used then consider using _Skafka_.
 3. If streaming with [FS2](https://fs2.io) is required or any other features

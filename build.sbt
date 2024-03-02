@@ -7,9 +7,9 @@ ThisBuild / evictionErrorLevel := Level.Warn
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
   CrossVersion.partialVersion(scalaVersion) match {
-    case Some((3, _)) => if3
+    case Some((3, _))       => if3
     case Some((2, 12 | 13)) => if2
-    case _ => Nil
+    case _                  => Nil
   }
 
 lazy val commonSettings = Seq(
@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.12", "3.3.1", "2.12.18"),
+  crossScalaVersions := Seq("2.13.12", "3.3.3", "2.12.18"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",

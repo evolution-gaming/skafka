@@ -2,8 +2,8 @@ import Dependencies._
 import com.typesafe.tools.mima.core._
 
 ThisBuild / versionScheme := Some("early-semver")
-
 ThisBuild / evictionErrorLevel := Level.Warn
+ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
   CrossVersion.partialVersion(scalaVersion) match {
@@ -35,19 +35,6 @@ lazy val commonSettings = Seq(
   ),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
-  // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
-  mimaPreviousArtifacts.withRank(KeyRanks.Invisible) := {
-    val versions = List(
-      "11.0.0",
-    )
-
-    // check against all versions once Scala 3 lib version is published
-    crossSettings(
-      scalaVersion.value,
-      if3 = Nil,
-      if2 = versions.map(organization.value %% moduleName.value % _)
-    ).toSet
-  },
   mimaBinaryIssueFilters ++= Seq(
     ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.subscribe"),
     ProblemFilters.exclude[DirectMissingMethodProblem](
@@ -64,7 +51,6 @@ lazy val root = (project in file(".")
   aggregate (skafka, `play-json`, metrics, tests))
 
 lazy val skafka = (project in file("skafka")
-  disablePlugins (MimaPlugin)
   settings commonSettings
   settings (name := "skafka",
   scalacOptions -= "-Ywarn-unused:params",
@@ -92,13 +78,11 @@ lazy val `play-json` = (project in file("modules/play-json")
 
 lazy val metrics = (project in file("modules/metrics")
   settings (name := "skafka-metrics")
-  disablePlugins (MimaPlugin)
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))
 
 lazy val tests = (project in file("tests")
-  disablePlugins (MimaPlugin)
   settings (name := "skafka-tests")
   settings commonSettings
   settings Seq(publish / skip := true, Test / fork := true, Test / parallelExecution := false)

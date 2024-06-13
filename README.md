@@ -75,6 +75,53 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 }
 ```
 
+## Collecting metrics
+Both `Producer` and `Consumer` expose metrics, internally collected by the Java client via `clientMetrics` method.  
+To simplify collection of metrics from multiple clients inside the same VM you can use `KafkaMetricsRegistry`.
+It allows 'registering' functions that obtain metrics from different clients, aggregating them into a single list
+of metrics when collected. This allows defining clients in different code units with the only requirement of registering
+them in `KafkaMetricsRegistry`. The registered functions will be saved in a `Ref` and invoked every time metrics
+are collected.  
+Examples:
+1. Manual registration of each client
+```scala
+import com.evolutiongaming.skafka.consumer.ConsumerOf
+import com.evolutiongaming.skafka.metrics.KafkaMetricsRegistry
+import com.evolutiongaming.skafka.producer.ProducerOf
+
+val consumerOf: ConsumerOf[F] = ???
+val producerOf: ProducerOf[F] = ???
+val kafkaRegistry: KafkaMetricsRegistry[F] = ???
+
+for {
+  consumer <- consumerOf.apply(consumerConfig)
+           <- kafkaRegistry.register(consumer.clientMetrics)
+  producer <- producerOf.apply(producerConfig)
+  _        <- kafkaRegistry.register(producer.clientMetrics)
+  
+  metrics  <- kafkaRegistry.collectAll
+} yield ()
+```
+2. Wrapping `ConsumerOf` or `ProducerOf` with a syntax extension
+```scala
+import com.evolutiongaming.skafka.metrics.syntax._
+
+val kafkaRegistry: KafkaMetricsRegistry[F] = ...
+val consumerOf: ConsumerOf[F] = ConsumerOf.apply1[F](...).withNativeMetrics(kafkaRegistry)
+val producerOf: ProducerOf[F] = ProducerOf.apply1[F](...).withNativeMetrics(kafkaRegistry)
+
+for {
+  consumer <- consumerOf.apply(consumerConfig)
+  producer <- producerOf.apply(producerConfig)
+  metrics  <- kafkaRegistry.collectAll
+} yield ()
+```
+#### Metrics duplication
+`KafkaMetricsRegistry` deduplicates metrics by default. It can be turned off by using a different factory method
+accepting `allowDuplicates` parameter.
+When using it in the default mode it's important to use different `client.id` values for different clients inside a
+single VM, otherwise only one of them will be picked (order is not guaranteed).
+
 ## Setup
 
 ```scala

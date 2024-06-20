@@ -19,7 +19,7 @@ import scala.util.Try
   * Internal wrapper for [[org.apache.kafka.clients.consumer.Consumer]]
   * with a smaller scope of methods making sense during consumer group rebalance.
   * Introduced in https://github.com/evolution-gaming/skafka/pull/122
-  * At the moment of writing we had KafkaConsumer v2.5.0
+  * At the moment of writing we had KafkaConsumer v2.5.1
   * and made following choice about methods
   *  - allowed prefixed with `+ ` in the list below
   *  - not allowed methods prefixed with `- ` in the list below

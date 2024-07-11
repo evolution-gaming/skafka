@@ -10,6 +10,14 @@ import scala.concurrent.duration.FiniteDuration
 
 object ProducerMetricsOf {
 
+  /**
+    * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
+    *
+    * @param source original [[ProducerMetrics]]
+    * @param prefix function that provides _unique_ prefix for each client
+    * @param prometheus instance of Prometheus registry
+    * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
+    */
   def withJavaClientMetrics[F[_]: Sync: ToTry](
     source: ProducerMetrics[F],
     prefix: ClientId => String,
@@ -49,6 +57,13 @@ object ProducerMetricsOf {
 
   implicit final class Syntax[F[_]](val source: ProducerMetrics[F]) extends AnyVal {
 
+    /**
+      * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
+      *
+      * @param prefix function that provides _unique_ prefix for each client
+      * @param prometheus instance of Prometheus registry
+      * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
+      */
     def exposeJavaClientMetrics(
       prefix: ClientId => String,
       prometheus: CollectorRegistry

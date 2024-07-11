@@ -22,7 +22,8 @@ object ConsumerMetricsOf {
       override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit] =
         source.poll(topic, bytes, records, age)
 
-      override def count(name: String, topic: Topic): F[Unit] = source.count(name, topic)
+      override def count(name: String, topic: Topic): F[Unit] =
+        source.count(name, topic)
 
       override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] =
         source.rebalance(name, topicPartition)

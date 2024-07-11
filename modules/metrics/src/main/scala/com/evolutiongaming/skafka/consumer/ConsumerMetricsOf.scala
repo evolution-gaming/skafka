@@ -27,7 +27,8 @@ object ConsumerMetricsOf {
       override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] =
         source.rebalance(name, topicPartition)
 
-      override def topics(latency: FiniteDuration): F[Unit] = source.topics(latency)
+      override def topics(latency: FiniteDuration): F[Unit] =
+        source.topics(latency)
 
       override def exposeJavaMetrics[K, V](
         consumer: Consumer[F, K, V],

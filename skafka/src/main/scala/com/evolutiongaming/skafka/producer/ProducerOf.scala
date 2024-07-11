@@ -26,19 +26,30 @@ object ProducerOf {
     def apply(config: ProducerConfig) = {
       for {
         producer <- Producer.of[F](config = config)
-      } yield {
-        metrics.fold(producer)(producer.withMetrics[Throwable])
-      }
+        producer <- metrics match {
+
+          case None =>
+            Resource.pure[F, Producer[F]](producer)
+
+          case Some(metrics) =>
+            for {
+              _ <- metrics.exposeJavaMetrics(producer)
+            } yield {
+              producer.withMetrics[Throwable](metrics)
+            }
+
+        }
+      } yield producer
     }
   }
 
   /** The sole purpose of this method is to support binary compatibility with an intermediate
-   *  version (namely, 15.2.0) which had `apply1` method using `MeasureDuration` from `smetrics`
-   *  and `apply2` using `MeasureDuration` from `cats-helper`.
-   *  This should not be used and should be removed in a reasonable amount of time.
-   */
+    *  version (namely, 15.2.0) which had `apply1` method using `MeasureDuration` from `smetrics`
+    *  and `apply2` using `MeasureDuration` from `cats-helper`.
+    *  This should not be used and should be removed in a reasonable amount of time.
+    */
   @deprecated("Use `apply1`", since = "16.0.3")
-  def apply2[F[_] : MeasureDuration : ToTry : Async](
+  def apply2[F[_]: MeasureDuration: ToTry: Async](
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = apply1(metrics)
 

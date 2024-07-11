@@ -31,20 +31,31 @@ object ConsumerOf {
       def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
         Consumer
           .of[F, K, V](config)
-          .map { consumer =>
-            metrics.fold { consumer } { consumer.withMetrics1[Throwable] }
+          .flatMap { consumer =>
+            metrics match {
+
+              case None =>
+                Resource.pure[F, Consumer[F, K, V]](consumer)
+
+              case Some(metrics) =>
+                for {
+                  _ <- metrics.exposeJavaMetrics[K, V](consumer)
+                } yield {
+                  consumer.withMetrics1[Throwable](metrics)
+                }
+            }
           }
       }
     }
   }
 
   /** The sole purpose of this method is to support binary compatibility with an intermediate
-   *  version (namely, 15.2.0) which had `apply1` method using `MeasureDuration` from `smetrics`
-   *  and `apply2` using `MeasureDuration` from `cats-helper`.
-   *  This should not be used and should be removed in a reasonable amount of time.
-   */
+    *  version (namely, 15.2.0) which had `apply1` method using `MeasureDuration` from `smetrics`
+    *  and `apply2` using `MeasureDuration` from `cats-helper`.
+    *  This should not be used and should be removed in a reasonable amount of time.
+    */
   @deprecated("Use `apply1`", since = "16.0.3")
-  def apply2[F[_] : Async : ToTry : ToFuture : MeasureDuration](
+  def apply2[F[_]: Async: ToTry: ToFuture: MeasureDuration](
     metrics: Option[ConsumerMetrics[F]] = None
   ): ConsumerOf[F] = apply1(metrics)
 

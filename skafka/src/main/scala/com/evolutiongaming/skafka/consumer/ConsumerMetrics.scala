@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect.Resource
+import cats.effect.{MonadCancel, Resource}
 import cats.implicits._
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
@@ -8,6 +8,7 @@ import com.evolutiongaming.smetrics.MetricsHelper._
 import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantiles}
 
 import scala.concurrent.duration.FiniteDuration
+import scala.annotation.nowarn
 
 trait ConsumerMetrics[F[_]] {
 
@@ -20,6 +21,9 @@ trait ConsumerMetrics[F[_]] {
   def rebalance(name: String, topicPartition: TopicPartition): F[Unit]
 
   def topics(latency: FiniteDuration): F[Unit]
+
+  private[consumer] def exposeJavaMetrics[K, V](@nowarn consumer: Consumer[F, K, V]): Resource[F, Unit] =
+    Resource.unit[F]
 }
 
 object ConsumerMetrics {
@@ -104,11 +108,11 @@ object ConsumerMetrics {
       bytesSummary      <- bytesSummary
       rebalancesCounter <- rebalancesCounter
       topicsLatency     <- topicsLatency
-      ageSummary        <- registry.summary(
-        name = s"${ prefix }_poll_age",
-        help = "Poll records age, time since record.timestamp",
+      ageSummary <- registry.summary(
+        name      = s"${prefix}_poll_age",
+        help      = "Poll records age, time since record.timestamp",
         quantiles = Quantiles.Default,
-        labels = LabelNames("client", "topic")
+        labels    = LabelNames("client", "topic")
       )
     } yield { (clientId: ClientId) =>
       new ConsumerMetrics[F] {
@@ -162,6 +166,7 @@ object ConsumerMetrics {
 
   implicit class ConsumerMetricsOps[F[_]](val self: ConsumerMetrics[F]) extends AnyVal {
 
+    @deprecated("Use mapK(f, g) instead", "16.2.0")
     def mapK[G[_]](f: F ~> G): ConsumerMetrics[G] = {
       new MapK with ConsumerMetrics[G] {
 
@@ -184,6 +189,37 @@ object ConsumerMetrics {
         def topics(latency: FiniteDuration) = {
           f(self.topics(latency))
         }
+      }
+    }
+
+    def mapK[G[_]](
+      fg: F ~> G,
+      gf: G ~> F
+    )(implicit F: MonadCancel[F, Throwable], G: MonadCancel[G, Throwable]): ConsumerMetrics[G] = {
+      new MapK with ConsumerMetrics[G] {
+
+        def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
+          fg(self.call(name, topic, latency, success))
+        }
+
+        def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = {
+          fg(self.poll(topic, bytes, records, age))
+        }
+
+        def count(name: String, topic: Topic) = {
+          fg(self.count(name, topic))
+        }
+
+        def rebalance(name: String, topicPartition: TopicPartition) = {
+          fg(self.rebalance(name, topicPartition))
+        }
+
+        def topics(latency: FiniteDuration) = {
+          fg(self.topics(latency))
+        }
+
+        override def exposeJavaMetrics[K, V](consumer: Consumer[G, K, V]) =
+          self.exposeJavaMetrics(consumer.mapK(gf, fg)).mapK(fg)
       }
     }
   }

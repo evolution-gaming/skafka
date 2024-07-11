@@ -75,6 +75,24 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 }
 ```
 
+## Java client metrics example
+
+The example below demonstrates creation of `Consumer`, but same can be done for `Producer` as well.
+```scala
+import ConsumerMetricsOf.*
+
+val config: ConsumerConfig = ???
+val registry: CollectorRegistry = ???   // Prometheus client
+val metrics0: ConsumerMetrics[IO] = ???
+val metrics1: ConsumerMetrics[IO] = metrics0.exposeJavaClientMetrics("my-app", registry)
+ConsumerOf
+  .apply1(metrics1.some)
+  .apply(config)
+  .use { consumer => 
+    ???  
+  }
+```
+
 ## Setup
 
 ```scala

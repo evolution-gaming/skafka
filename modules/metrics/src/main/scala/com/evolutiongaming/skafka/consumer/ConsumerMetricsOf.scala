@@ -1,9 +1,8 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.effect.{Resource, Sync}
-import cats.syntax.all.*
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.{Topic, TopicPartition}
+import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import com.evolutiongaming.skafka.metrics.KafkaMetricsCollector
 import io.prometheus.client.CollectorRegistry
 
@@ -13,7 +12,7 @@ object ConsumerMetricsOf {
 
   def withJavaClientMetrics[F[_]: Sync: ToTry](
     source: ConsumerMetrics[F],
-    prefix: String,
+    prefix: ClientId => String,
     prometheus: CollectorRegistry
   ): ConsumerMetrics[F] =
     new ConsumerMetrics[F] {
@@ -30,8 +29,11 @@ object ConsumerMetricsOf {
 
       override def topics(latency: FiniteDuration): F[Unit] = source.topics(latency)
 
-      override def exposeJavaMetrics[K, V](consumer: Consumer[F, K, V]): Resource[F, Unit] = {
-        val collector = new KafkaMetricsCollector[F](consumer.clientMetrics, prefix.some)
+      override def exposeJavaMetrics[K, V](
+        consumer: Consumer[F, K, V],
+        clientId: Option[ClientId]
+      ): Resource[F, Unit] = {
+        val collector = new KafkaMetricsCollector[F](consumer.clientMetrics, clientId.map(prefix))
         Resource.make {
           Sync[F].delay { prometheus.register(collector) }
         } { _ =>
@@ -44,7 +46,7 @@ object ConsumerMetricsOf {
   implicit final class Syntax[F[_]](val source: ConsumerMetrics[F]) extends AnyVal {
 
     def exposeJavaClientMetrics(
-      prefix: String,
+      prefix: ClientId => String,
       prometheus: CollectorRegistry
     )(implicit F: Sync[F], toTry: ToTry[F]): ConsumerMetrics[F] = withJavaClientMetrics(source, prefix, prometheus)
 

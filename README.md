@@ -84,7 +84,7 @@ import ConsumerMetricsOf.*
 val config: ConsumerConfig = ???
 val registry: CollectorRegistry = ???   // Prometheus client
 val metrics0: ConsumerMetrics[IO] = ???
-val metrics1: ConsumerMetrics[IO] = metrics0.exposeJavaClientMetrics("my-app", registry)
+val metrics1: ConsumerMetrics[IO] = metrics0.exposeJavaClientMetrics(identity, registry)
 ConsumerOf
   .apply1(metrics1.some)
   .apply(config)

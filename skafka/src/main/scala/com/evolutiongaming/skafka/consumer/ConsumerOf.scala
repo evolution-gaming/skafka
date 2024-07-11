@@ -39,7 +39,7 @@ object ConsumerOf {
 
               case Some(metrics) =>
                 for {
-                  _ <- metrics.exposeJavaMetrics[K, V](consumer)
+                  _ <- metrics.exposeJavaMetrics[K, V](consumer, config.common.clientId)
                 } yield {
                   consumer.withMetrics1[Throwable](metrics)
                 }

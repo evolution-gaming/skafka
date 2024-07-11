@@ -33,7 +33,7 @@ object ProducerOf {
 
           case Some(metrics) =>
             for {
-              _ <- metrics.exposeJavaMetrics(producer)
+              _ <- metrics.exposeJavaMetrics(producer, config.common.clientId)
             } yield {
               producer.withMetrics[Throwable](metrics)
             }

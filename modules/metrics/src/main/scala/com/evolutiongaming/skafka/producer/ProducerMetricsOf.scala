@@ -1,9 +1,8 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.effect.{Resource, Sync}
-import cats.syntax.all.*
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.Topic
+import com.evolutiongaming.skafka.{ClientId, Topic}
 import com.evolutiongaming.skafka.metrics.KafkaMetricsCollector
 import io.prometheus.client.CollectorRegistry
 
@@ -13,7 +12,7 @@ object ProducerMetricsOf {
 
   def withJavaClientMetrics[F[_]: Sync: ToTry](
     source: ProducerMetrics[F],
-    prefix: String,
+    prefix: ClientId => String,
     prometheus: CollectorRegistry
   ): ProducerMetrics[F] =
     new ProducerMetrics[F] {
@@ -37,8 +36,8 @@ object ProducerMetricsOf {
 
       override def flush(latency: FiniteDuration): F[Unit] = source.flush(latency)
 
-      override def exposeJavaMetrics(producer: Producer[F]): Resource[F, Unit] = {
-        val collector = new KafkaMetricsCollector[F](producer.clientMetrics, prefix.some)
+      override def exposeJavaMetrics(producer: Producer[F], clientId: Option[ClientId]): Resource[F, Unit] = {
+        val collector = new KafkaMetricsCollector[F](producer.clientMetrics, clientId.map(prefix))
         Resource.make {
           Sync[F].delay { prometheus.register(collector) }
         } { _ =>
@@ -51,7 +50,7 @@ object ProducerMetricsOf {
   implicit final class Syntax[F[_]](val source: ProducerMetrics[F]) extends AnyVal {
 
     def exposeJavaClientMetrics(
-      prefix: String,
+      prefix: ClientId => String,
       prometheus: CollectorRegistry
     )(implicit F: Sync[F], toTry: ToTry[F]): ProducerMetrics[F] = withJavaClientMetrics(source, prefix, prometheus)
 

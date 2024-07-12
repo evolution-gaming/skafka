@@ -2,8 +2,8 @@ package com.evolutiongaming.skafka.producer
 
 import cats.effect.{Resource, Sync}
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.{ClientId, Topic}
-import com.evolutiongaming.skafka.metrics.KafkaMetricsCollector
+import com.evolutiongaming.skafka.Topic
+import com.evolutiongaming.skafka.metrics.KafkaMetricsRegistry
 import io.prometheus.client.CollectorRegistry
 
 import scala.concurrent.duration.FiniteDuration
@@ -14,16 +14,18 @@ object ProducerMetricsOf {
     * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
     *
     * @param source original [[ProducerMetrics]]
-    * @param prefix function that provides _unique_ prefix for each client
+    * @param prefix metric name prefix
     * @param prometheus instance of Prometheus registry
     * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
     */
   def withJavaClientMetrics[F[_]: Sync: ToTry](
     source: ProducerMetrics[F],
-    prefix: ClientId => String,
+    prefix: Option[String],
     prometheus: CollectorRegistry
-  ): ProducerMetrics[F] =
-    new ProducerMetrics[F] {
+  ): Resource[F, ProducerMetrics[F]] =
+    for {
+      registry <- KafkaMetricsRegistry.of(prometheus, prefix)
+    } yield new ProducerMetrics[F] {
       override def initTransactions(latency: FiniteDuration): F[Unit] = source.initTransactions(latency)
 
       override def beginTransaction: F[Unit] = source.beginTransaction
@@ -44,30 +46,25 @@ object ProducerMetricsOf {
 
       override def flush(latency: FiniteDuration): F[Unit] = source.flush(latency)
 
-      override def exposeJavaMetrics(producer: Producer[F], clientId: Option[ClientId]): Resource[F, Unit] = {
-        val collector = new KafkaMetricsCollector[F](producer.clientMetrics, clientId.map(prefix))
-        Resource.make {
-          Sync[F].delay { prometheus.register(collector) }
-        } { _ =>
-          Sync[F].delay { prometheus.unregister(collector) }
-        }
-      }
+      override def exposeJavaMetrics(producer: Producer[F]): Resource[F, Unit] =
+        registry.register(producer.clientMetrics)
 
     }
 
-  implicit final class Syntax[F[_]](val source: ProducerMetrics[F]) extends AnyVal {
+  implicit final class ProducerMetricsOps[F[_]](val source: ProducerMetrics[F]) extends AnyVal {
 
     /**
       * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
       *
-      * @param prefix function that provides _unique_ prefix for each client
+      * @param prefix metric name prefix
       * @param prometheus instance of Prometheus registry
       * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
       */
     def exposeJavaClientMetrics(
-      prefix: ClientId => String,
+      prefix: Option[String],
       prometheus: CollectorRegistry
-    )(implicit F: Sync[F], toTry: ToTry[F]): ProducerMetrics[F] = withJavaClientMetrics(source, prefix, prometheus)
+    )(implicit F: Sync[F], toTry: ToTry[F]): Resource[F, ProducerMetrics[F]] =
+      withJavaClientMetrics(source, prefix, prometheus)
 
   }
 

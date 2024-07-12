@@ -22,10 +22,8 @@ trait ConsumerMetrics[F[_]] {
 
   def topics(latency: FiniteDuration): F[Unit]
 
-  private[consumer] def exposeJavaMetrics[K, V](
-    @nowarn consumer: Consumer[F, K, V],
-    @nowarn clientId: Option[ClientId],
-  ): Resource[F, Unit] = Resource.unit[F]
+  private[consumer] def exposeJavaMetrics[K, V](@nowarn consumer: Consumer[F, K, V]): Resource[F, Unit] =
+    Resource.unit[F]
 }
 
 object ConsumerMetrics {
@@ -220,8 +218,8 @@ object ConsumerMetrics {
           fg(self.topics(latency))
         }
 
-        override def exposeJavaMetrics[K, V](consumer: Consumer[G, K, V], clientId: Option[ClientId]) =
-          self.exposeJavaMetrics(consumer.mapK(gf, fg), clientId).mapK(fg)
+        override def exposeJavaMetrics[K, V](consumer: Consumer[G, K, V]) =
+          self.exposeJavaMetrics(consumer.mapK(gf, fg)).mapK(fg)
       }
     }
   }

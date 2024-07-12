@@ -32,10 +32,7 @@ trait ProducerMetrics[F[_]] {
 
   def flush(latency: FiniteDuration): F[Unit]
 
-  private[producer] def exposeJavaMetrics(
-    @nowarn producer: Producer[F],
-    @nowarn clientId: Option[ClientId],
-  ): Resource[F, Unit] = Resource.unit[F]
+  private[producer] def exposeJavaMetrics(@nowarn producer: Producer[F]): Resource[F, Unit] = Resource.unit[F]
 }
 
 object ProducerMetrics {
@@ -233,8 +230,8 @@ object ProducerMetrics {
 
         def flush(latency: FiniteDuration) = fg(self.flush(latency))
 
-        override def exposeJavaMetrics(producer: Producer[G], clientId: Option[ClientId]) =
-          self.exposeJavaMetrics(producer.mapK[F](gf, fg), clientId).mapK(fg)
+        override def exposeJavaMetrics(producer: Producer[G]) =
+          self.exposeJavaMetrics(producer.mapK[F](gf, fg)).mapK(fg)
       }
   }
 }

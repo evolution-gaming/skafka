@@ -79,23 +79,23 @@ val records: IO[ConsumerRecords[String, String]] = consumer.use { consumer =>
 
 The example below demonstrates creation of `Consumer`, but same can be done for `Producer` as well.
 
-> :warning: Creating consumer/producer will register new set of metrics in Prometheus registry
-> thus metric names must not clash. For that you have to provide function of type `ClientId => String`,
-> that takes client ID and returns metric prefix. The prefix expected to be unique!
+> :warning: using `ConsumerMetricsOf.withJavaClientMetrics` registers new Prometheus collector
+> under the hood. Please use unique prefixes for each collector to avoid duplicated metrics
+> in Prometheus (i.e. runtime exception on registration). Prefix can be set as parameter in:
+> `ConsumerMetricsOf.withJavaClientMetrics(registry, Some("the_prefix"))`
 
 ```scala
 import ConsumerMetricsOf.*
 
 val config: ConsumerConfig = ???
 val registry: CollectorRegistry = ???   // Prometheus client
-val metrics0: ConsumerMetrics[IO] = ???
-val metrics1: ConsumerMetrics[IO] = metrics0.exposeJavaClientMetrics(identity, registry)
-ConsumerOf
-  .apply1(metrics1.some)
-  .apply(config)
-  .use { consumer => 
-    ???  
-  }
+val metrics: ConsumerMetrics[IO] = ???
+
+for {
+  metrics   <- metrics.exposeJavaClientMetrics(registry)
+  consumerOf = ConsumerOf.apply1(metrics1.some) 
+  consumer  <- consumerOf(config)
+} yield ???
 ```
 
 ## Setup

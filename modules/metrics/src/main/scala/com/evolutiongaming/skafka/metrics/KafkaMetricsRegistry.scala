@@ -50,14 +50,19 @@ object KafkaMetricsRegistry {
     for {
       sources <- Ref[F].of(Map.empty[UUID, F[Seq[ClientMetric[F]]]]).toResource
 
-      metrics = sources.get.flatMap { sources =>
-        sources.toSeq.flatTraverse {
-          case (uuid, metrics) =>
-            metrics.map { metrics =>
-              metrics.map { metric => metric.copy(tags = metric.tags + ("uuid" -> uuid.toString)) }
+      metrics = sources
+        .get
+        .flatMap { sources =>
+          sources
+            .toList
+            .flatTraverse {
+              case (uuid, metrics) =>
+                metrics.map { metrics =>
+                  metrics.toList.map { metric => metric.copy(tags = metric.tags + ("uuid" -> uuid.toString)) }
+                }
             }
         }
-      }
+        .widen[Seq[ClientMetric[F]]]
 
       collector = new KafkaMetricsCollector[F](metrics, prefix)
       allocate  = Sync[F].delay { prometheus.register(collector) }

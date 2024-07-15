@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.effect.{Resource, Sync}
+import cats.effect.std.UUIDGen
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Topic
 import com.evolutiongaming.skafka.metrics.KafkaMetricsRegistry
@@ -14,14 +15,14 @@ object ProducerMetricsOf {
     * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
     *
     * @param source original [[ProducerMetrics]]
-    * @param prefix metric name prefix
     * @param prometheus instance of Prometheus registry
+    * @param prefix metric name prefix
     * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
     */
-  def withJavaClientMetrics[F[_]: Sync: ToTry](
+  def withJavaClientMetrics[F[_]: Sync: ToTry: UUIDGen](
     source: ProducerMetrics[F],
+    prometheus: CollectorRegistry,
     prefix: Option[String],
-    prometheus: CollectorRegistry
   ): Resource[F, ProducerMetrics[F]] =
     for {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
@@ -56,15 +57,15 @@ object ProducerMetricsOf {
     /**
       * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
       *
-      * @param prefix metric name prefix
       * @param prometheus instance of Prometheus registry
+      * @param prefix metric name prefix
       * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
       */
     def exposeJavaClientMetrics(
+      prometheus: CollectorRegistry,
       prefix: Option[String],
-      prometheus: CollectorRegistry
     )(implicit F: Sync[F], toTry: ToTry[F]): Resource[F, ProducerMetrics[F]] =
-      withJavaClientMetrics(source, prefix, prometheus)
+      withJavaClientMetrics(source, prometheus, prefix)
 
   }
 

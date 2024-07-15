@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.effect.Resource
+import cats.effect.{MonadCancel, Resource}
 import cats.implicits._
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic}
@@ -8,6 +8,7 @@ import com.evolutiongaming.smetrics.MetricsHelper._
 import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantile, Quantiles}
 
 import scala.concurrent.duration.FiniteDuration
+import scala.annotation.nowarn
 
 trait ProducerMetrics[F[_]] {
 
@@ -30,6 +31,8 @@ trait ProducerMetrics[F[_]] {
   def partitions(topic: Topic, latency: FiniteDuration): F[Unit]
 
   def flush(latency: FiniteDuration): F[Unit]
+
+  private[producer] def exposeJavaMetrics(@nowarn producer: Producer[F]): Resource[F, Unit] = Resource.unit[F]
 }
 
 object ProducerMetrics {
@@ -177,6 +180,7 @@ object ProducerMetrics {
 
   implicit class ProducerMetricsOps[F[_]](val self: ProducerMetrics[F]) extends AnyVal {
 
+    @deprecated("Use mapK(f, g) instead", "16.2.0")
     def mapK[G[_]](f: F ~> G): ProducerMetrics[G] = new ProducerMetrics[G] {
 
       def initTransactions(latency: FiniteDuration) = f(self.initTransactions(latency))
@@ -199,5 +203,35 @@ object ProducerMetrics {
 
       def flush(latency: FiniteDuration) = f(self.flush(latency))
     }
+
+    def mapK[G[_]](
+      fg: F ~> G,
+      gf: G ~> F
+    )(implicit F: MonadCancel[F, Throwable], G: MonadCancel[G, Throwable]): ProducerMetrics[G] =
+      new ProducerMetrics[G] {
+
+        def initTransactions(latency: FiniteDuration) = fg(self.initTransactions(latency))
+
+        def beginTransaction = fg(self.beginTransaction)
+
+        def sendOffsetsToTransaction(latency: FiniteDuration) = fg(self.sendOffsetsToTransaction(latency))
+
+        def commitTransaction(latency: FiniteDuration) = fg(self.commitTransaction(latency))
+
+        def abortTransaction(latency: FiniteDuration) = fg(self.abortTransaction(latency))
+
+        def send(topic: Topic, latency: FiniteDuration, bytes: Int) = fg(self.send(topic, latency, bytes))
+
+        def block(topic: Topic, latency: FiniteDuration) = fg(self.block(topic, latency))
+
+        def failure(topic: Topic, latency: FiniteDuration) = fg(self.failure(topic, latency))
+
+        def partitions(topic: Topic, latency: FiniteDuration) = fg(self.partitions(topic, latency))
+
+        def flush(latency: FiniteDuration) = fg(self.flush(latency))
+
+        override def exposeJavaMetrics(producer: Producer[G]) =
+          self.exposeJavaMetrics(producer.mapK[F](gf, fg)).mapK(fg)
+      }
   }
 }

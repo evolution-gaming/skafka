@@ -14,7 +14,7 @@ def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
 
 lazy val commonSettings = Seq(
   organization := "com.evolutiongaming",
-  homepage := Some(new URL("https://github.com/evolution-gaming/skafka")),
+  homepage := Some(url("https://github.com/evolution-gaming/skafka")),
   startYear := Some(2018),
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
@@ -45,11 +45,22 @@ lazy val commonSettings = Seq(
   )
 )
 
+val alias: Seq[sbt.Def.Setting[?]] =
+//  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt; scalafixEnable; scalafixAll") ++
+//    addCommandAlias(
+//      "check",
+//      "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check",
+//    ) ++
+    addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
+    addCommandAlias("build", "+all compile test")
+
+
 lazy val root = (project in file(".")
   disablePlugins (MimaPlugin)
   settings (name := "skafka")
   settings commonSettings
   settings (publish / skip := true)
+  settings (alias)
   aggregate (skafka, `play-json`, metrics, tests))
 
 lazy val skafka = (project in file("skafka")

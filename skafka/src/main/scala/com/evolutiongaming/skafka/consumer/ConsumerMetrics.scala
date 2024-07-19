@@ -34,6 +34,15 @@ object ConsumerMetrics {
     val Default: Prefix = "skafka_consumer"
   }
 
+  trait Exposer[F[_]] {
+    def apply(consumer: Consumer[F, _, _]): Resource[F, Unit]
+  }
+  object Exposer {
+    def empty[F[_]]: Exposer[F] = new Exposer[F] {
+      def apply(consumer: Consumer[F, _, _]) = Resource.unit[F]
+    }
+  }
+
   def empty[F[_]: Applicative]: ConsumerMetrics[F] = const(().pure[F])
 
   def const[F[_]](unit: F[Unit]): ConsumerMetrics[F] = new ConsumerMetrics[F] {
@@ -49,9 +58,16 @@ object ConsumerMetrics {
     def topics(latency: FiniteDuration) = unit
   }
 
+  @deprecated("Use of1 instead", "16.2.1")
   def of[F[_]: Monad](
     registry: CollectorRegistry[F],
     prefix: Prefix = Prefix.Default
+  ): Resource[F, ClientId => ConsumerMetrics[F]] = of1[F](registry, prefix)
+
+  def of1[F[_]: Monad](
+    registry: CollectorRegistry[F],
+    prefix: Prefix      = Prefix.Default,
+    exposer: Exposer[F] = Exposer.empty[F],
   ): Resource[F, ClientId => ConsumerMetrics[F]] = {
 
     val callsCounter = registry.counter(
@@ -157,6 +173,10 @@ object ConsumerMetrics {
           topicsLatency
             .labels(clientId)
             .observe(latency.toNanos.nanosToSeconds)
+        }
+
+        override def exposeJavaMetrics[K, V](@nowarn consumer: Consumer[F, K, V]) = {
+          exposer(consumer)
         }
       }
     }

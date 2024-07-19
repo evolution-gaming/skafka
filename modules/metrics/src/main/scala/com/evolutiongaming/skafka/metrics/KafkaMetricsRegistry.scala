@@ -43,6 +43,11 @@ trait KafkaMetricsRegistry[F[_]] {
 
 object KafkaMetricsRegistry {
 
+  def empty[F[_]]: KafkaMetricsRegistry[F] =
+    new KafkaMetricsRegistry[F] {
+      def register(metrics: F[Seq[ClientMetric[F]]]): Resource[F, Unit] = Resource.unit
+    }
+
   def of[F[_]: Sync: ToTry: UUIDGen](
     prometheus: CollectorRegistry,
     prefix: Option[String] = None,

@@ -43,6 +43,15 @@ object ProducerMetrics {
     val Default: Prefix = "skafka_producer"
   }
 
+  trait Exposer[F[_]] {
+    def apply(producer: Producer[F]): Resource[F, Unit]
+  }
+  object Exposer {
+    def empty[F[_]]: Exposer[F] = new Exposer[F] {
+      def apply(producer: Producer[F]) = Resource.unit[F]
+    }
+  }
+
   def empty[F[_]: Applicative]: ProducerMetrics[F] = const(().pure[F])
 
   def const[F[_]](unit: F[Unit]): ProducerMetrics[F] = new ProducerMetrics[F] {
@@ -68,9 +77,16 @@ object ProducerMetrics {
     def flush(latency: FiniteDuration) = unit
   }
 
+  @deprecated("Use of1 instead", "16.2.1")
   def of[F[_]: Monad](
     registry: CollectorRegistry[F],
     prefix: Prefix = Prefix.Default
+  ): Resource[F, ClientId => ProducerMetrics[F]] = of1[F](registry, prefix)
+
+  def of1[F[_]: Monad](
+    registry: CollectorRegistry[F],
+    prefix: Prefix      = Prefix.Default,
+    exposer: Exposer[F] = Exposer.empty[F],
   ): Resource[F, ClientId => ProducerMetrics[F]] = {
 
     val latencySummary = registry.summary(
@@ -172,6 +188,10 @@ object ProducerMetrics {
 
           def flush(latency: FiniteDuration) = {
             observeLatency("flush", latency)
+          }
+
+          override def exposeJavaMetrics(@nowarn producer: Producer[F]): Resource[F, Unit] = {
+            exposer(producer)
           }
         }
       }

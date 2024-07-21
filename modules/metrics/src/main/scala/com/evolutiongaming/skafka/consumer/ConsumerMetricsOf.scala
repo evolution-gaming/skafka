@@ -3,12 +3,11 @@ package com.evolutiongaming.skafka.consumer
 import cats.effect.{Resource, Sync}
 import cats.effect.std.UUIDGen
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.{Topic, TopicPartition}
+import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import com.evolutiongaming.skafka.metrics.KafkaMetricsRegistry
 import io.prometheus.client.CollectorRegistry
 
 import scala.concurrent.duration.FiniteDuration
-import com.evolutiongaming.skafka.ClientId
 
 object ConsumerMetricsOf {
 

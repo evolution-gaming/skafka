@@ -28,34 +28,7 @@ object ProducerMetricsOf {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
     } yield { (clientId: ClientId) =>
       val source = sourceOf(clientId)
-
-      new ProducerMetrics[F] {
-        override def initTransactions(latency: FiniteDuration): F[Unit] = source.initTransactions(latency)
-
-        override def beginTransaction: F[Unit] = source.beginTransaction
-
-        override def sendOffsetsToTransaction(latency: FiniteDuration): F[Unit] =
-          source.sendOffsetsToTransaction(latency)
-
-        override def commitTransaction(latency: FiniteDuration): F[Unit] = source.commitTransaction(latency)
-
-        override def abortTransaction(latency: FiniteDuration): F[Unit] = source.abortTransaction(latency)
-
-        override def send(topic: Topic, latency: FiniteDuration, bytes: Int): F[Unit] =
-          source.send(topic, latency, bytes)
-
-        override def block(topic: Topic, latency: FiniteDuration): F[Unit] = source.block(topic, latency)
-
-        override def failure(topic: Topic, latency: FiniteDuration): F[Unit] = source.failure(topic, latency)
-
-        override def partitions(topic: Topic, latency: FiniteDuration): F[Unit] = source.partitions(topic, latency)
-
-        override def flush(latency: FiniteDuration): F[Unit] = source.flush(latency)
-
-        override def exposeJavaMetrics(producer: Producer[F]): Resource[F, Unit] =
-          registry.register(producer.clientMetrics)
-
-      }
+      producerMetricsOf(source, registry)
     }
 
   /**
@@ -73,7 +46,13 @@ object ProducerMetricsOf {
   ): Resource[F, ProducerMetrics[F]] =
     for {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
-    } yield new ProducerMetrics[F] {
+    } yield producerMetricsOf(source, registry)
+
+  private def producerMetricsOf[F[_]](
+    source: ProducerMetrics[F],
+    registry: KafkaMetricsRegistry[F],
+  ): ProducerMetrics[F] =
+    new ProducerMetrics[F] {
       override def initTransactions(latency: FiniteDuration): F[Unit] = source.initTransactions(latency)
 
       override def beginTransaction: F[Unit] = source.beginTransaction

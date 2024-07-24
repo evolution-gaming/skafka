@@ -28,26 +28,7 @@ object ConsumerMetricsOf {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
     } yield { (clientId: ClientId) =>
       val source = sourceOf(clientId)
-
-      new ConsumerMetrics[F] {
-        override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] =
-          source.call(name, topic, latency, success)
-
-        override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit] =
-          source.poll(topic, bytes, records, age)
-
-        override def count(name: String, topic: Topic): F[Unit] =
-          source.count(name, topic)
-
-        override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] =
-          source.rebalance(name, topicPartition)
-
-        override def topics(latency: FiniteDuration): F[Unit] =
-          source.topics(latency)
-
-        override def exposeJavaMetrics[K, V](consumer: Consumer[F, K, V]): Resource[F, Unit] =
-          registry.register(consumer.clientMetrics)
-      }
+      consumerMetricsOf(source, registry)
     }
 
   /**
@@ -65,7 +46,13 @@ object ConsumerMetricsOf {
   ): Resource[F, ConsumerMetrics[F]] =
     for {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
-    } yield new ConsumerMetrics[F] {
+    } yield consumerMetricsOf(source, registry)
+
+  private def consumerMetricsOf[F[_]](
+    source: ConsumerMetrics[F],
+    registry: KafkaMetricsRegistry[F],
+  ): ConsumerMetrics[F] =
+    new ConsumerMetrics[F] {
       override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] =
         source.call(name, topic, latency, success)
 

@@ -3,13 +3,33 @@ package com.evolutiongaming.skafka.consumer
 import cats.effect.{Resource, Sync}
 import cats.effect.std.UUIDGen
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.{Topic, TopicPartition}
+import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import com.evolutiongaming.skafka.metrics.KafkaMetricsRegistry
 import io.prometheus.client.CollectorRegistry
 
 import scala.concurrent.duration.FiniteDuration
 
 object ConsumerMetricsOf {
+
+  /**
+    * Construct [[ConsumerMetrics]] that will expose Java Kafka client metrics.
+    *
+    * @param sourceOf original [[ConsumerMetrics]] factory
+    * @param prometheus instance of Prometheus registry
+    * @param prefix metric name prefix
+    * @return [[ConsumerMetrics]] that exposes Java Kafka client metrics
+    */
+  def withJavaClientMetrics[F[_]: Sync: ToTry: UUIDGen](
+    sourceOf: ClientId => ConsumerMetrics[F],
+    prometheus: CollectorRegistry,
+    prefix: Option[String],
+  ): Resource[F, ClientId => ConsumerMetrics[F]] =
+    for {
+      registry <- KafkaMetricsRegistry.of(prometheus, prefix)
+    } yield { (clientId: ClientId) =>
+      val source = sourceOf(clientId)
+      consumerMetricsOf(source, registry)
+    }
 
   /**
     * Construct [[ConsumerMetrics]] that will expose Java Kafka client metrics.
@@ -26,7 +46,13 @@ object ConsumerMetricsOf {
   ): Resource[F, ConsumerMetrics[F]] =
     for {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
-    } yield new ConsumerMetrics[F] {
+    } yield consumerMetricsOf(source, registry)
+
+  private def consumerMetricsOf[F[_]](
+    source: ConsumerMetrics[F],
+    registry: KafkaMetricsRegistry[F],
+  ): ConsumerMetrics[F] =
+    new ConsumerMetrics[F] {
       override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] =
         source.call(name, topic, latency, success)
 

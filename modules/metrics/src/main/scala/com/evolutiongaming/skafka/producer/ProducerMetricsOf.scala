@@ -3,13 +3,33 @@ package com.evolutiongaming.skafka.producer
 import cats.effect.{Resource, Sync}
 import cats.effect.std.UUIDGen
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.Topic
+import com.evolutiongaming.skafka.{ClientId, Topic}
 import com.evolutiongaming.skafka.metrics.KafkaMetricsRegistry
 import io.prometheus.client.CollectorRegistry
 
 import scala.concurrent.duration.FiniteDuration
 
 object ProducerMetricsOf {
+
+  /**
+    * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
+    *
+    * @param sourceOf original [[ProducerMetrics]] factory
+    * @param prometheus instance of Prometheus registry
+    * @param prefix metric name prefix
+    * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
+    */
+  def withJavaClientMetrics[F[_]: Sync: ToTry: UUIDGen](
+    sourceOf: ClientId => ProducerMetrics[F],
+    prometheus: CollectorRegistry,
+    prefix: Option[String],
+  ): Resource[F, ClientId => ProducerMetrics[F]] =
+    for {
+      registry <- KafkaMetricsRegistry.of(prometheus, prefix)
+    } yield { (clientId: ClientId) =>
+      val source = sourceOf(clientId)
+      producerMetricsOf(source, registry)
+    }
 
   /**
     * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
@@ -26,7 +46,13 @@ object ProducerMetricsOf {
   ): Resource[F, ProducerMetrics[F]] =
     for {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
-    } yield new ProducerMetrics[F] {
+    } yield producerMetricsOf(source, registry)
+
+  private def producerMetricsOf[F[_]](
+    source: ProducerMetrics[F],
+    registry: KafkaMetricsRegistry[F],
+  ): ProducerMetrics[F] =
+    new ProducerMetrics[F] {
       override def initTransactions(latency: FiniteDuration): F[Unit] = source.initTransactions(latency)
 
       override def beginTransaction: F[Unit] = source.beginTransaction

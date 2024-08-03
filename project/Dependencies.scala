@@ -4,7 +4,7 @@ object Dependencies {
 
   val `config-tools`          = "com.evolutiongaming"    %% "config-tools"                % "1.0.5"
   val `future-helper`         = "com.evolutiongaming"    %% "future-helper"               % "1.0.7"
-  val `cats-helper`           = "com.evolutiongaming"    %% "cats-helper"                 % "3.9.0"
+  val `cats-helper`           = "com.evolutiongaming"    %% "cats-helper"                 % "3.10.6-SNAPSHOT"
   val `testcontainers-kafka`  = "com.dimafeng"           %% "testcontainers-scala-kafka"  % "0.41.0"
   val `play-json-jsoniter`    = "com.evolution"          %% "play-json-jsoniter"          % "1.0.0"
   val `scala-java8-compat`    = "org.scala-lang.modules" %% "scala-java8-compat"          % "1.0.2"

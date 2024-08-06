@@ -79,6 +79,7 @@ lazy val skafka = (project in file("skafka")
     scalatest  % Test,
     Cats.laws  % Test,
     discipline % Test,
+    CatsEffect.effectTestKit % Test,
     `scala-java8-compat`,
     `collection-compat`
   )))

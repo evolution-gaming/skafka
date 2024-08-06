@@ -4,6 +4,7 @@ object Dependencies {
 
   val `config-tools`         = "com.evolutiongaming"    %% "config-tools"               % "1.0.5"
   val `future-helper`        = "com.evolutiongaming"    %% "future-helper"              % "1.0.7"
+  // TODO: `3.10.6-SNAPSHOT` is a local release, remote release depends on https://github.com/evolution-gaming/cats-helper/pull/288
   val `cats-helper`          = "com.evolutiongaming"    %% "cats-helper"                % "3.10.6-SNAPSHOT"
   val `testcontainers-kafka` = "com.dimafeng"           %% "testcontainers-scala-kafka" % "0.41.0"
   val `play-json-jsoniter`   = "com.evolution"          %% "play-json-jsoniter"         % "1.0.0"

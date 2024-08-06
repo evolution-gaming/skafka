@@ -57,7 +57,6 @@ class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
       records: List[Record]     = List.empty
     )
 
-    // TODO: mapK ?
     def logOf(ref: Ref[IO, State]): Log[IO] = {
       def add(log: String): IO[Unit] =
         ref.update(state => state.copy(logs = log :: state.logs))

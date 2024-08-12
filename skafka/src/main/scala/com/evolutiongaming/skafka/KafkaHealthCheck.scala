@@ -19,15 +19,11 @@ trait KafkaHealthCheck[F[_]] {
 
   /**
     * Returns the last error that occurred during the health check.
-    *
-    * @return
     */
   def error: F[Option[Throwable]]
 
   /**
     * Blocks a fiber until the health check is done.
-    *
-    * @return
     */
   def done: F[Unit]
 }

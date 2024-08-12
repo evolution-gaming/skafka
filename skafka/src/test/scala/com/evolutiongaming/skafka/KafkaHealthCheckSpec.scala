@@ -17,7 +17,7 @@ class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
   import KafkaHealthCheckSpec._
 
   test("error") {
-    implicit val log = Log.empty[IO]
+    implicit val log: Log[IO] = Log.empty[IO]
 
     val producer = new KafkaHealthCheck.Producer[IO] {
       def send(record: Record) = ().pure[IO]

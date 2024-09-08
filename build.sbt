@@ -7,9 +7,9 @@ ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
   CrossVersion.partialVersion(scalaVersion) match {
-    case Some((3, _)) => if3
+    case Some((3, _))       => if3
     case Some((2, 12 | 13)) => if2
-    case _ => Nil
+    case _                  => Nil
   }
 
 lazy val commonSettings = Seq(
@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.12", "3.3.1", "2.12.18"),
+  crossScalaVersions := Seq("2.13.12", "3.3.1", "2.12.20"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",
@@ -40,8 +40,12 @@ lazy val commonSettings = Seq(
     ProblemFilters.exclude[DirectMissingMethodProblem](
       "com.evolutiongaming.skafka.Converters#MapJOps.asScalaMap$extension"
     ),
-    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.consumer.ConsumerMetrics#ConsumerMetricsOps.mapK$extension"),
-    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.producer.ProducerMetrics#ProducerMetricsOps.mapK$extension"),
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.evolutiongaming.skafka.consumer.ConsumerMetrics#ConsumerMetricsOps.mapK$extension"
+    ),
+    ProblemFilters.exclude[DirectMissingMethodProblem](
+      "com.evolutiongaming.skafka.producer.ProducerMetrics#ProducerMetricsOps.mapK$extension"
+    ),
   )
 )
 
@@ -51,9 +55,8 @@ val alias: Seq[sbt.Def.Setting[?]] =
 //      "check",
 //      "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check",
 //    ) ++
-    addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
+  addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
     addCommandAlias("build", "+all compile test")
-
 
 lazy val root = (project in file(".")
   disablePlugins (MimaPlugin)
@@ -76,9 +79,9 @@ lazy val skafka = (project in file("skafka")
     `future-helper`,
     `cats-helper`,
     Smetrics.smetrics,
-    scalatest  % Test,
-    Cats.laws  % Test,
-    discipline % Test,
+    scalatest                % Test,
+    Cats.laws                % Test,
+    discipline               % Test,
     CatsEffect.effectTestKit % Test,
     `scala-java8-compat`,
     `collection-compat`

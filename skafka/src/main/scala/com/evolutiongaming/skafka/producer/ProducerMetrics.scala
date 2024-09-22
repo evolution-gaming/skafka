@@ -5,7 +5,7 @@ import cats.implicits._
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic}
 import com.evolutiongaming.smetrics.MetricsHelper._
-import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantile, Quantiles}
+import com.evolutiongaming.smetrics.{CollectorRegistry, Counter, LabelNames, LabelValues, Quantile, Quantiles, Summary}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.annotation.nowarn
@@ -45,27 +45,28 @@ object ProducerMetrics {
 
   def empty[F[_]: Applicative]: ProducerMetrics[F] = const(().pure[F])
 
-  def const[F[_]](unit: F[Unit]): ProducerMetrics[F] = new ProducerMetrics[F] {
+  def const[F[_]](unit: F[Unit]): ProducerMetrics[F] = new Const[F](unit)
 
-    def initTransactions(latency: FiniteDuration) = unit
+  private final class Const[F[_]](unit: F[Unit]) extends ProducerMetrics[F] {
+    override def initTransactions(latency: FiniteDuration): F[Unit] = unit
 
-    def beginTransaction = unit
+    override def beginTransaction: F[Unit] = unit
 
-    def sendOffsetsToTransaction(latency: FiniteDuration) = unit
+    override def sendOffsetsToTransaction(latency: FiniteDuration): F[Unit] = unit
 
-    def commitTransaction(latency: FiniteDuration) = unit
+    override def commitTransaction(latency: FiniteDuration): F[Unit] = unit
 
-    def abortTransaction(latency: FiniteDuration) = unit
+    override def abortTransaction(latency: FiniteDuration): F[Unit] = unit
 
-    def block(topic: Topic, latency: FiniteDuration) = unit
+    override def block(topic: Topic, latency: FiniteDuration): F[Unit] = unit
 
-    def send(topic: Topic, latency: FiniteDuration, bytes: Int) = unit
+    override def send(topic: Topic, latency: FiniteDuration, bytes: Int): F[Unit] = unit
 
-    def failure(topic: Topic, latency: FiniteDuration) = unit
+    override def failure(topic: Topic, latency: FiniteDuration): F[Unit] = unit
 
-    def partitions(topic: Topic, latency: FiniteDuration) = unit
+    override def partitions(topic: Topic, latency: FiniteDuration): F[Unit] = unit
 
-    def flush(latency: FiniteDuration) = unit
+    override def flush(latency: FiniteDuration): F[Unit] = unit
   }
 
   def of[F[_]: Monad](
@@ -110,71 +111,76 @@ object ProducerMetrics {
       callLatency    <- callLatency
       callCount      <- callCount
     } yield { (clientId: ClientId) =>
-      {
+      new Summaries[F](latencySummary, bytesSummary, resultCounter, callLatency, callCount, clientId)
+    }
+  }
 
-        def sendMeasure(result: String, topic: Topic, latency: FiniteDuration) = {
-          for {
-            _ <- latencySummary.labels(clientId, topic, "send").observe(latency.toNanos.nanosToSeconds)
-            _ <- resultCounter.labels(clientId, topic, result).inc()
-          } yield {}
-        }
+  private final class Summaries[F[_]: Monad](
+    latencySummary: LabelValues.`3`[Summary[F]],
+    bytesSummary: LabelValues.`2`[Summary[F]],
+    resultCounter: LabelValues.`3`[Counter[F]],
+    callLatency: LabelValues.`2`[Summary[F]],
+    callCount: LabelValues.`2`[Counter[F]],
+    clientId: ClientId
+  ) extends ProducerMetrics[F] {
+    override def initTransactions(latency: FiniteDuration): F[Unit] = {
+      observeLatency("init_transactions", latency)
+    }
 
-        def observeLatency(name: String, latency: FiniteDuration) = {
-          callLatency
-            .labels(clientId, name)
-            .observe(latency.toNanos.nanosToSeconds)
-        }
+    override def beginTransaction: F[Unit] = {
+      callCount.labels(clientId, "begin_transaction").inc()
+    }
 
-        new ProducerMetrics[F] {
+    override def sendOffsetsToTransaction(latency: FiniteDuration): F[Unit] = {
+      observeLatency("send_offsets", latency)
+    }
 
-          def initTransactions(latency: FiniteDuration) = {
-            observeLatency("init_transactions", latency)
-          }
+    override def commitTransaction(latency: FiniteDuration): F[Unit] = {
+      observeLatency("commit_transaction", latency)
+    }
 
-          def beginTransaction = {
-            callCount.labels(clientId, "begin_transaction").inc()
-          }
+    override def abortTransaction(latency: FiniteDuration): F[Unit] = {
+      observeLatency("abort_transaction", latency)
+    }
 
-          def sendOffsetsToTransaction(latency: FiniteDuration) = {
-            observeLatency("send_offsets", latency)
-          }
+    override def block(topic: Topic, latency: FiniteDuration): F[Unit] = {
+      latencySummary
+        .labels(clientId, topic, "block")
+        .observe(latency.toNanos.nanosToSeconds)
+    }
 
-          def commitTransaction(latency: FiniteDuration) = {
-            observeLatency("commit_transaction", latency)
-          }
+    override def send(topic: Topic, latency: FiniteDuration, bytes: Int): F[Unit] = {
+      for {
+        _ <- sendMeasure(result = "success", topic = topic, latency = latency)
+        _ <- bytesSummary.labels(clientId, topic).observe(bytes.toDouble)
+      } yield {}
+    }
 
-          def abortTransaction(latency: FiniteDuration) = {
-            observeLatency("abort_transaction", latency)
-          }
+    override def failure(topic: Topic, latency: FiniteDuration): F[Unit] = {
+      sendMeasure(result = "failure", topic = topic, latency = latency)
+    }
 
-          def block(topic: Topic, latency: FiniteDuration) = {
-            latencySummary
-              .labels(clientId, topic, "block")
-              .observe(latency.toNanos.nanosToSeconds)
-          }
+    override def partitions(topic: Topic, latency: FiniteDuration): F[Unit] = {
+      latencySummary
+        .labels(clientId, topic, "partitions")
+        .observe(latency.toNanos.nanosToSeconds)
+    }
 
-          def send(topic: Topic, latency: FiniteDuration, bytes: Int) = {
-            for {
-              _ <- sendMeasure(result = "success", topic = topic, latency = latency)
-              _ <- bytesSummary.labels(clientId, topic).observe(bytes.toDouble)
-            } yield {}
-          }
+    override def flush(latency: FiniteDuration): F[Unit] = {
+      observeLatency("flush", latency)
+    }
 
-          def failure(topic: Topic, latency: FiniteDuration) = {
-            sendMeasure(result = "failure", topic = topic, latency = latency)
-          }
+    private def sendMeasure(result: String, topic: Topic, latency: FiniteDuration): F[Unit] = {
+      for {
+        _ <- latencySummary.labels(clientId, topic, "send").observe(latency.toNanos.nanosToSeconds)
+        _ <- resultCounter.labels(clientId, topic, result).inc()
+      } yield {}
+    }
 
-          def partitions(topic: Topic, latency: FiniteDuration) = {
-            latencySummary
-              .labels(clientId, topic, "partitions")
-              .observe(latency.toNanos.nanosToSeconds)
-          }
-
-          def flush(latency: FiniteDuration) = {
-            observeLatency("flush", latency)
-          }
-        }
-      }
+    private def observeLatency(name: String, latency: FiniteDuration): F[Unit] = {
+      callLatency
+        .labels(clientId, name)
+        .observe(latency.toNanos.nanosToSeconds)
     }
   }
 

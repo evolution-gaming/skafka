@@ -4,6 +4,7 @@ import cats.data.NonEmptyList
 import cats.effect.{MonadCancel, Resource}
 import cats.implicits.*
 import cats.{Applicative, Monad, ~>}
+import com.evolutiongaming.skafka.producer.ProducerMetrics
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
 import com.evolutiongaming.smetrics.MetricsHelper.*
 import com.evolutiongaming.smetrics.*
@@ -266,7 +267,7 @@ object ConsumerMetrics {
     }
   }
   private val latencyBuckets =
-    Buckets(NonEmptyList.of(250e-6, 500e-6, 2e-3, 5e-3, 20e-3, 50e-3, 200e-3, 500e-3, 1, 2, 5, 30, 60))
+    ProducerMetrics.latencyBuckets
   private val pollCountBuckets =
     Buckets(NonEmptyList.of(1, 20, 50, 200, 500))
   private val pollBytesBuckets =

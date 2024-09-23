@@ -155,8 +155,18 @@ object ProducerMetrics {
       new Histograms[F](latencyHistogram, bytesHistogram, resultCounter, callLatency, callCount, clientId)
     }
   }
-  private val latencyBuckets =
-    Buckets(NonEmptyList.of(250e-6, 500e-6, 2e-3, 5e-3, 20e-3, 50e-3, 200e-3, 500e-3, 1, 2, 5, 30, 60))
+  private[skafka] val latencyBuckets =
+    Buckets(
+      NonEmptyList.of(
+        250e-6, // 250 microseconds – lowest observed latency in practice for blocks
+        500e-6,
+        // millisecond precision
+        2e-3, 5e-3, 20e-3, 50e-3, // 50 milliseconds – this is the median value for sending records
+        200e-3, 500e-3,
+        // second precision – starting from this point latencies are not "normal"
+        1, 2, 5, 30, 60, // 1 minute – many timeouts are already triggered by this time
+      )
+    )
   private val recordBytesBuckets =
     Buckets(
       NonEmptyList.of(

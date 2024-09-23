@@ -192,7 +192,7 @@ object ConsumerMetrics {
   ): Resource[F, ClientId => ConsumerMetrics[F]] = {
 
     val callsCounter = registry.counter(
-      name   = s"${prefix}_calls",
+      name   = s"${prefix}_calls_total",
       help   = "Number of topic calls",
       labels = LabelNames("client", "topic", "type")
     )

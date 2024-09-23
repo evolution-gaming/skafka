@@ -198,20 +198,20 @@ object ConsumerMetrics {
     )
 
     val resultCounter = registry.counter(
-      name   = s"${prefix}_results",
+      name   = s"${prefix}_results_total",
       help   = "Topic call result: success or failure",
       labels = LabelNames("client", "topic", "type", "result")
     )
 
     val latencyHistogram = registry.histogram(
-      name    = s"${prefix}_latency",
+      name    = s"${prefix}_latency_seconds",
       help    = "Topic call latency in seconds",
       buckets = latencyBuckets,
       labels  = LabelNames("client", "topic", "type")
     )
 
     val recordsHistogram = registry.histogram(
-      name    = s"${prefix}_poll_records",
+      name    = s"${prefix}_poll_records_total",
       help    = "Number of records per poll",
       buckets = pollCountBuckets,
       labels  = LabelNames("client", "topic")
@@ -225,19 +225,19 @@ object ConsumerMetrics {
     )
 
     val rebalancesCounter = registry.counter(
-      name   = s"${prefix}_rebalances",
+      name   = s"${prefix}_rebalances_total",
       help   = "Number of rebalances",
       labels = LabelNames("client", "topic", "type")
     )
 
     val topicsLatency = registry.histogram(
-      name    = s"${prefix}_topics_latency",
+      name    = s"${prefix}_topics_latency_seconds",
       help    = "List topics latency in seconds",
       buckets = latencyBuckets,
       labels  = LabelNames("client")
     )
     val ageHistogram = registry.histogram(
-      name    = s"${prefix}_poll_age",
+      name    = s"${prefix}_poll_age_seconds",
       help    = "Poll records age, time since record.timestamp",
       buckets = pollAgeBuckets,
       labels  = LabelNames("client", "topic")

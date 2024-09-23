@@ -144,7 +144,7 @@ object ProducerMetrics {
       labels  = LabelNames("client", "type")
     )
     val callCount =
-      registry.counter(name = s"${prefix}_calls", help = "Call count", labels = LabelNames("client", "type"))
+      registry.counter(name = s"${prefix}_calls_total", help = "Call count", labels = LabelNames("client", "type"))
     for {
       latencyHistogram <- latencyHistogram
       bytesHistogram   <- bytesHistogram

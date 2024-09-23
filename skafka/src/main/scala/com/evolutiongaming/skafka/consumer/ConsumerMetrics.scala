@@ -377,7 +377,7 @@ object ConsumerMetrics {
       new MappedK(self, fg, gf)
   }
 
-  private final class MappedK[F[_]: MonadCancel[*[_], _], G[_]: MonadCancel[*[_], _]](
+  private final class MappedK[F[_]: MonadCancel[*[_], Throwable], G[_]: MonadCancel[*[_], Throwable]](
     delegate: ConsumerMetrics[F],
     fg: F ~> G,
     gf: G ~> F

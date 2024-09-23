@@ -51,27 +51,7 @@ object ConsumerMetricsOf {
   private def consumerMetricsOf[F[_]](
     source: ConsumerMetrics[F],
     registry: KafkaMetricsRegistry[F],
-  ): ConsumerMetrics[F] =
-    new ConsumerMetrics[F] {
-      override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] =
-        source.call(name, topic, latency, success)
-
-      override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit] =
-        source.poll(topic, bytes, records, age)
-
-      override def count(name: String, topic: Topic): F[Unit] =
-        source.count(name, topic)
-
-      override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] =
-        source.rebalance(name, topicPartition)
-
-      override def topics(latency: FiniteDuration): F[Unit] =
-        source.topics(latency)
-
-      override def exposeJavaMetrics[K, V](consumer: Consumer[F, K, V]): Resource[F, Unit] =
-        registry.register(consumer.clientMetrics)
-
-    }
+  ): ConsumerMetrics[F] = new WithJavaClientMetrics(source, registry)
 
   implicit final class ConsumerMetricsOps[F[_]](val source: ConsumerMetrics[F]) extends AnyVal {
 
@@ -88,5 +68,26 @@ object ConsumerMetricsOf {
     )(implicit F: Sync[F], toTry: ToTry[F]): Resource[F, ConsumerMetrics[F]] =
       withJavaClientMetrics(source, prometheus, prefix)
 
+  }
+
+  private final class WithJavaClientMetrics[F[_]](source: ConsumerMetrics[F], registry: KafkaMetricsRegistry[F])
+      extends ConsumerMetrics[F] {
+    override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] =
+      source.call(name, topic, latency, success)
+
+    override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit] =
+      source.poll(topic, bytes, records, age)
+
+    override def count(name: String, topic: Topic): F[Unit] =
+      source.count(name, topic)
+
+    override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] =
+      source.rebalance(name, topicPartition)
+
+    override def topics(latency: FiniteDuration): F[Unit] =
+      source.topics(latency)
+
+    override def exposeJavaMetrics[K, V](consumer: Consumer[F, K, V]): Resource[F, Unit] =
+      registry.register(consumer.clientMetrics)
   }
 }

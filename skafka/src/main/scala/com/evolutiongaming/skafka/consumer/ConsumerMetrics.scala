@@ -1,11 +1,11 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.effect.{MonadCancel, Resource}
-import cats.implicits._
+import cats.implicits.*
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic, TopicPartition}
-import com.evolutiongaming.smetrics.MetricsHelper._
-import com.evolutiongaming.smetrics.{CollectorRegistry, LabelNames, Quantiles}
+import com.evolutiongaming.smetrics.MetricsHelper.*
+import com.evolutiongaming.smetrics.{CollectorRegistry, Counter, LabelNames, LabelValues, Quantiles, Summary}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.annotation.nowarn
@@ -36,17 +36,18 @@ object ConsumerMetrics {
 
   def empty[F[_]: Applicative]: ConsumerMetrics[F] = const(().pure[F])
 
-  def const[F[_]](unit: F[Unit]): ConsumerMetrics[F] = new ConsumerMetrics[F] {
+  def const[F[_]](unit: F[Unit]): ConsumerMetrics[F] = new Const(unit)
 
-    def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = unit
+  private final class Const[F[_]](unit: F[Unit]) extends ConsumerMetrics[F] {
+    override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] = unit
 
-    def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = unit
+    override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit] = unit
 
-    def count(name: String, topic: Topic) = unit
+    override def count(name: String, topic: Topic): F[Unit] = unit
 
-    def rebalance(name: String, topicPartition: TopicPartition) = unit
+    override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] = unit
 
-    def topics(latency: FiniteDuration) = unit
+    override def topics(latency: FiniteDuration): F[Unit] = unit
   }
 
   def of[F[_]: Monad](
@@ -115,50 +116,71 @@ object ConsumerMetrics {
         labels    = LabelNames("client", "topic")
       )
     } yield { (clientId: ClientId) =>
-      new ConsumerMetrics[F] {
+      new Summaries(
+        callsCounter,
+        resultCounter,
+        latencySummary,
+        recordsSummary,
+        bytesSummary,
+        rebalancesCounter,
+        topicsLatency,
+        ageSummary,
+        clientId
+      )
+    }
+  }
 
-        def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
-          val result = if (success) "success" else "failure"
-          for {
-            _ <- latencySummary.labels(clientId, topic, name).observe(latency.toNanos.nanosToSeconds)
-            _ <- resultCounter.labels(clientId, topic, name, result).inc()
-          } yield {}
-        }
+  private final class Summaries[F[_]: Monad](
+    callsCounter: LabelValues.`3`[Counter[F]],
+    resultCounter: LabelValues.`4`[Counter[F]],
+    latencySummary: LabelValues.`3`[Summary[F]],
+    recordsSummary: LabelValues.`2`[Summary[F]],
+    bytesSummary: LabelValues.`2`[Summary[F]],
+    rebalancesCounter: LabelValues.`3`[Counter[F]],
+    topicsLatency: LabelValues.`1`[Summary[F]],
+    ageSummary: LabelValues.`2`[Summary[F]],
+    clientId: ClientId,
+  ) extends ConsumerMetrics[F] {
+    override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): F[Unit] = {
+      val result = if (success) "success" else "failure"
+      for {
+        _ <- latencySummary.labels(clientId, topic, name).observe(latency.toNanos.nanosToSeconds)
+        _ <- resultCounter.labels(clientId, topic, name, result).inc()
+      } yield {}
+    }
 
-        def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = {
-          for {
-            _ <- recordsSummary
-              .labels(clientId, topic)
-              .observe(records.toDouble)
-            _ <- bytesSummary
-              .labels(clientId, topic)
-              .observe(bytes.toDouble)
-            a <- age.foldMapM { age =>
-              ageSummary
-                .labels(clientId, topic)
-                .observe(age.toNanos.nanosToSeconds)
-            }
-          } yield a
+    override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): F[Unit] = {
+      for {
+        _ <- recordsSummary
+          .labels(clientId, topic)
+          .observe(records.toDouble)
+        _ <- bytesSummary
+          .labels(clientId, topic)
+          .observe(bytes.toDouble)
+        a <- age.foldMapM { age =>
+          ageSummary
+            .labels(clientId, topic)
+            .observe(age.toNanos.nanosToSeconds)
         }
+      } yield a
+    }
 
-        def count(name: String, topic: Topic) = {
-          callsCounter
-            .labels(clientId, topic, name)
-            .inc()
-        }
+    override def count(name: String, topic: Topic): F[Unit] = {
+      callsCounter
+        .labels(clientId, topic, name)
+        .inc()
+    }
 
-        def rebalance(name: String, topicPartition: TopicPartition) = {
-          rebalancesCounter
-            .labels(clientId, topicPartition.topic, name)
-            .inc()
-        }
+    override def rebalance(name: String, topicPartition: TopicPartition): F[Unit] = {
+      rebalancesCounter
+        .labels(clientId, topicPartition.topic, name)
+        .inc()
+    }
 
-        def topics(latency: FiniteDuration) = {
-          topicsLatency
-            .labels(clientId)
-            .observe(latency.toNanos.nanosToSeconds)
-        }
-      }
+    override def topics(latency: FiniteDuration): F[Unit] = {
+      topicsLatency
+        .labels(clientId)
+        .observe(latency.toNanos.nanosToSeconds)
     }
   }
 
@@ -195,32 +217,36 @@ object ConsumerMetrics {
     def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    )(implicit F: MonadCancel[F, Throwable], G: MonadCancel[G, Throwable]): ConsumerMetrics[G] = {
-      new MapK with ConsumerMetrics[G] {
+    )(implicit F: MonadCancel[F, Throwable], G: MonadCancel[G, Throwable]): ConsumerMetrics[G] =
+      new MappedK(self, fg, gf)
+  }
 
-        def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
-          fg(self.call(name, topic, latency, success))
-        }
-
-        def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = {
-          fg(self.poll(topic, bytes, records, age))
-        }
-
-        def count(name: String, topic: Topic) = {
-          fg(self.count(name, topic))
-        }
-
-        def rebalance(name: String, topicPartition: TopicPartition) = {
-          fg(self.rebalance(name, topicPartition))
-        }
-
-        def topics(latency: FiniteDuration) = {
-          fg(self.topics(latency))
-        }
-
-        override def exposeJavaMetrics[K, V](consumer: Consumer[G, K, V]) =
-          self.exposeJavaMetrics(consumer.mapK(gf, fg)).mapK(fg)
-      }
+  private final class MappedK[F[_]: MonadCancel[*[_], _], G[_]: MonadCancel[*[_], _]](
+    delegate: ConsumerMetrics[F],
+    fg: F ~> G,
+    gf: G ~> F
+  ) extends ConsumerMetrics[G] {
+    override def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean): G[Unit] = {
+      fg(delegate.call(name, topic, latency, success))
     }
+
+    override def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]): G[Unit] = {
+      fg(delegate.poll(topic, bytes, records, age))
+    }
+
+    override def count(name: String, topic: Topic): G[Unit] = {
+      fg(delegate.count(name, topic))
+    }
+
+    override def rebalance(name: String, topicPartition: TopicPartition): G[Unit] = {
+      fg(delegate.rebalance(name, topicPartition))
+    }
+
+    override def topics(latency: FiniteDuration): G[Unit] = {
+      fg(delegate.topics(latency))
+    }
+
+    override def exposeJavaMetrics[K, V](consumer: Consumer[G, K, V]): Resource[G, Unit] =
+      delegate.exposeJavaMetrics(consumer.mapK(gf, fg)).mapK(fg)
   }
 }

@@ -337,30 +337,37 @@ object ProducerMetrics {
       fg: F ~> G,
       gf: G ~> F
     )(implicit F: MonadCancel[F, Throwable], G: MonadCancel[G, Throwable]): ProducerMetrics[G] =
-      new ProducerMetrics[G] {
+      new MappedK(self, fg, gf)
+  }
 
-        def initTransactions(latency: FiniteDuration) = fg(self.initTransactions(latency))
+  private final class MappedK[F[_]: MonadCancel[*[_], _], G[_]: MonadCancel[*[_], _]](
+    delegate: ProducerMetrics[F],
+    fg: F ~> G,
+    gf: G ~> F,
+  ) extends ProducerMetrics[G] {
+    override def initTransactions(latency: FiniteDuration): G[Unit] = fg(delegate.initTransactions(latency))
 
-        def beginTransaction = fg(self.beginTransaction)
+    override def beginTransaction: G[Unit] = fg(delegate.beginTransaction)
 
-        def sendOffsetsToTransaction(latency: FiniteDuration) = fg(self.sendOffsetsToTransaction(latency))
+    override def sendOffsetsToTransaction(latency: FiniteDuration): G[Unit] =
+      fg(delegate.sendOffsetsToTransaction(latency))
 
-        def commitTransaction(latency: FiniteDuration) = fg(self.commitTransaction(latency))
+    override def commitTransaction(latency: FiniteDuration): G[Unit] = fg(delegate.commitTransaction(latency))
 
-        def abortTransaction(latency: FiniteDuration) = fg(self.abortTransaction(latency))
+    override def abortTransaction(latency: FiniteDuration): G[Unit] = fg(delegate.abortTransaction(latency))
 
-        def send(topic: Topic, latency: FiniteDuration, bytes: Int) = fg(self.send(topic, latency, bytes))
+    override def send(topic: Topic, latency: FiniteDuration, bytes: Int): G[Unit] =
+      fg(delegate.send(topic, latency, bytes))
 
-        def block(topic: Topic, latency: FiniteDuration) = fg(self.block(topic, latency))
+    override def block(topic: Topic, latency: FiniteDuration): G[Unit] = fg(delegate.block(topic, latency))
 
-        def failure(topic: Topic, latency: FiniteDuration) = fg(self.failure(topic, latency))
+    override def failure(topic: Topic, latency: FiniteDuration): G[Unit] = fg(delegate.failure(topic, latency))
 
-        def partitions(topic: Topic, latency: FiniteDuration) = fg(self.partitions(topic, latency))
+    override def partitions(topic: Topic, latency: FiniteDuration): G[Unit] = fg(delegate.partitions(topic, latency))
 
-        def flush(latency: FiniteDuration) = fg(self.flush(latency))
+    override def flush(latency: FiniteDuration): G[Unit] = fg(delegate.flush(latency))
 
-        override def exposeJavaMetrics(producer: Producer[G]) =
-          self.exposeJavaMetrics(producer.mapK[F](gf, fg)).mapK(fg)
-      }
+    override def exposeJavaMetrics(producer: Producer[G]): Resource[G, Unit] =
+      delegate.exposeJavaMetrics(producer.mapK[F](gf, fg)).mapK(fg)
   }
 }

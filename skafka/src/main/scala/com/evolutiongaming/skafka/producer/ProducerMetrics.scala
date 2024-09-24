@@ -1,8 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.data.NonEmptyList
-import cats.effect.kernel.MonadCancelThrow
-import cats.effect.{MonadCancel, Resource}
+import cats.effect.{MonadCancel, MonadCancelThrow, Resource}
 import cats.implicits.*
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic}

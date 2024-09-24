@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.data.NonEmptyList
+import cats.effect.kernel.MonadCancelThrow
 import cats.effect.{MonadCancel, Resource}
 import cats.implicits.*
 import cats.{Applicative, Monad, ~>}
@@ -378,7 +379,7 @@ object ConsumerMetrics {
       new MappedK(self, fg, gf)
   }
 
-  private final class MappedK[F[_]: MonadCancel[*[_], Throwable], G[_]: MonadCancel[*[_], Throwable]](
+  private final class MappedK[F[_]: MonadCancelThrow, G[_]: MonadCancelThrow](
     delegate: ConsumerMetrics[F],
     fg: F ~> G,
     gf: G ~> F

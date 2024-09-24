@@ -1,12 +1,13 @@
 package com.evolutiongaming.skafka.producer
 
 import cats.data.NonEmptyList
+import cats.effect.kernel.MonadCancelThrow
 import cats.effect.{MonadCancel, Resource}
-import cats.implicits._
+import cats.implicits.*
 import cats.{Applicative, Monad, ~>}
 import com.evolutiongaming.skafka.{ClientId, Topic}
-import com.evolutiongaming.smetrics.MetricsHelper._
-import com.evolutiongaming.smetrics._
+import com.evolutiongaming.smetrics.MetricsHelper.*
+import com.evolutiongaming.smetrics.*
 
 import scala.concurrent.duration.FiniteDuration
 import scala.annotation.nowarn
@@ -350,7 +351,7 @@ object ProducerMetrics {
       new MappedK(self, fg, gf)
   }
 
-  private final class MappedK[F[_]: MonadCancel[*[_], Throwable], G[_]: MonadCancel[*[_], Throwable]](
+  private final class MappedK[F[_]: MonadCancelThrow, G[_]: MonadCancelThrow](
     delegate: ProducerMetrics[F],
     fg: F ~> G,
     gf: G ~> F,

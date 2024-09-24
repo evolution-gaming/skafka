@@ -31,20 +31,20 @@ object Dependencies {
   }
 
   object Cats {
-    private val version = "2.10.0"
+    private val version = "2.12.0"
     val core            = "org.typelevel" %% "cats-core" % version
     val laws            = "org.typelevel" %% "cats-laws" % version
   }
 
   object CatsEffect {
-    private val version = "3.4.8"
+    private val version = "3.5.4"
     val effect          = "org.typelevel" %% "cats-effect"         % version
     val effectStd       = "org.typelevel" %% "cats-effect-std"     % version
     val effectTestKit   = "org.typelevel" %% "cats-effect-testkit" % version
   }
 
   object Smetrics {
-    private val version       = "2.1.0"
+    private val version       = "2.2.0"
     val smetrics              = "com.evolutiongaming" %% "smetrics"            % version
     val `smetrics-prometheus` = "com.evolutiongaming" %% "smetrics-prometheus" % version
   }

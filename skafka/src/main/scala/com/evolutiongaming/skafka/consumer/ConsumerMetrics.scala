@@ -218,7 +218,7 @@ object ConsumerMetrics {
     )
 
     val bytesHistogram = registry.histogram(
-      name    = s"${prefix}_poll_bytes",
+      name    = s"${prefix}_poll_histogram_bytes",
       help    = "Number of bytes per poll",
       buckets = pollBytesBuckets,
       labels  = LabelNames("client", "topic")

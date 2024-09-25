@@ -49,3 +49,12 @@ addSbtPlugin("com.evolution" % "sbt-artifactory-plugin" % "0.0.2")
 
 libraryDependencies += "com.evolutiongaming" %% "skafka" % "11.6.0"
 ``` 
+
+
+## Release process
+The release process is based on Git tags and makes use of [sbt-dynver](https://github.com/sbt/sbt-dynver) to automatically obtain the version from the latest Git tag. The flow is defined in `.github/workflows/release.yml`.  
+A typical release process is as follows:
+1. Create and push a new Git tag. The version should be in the format `vX.Y.Z` (example: `v4.1.0`). Example: `git tag v4.1.0 && git push origin v4.1.0`
+2. Create a new release in GitHub. Go to the `Releases` page, click `Draft a new release`, select `Choose a tag`, pick the tag you just created
+3. Press `Generate release notes`. Release title will be automatically filled with the tag name. Change the description if needed
+4. Press `Publish release`

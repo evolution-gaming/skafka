@@ -21,7 +21,6 @@ lazy val commonSettings = Seq(
   scalaVersion := crossScalaVersions.value.head,
   crossScalaVersions := Seq("2.13.12", "3.3.1", "2.12.18"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
-  releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",
   scalacOptions ++= crossSettings(
     scalaVersion.value,

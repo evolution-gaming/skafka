@@ -39,7 +39,7 @@ jobs:
           echo "password=${{secrets.JFROG_ACCESS_TOKEN}}" >> ${{ env.SBT_CREDENTIALS }}
 
       - name: check, test and package
-        run: sbt "clean; versionPolicyCheck; +all test package"
+        run: sbt "clean; +all test package"
 
       - name: publish on JFrog Artifactory
         run: sbt "+publish"

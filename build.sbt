@@ -22,7 +22,7 @@ lazy val commonSettings = Seq(
   // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
   mimaPreviousArtifacts.withRank(KeyRanks.Invisible) := {
     val versions = List(
-      "11.0.0",
+      "11.17.0",
     )
     versions.map(organization.value %% moduleName.value % _).toSet
   },

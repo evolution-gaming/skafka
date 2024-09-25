@@ -14,7 +14,6 @@ lazy val commonSettings = Seq(
   scalaVersion := crossScalaVersions.value.head,
   crossScalaVersions := Seq("2.13.14", "2.12.20"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
-  releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",
   libraryDependencies += compilerPlugin(`kind-projector` cross CrossVersion.full),
   scalacOptsFailOnWarn := Some(false),

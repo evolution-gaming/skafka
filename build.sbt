@@ -12,7 +12,7 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.8", "2.12.15"),
+  crossScalaVersions := Seq("2.13.14", "2.12.20"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   releaseCrossBuild := true,
   Compile / doc / scalacOptions += "-no-link-warnings",
@@ -22,7 +22,7 @@ lazy val commonSettings = Seq(
   // KeyRanks.Invisible to suppress sbt warning about key not being used in root/tests where MiMa plugin is disabled
   mimaPreviousArtifacts.withRank(KeyRanks.Invisible) := {
     val versions = List(
-      "11.0.0",
+      "11.17.0",
     )
     versions.map(organization.value %% moduleName.value % _).toSet
   },

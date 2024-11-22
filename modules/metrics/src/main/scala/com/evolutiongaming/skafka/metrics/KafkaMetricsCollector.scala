@@ -40,6 +40,8 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
   customLabels: List[(String, String)] = List.empty,
 ) extends Collector {
 
+  private val (customLabelsKeys, customLabelsValues) = customLabels.separate
+
   protected def getCollectorType(metric: ClientMetric[F]): Collector.Type = {
     // https://prometheus.io/docs/practices/naming/#metric-names
     if (metric.name.endsWith("total")) Collector.Type.COUNTER
@@ -84,9 +86,8 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
                         (prometheusKey -> value).some
                       else None
                   }
-                  val (customLabelsKeys, customLabelsValues) = customLabels.separate
-                  val tagsKeys                               = (tags.keys.toList ++ customLabelsKeys).asJava
-                  val tagsValues                             = (tags.values.toList ++ customLabelsValues).asJava
+                  val tagsKeys   = (tags.keys.toList ++ customLabelsKeys).asJava
+                  val tagsValues = (tags.values.toList ++ customLabelsValues).asJava
                   metric.value.map {
                     case v: Number =>
                       new Sample(name, tagsKeys, tagsValues, v.doubleValue()).some

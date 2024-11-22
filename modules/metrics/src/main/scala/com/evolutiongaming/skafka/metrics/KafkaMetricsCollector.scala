@@ -36,9 +36,19 @@ import scala.util.matching.Regex
   */
 class KafkaMetricsCollector[F[_]: Monad: ToTry](
   kafkaClientMetrics: F[Seq[ClientMetric[F]]],
-  prefix: Option[String]               = None,
-  customLabels: List[(String, String)] = List.empty,
+  prefix: Option[String] = None,
+  customLabels: List[(String, String)],
 ) extends Collector {
+
+  // Secondary constructor for backward compatibility. Should be removed in the next major bump
+  def this(
+    kafkaClientMetrics: F[Seq[ClientMetric[F]]],
+    prefix: Option[String]
+  ) = this(
+    kafkaClientMetrics = kafkaClientMetrics,
+    prefix             = prefix,
+    customLabels       = List.empty
+  )
 
   private val (customLabelsKeys, customLabelsValues) = customLabels.separate
 

@@ -340,11 +340,11 @@ object Consumer {
         } yield result
       }
 
-      def partitions1(f: => ListJ[PartitionInfoJ]) = {
+      def partitions1(f: => Option[ListJ[PartitionInfoJ]]) = {
         for {
           result <- serialBlocking { f }
-          result <- partitionsInfoListF[F](result)
-        } yield result
+          result <- result.traverse(partitionsInfoListF[F])
+        } yield result.getOrElse(List.empty)
       }
 
       def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
@@ -506,11 +506,11 @@ object Consumer {
         }
 
         def partitions(topic: Topic) = {
-          partitions1 { consumer.partitionsFor(topic) }
+          partitions1 { Option(consumer.partitionsFor(topic)) }
         }
 
         def partitions(topic: Topic, timeout: FiniteDuration) = {
-          partitions1 { consumer.partitionsFor(topic, timeout.asJava) }
+          partitions1 { Option(consumer.partitionsFor(topic, timeout.asJava)) }
         }
 
         val topics = topics1 { consumer.listTopics() }

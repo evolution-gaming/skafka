@@ -5,6 +5,7 @@ import java.time.Instant
 import java.util.{Map => MapJ}
 
 import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.implicits.toTraverseOps
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka._
@@ -217,15 +218,15 @@ object RebalanceConsumer {
 
       def partitionsFor(topic: Topic) =
         for {
-          a <- Try { c.partitionsFor(topic) }
-          a <- partitionsInfoListF[Try](a)
-        } yield a
+          a <- Try { Option(c.partitionsFor(topic)) }
+          a <- a.traverse(partitionsInfoListF[Try])
+        } yield a.getOrElse(List.empty)
 
       def partitionsFor(topic: Topic, timeout: FiniteDuration) =
         for {
-          a <- Try { c.partitionsFor(topic, timeout.asJava) }
-          a <- partitionsInfoListF[Try](a)
-        } yield a
+          a <- Try { Option(c.partitionsFor(topic, timeout.asJava)) }
+          a <- a.traverse(partitionsInfoListF[Try])
+        } yield a.getOrElse(List.empty)
 
       def paused() =
         for {

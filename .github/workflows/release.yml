@@ -1,53 +1,11 @@
-name: Test and publish a new release
+name: Publish Release
 
 on:
   push:
     tags:
       - 'v*'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  SBT_CREDENTIALS: '.credentials'
-
 jobs:
-  publish-release:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: coursier/cache-action@v6
-
-      - name: setup Java and SBT
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'oracle'
-          cache: 'sbt'
-
-      - name: setup credentials
-        run: |
-          echo "realm=Artifactory Realm" >> ${{ env.SBT_CREDENTIALS }}
-          echo "host=evolution.jfrog.io" >> ${{ env.SBT_CREDENTIALS }}
-          echo "user=github-publish" >> ${{ env.SBT_CREDENTIALS }}
-          echo "password=${{secrets.JFROG_ACCESS_TOKEN}}" >> ${{ env.SBT_CREDENTIALS }}
-
-      - name: check, test and package
-        run: sbt "clean; versionPolicyCheck; +all test package"
-
-      - name: publish on JFrog Artifactory
-        run: sbt "+publish"
-
-      - name: cleanup credentials
-        if: always()
-        run: rm -rf ${{ env.SBT_CREDENTIALS }}
-
-      - name: delete tag
-        if: failure()
-        run: git push --delete origin ${{ github.ref_name }}
+  release:
+    uses: evolution-gaming/scala-github-actions/.github/workflows/release.yml@v3
+    secrets: inherit

@@ -310,7 +310,7 @@ object Consumer {
                 }
               }
             }
-            Sync[F].blocking(f(offsetCommitCallback)).as(Applicative[F].unit.some)
+            serialNonBlocking(f(offsetCommitCallback)).as(Applicative[F].unit.some)
           }
       }
 

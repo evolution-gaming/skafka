@@ -75,7 +75,7 @@ object ConsumerConverters {
           // If we fail to register the listener, fail right now on the consumer thread.
           .get
           // Schedule the actual callback for async execution with `.toFuture`.
-          .traverse_(asyncListener => asyncListener)
+          .sequence_
           .toFuture
         ()
       }

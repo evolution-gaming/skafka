@@ -26,6 +26,7 @@ import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
+import scala.util.Try
 
 object ConsumerConverters {
 
@@ -54,22 +55,27 @@ object ConsumerConverters {
       def onPartitions(
         partitions: CollectionJ[TopicPartitionJ],
         call: Nes[TopicPartition] => F[Unit]
-      ) = {
-        serialListeners
-          .listener {
-            partitions
-              .asScala
-              .toList
-              .traverse { _.asScala[F] }
-              .flatMap { partitions =>
-                partitions
-                  .toSortedSet
-                  .toNes
-                  .foldMapM(call)
-              }
+      ): Unit = {
+        // The whole callback runs partly on the consumer thread, and partly asynchronously.
+        // First, on the consumer thread, we pre-process the partition list, and register
+        // our listener in `serialListeners`.
+        // Then, asynchronously, we execute the registered listener.
+        partitions.asScala
+          .toList
+          // Note: `traverse(_.asScala[F])` may cause StackOverflowError later, when executed
+          // synchronously with `.toTry`. Traversing into `Try` directly avoids this.
+          .traverse(_.asScala[Try])
+          .flatMap { topicPartitions =>
+            topicPartitions
+              .toSortedSet
+              .toNes
+              .traverse { partitions => serialListeners.listener(call(partitions)) }
+              .toTry
           }
-          .toTry
+          // If we fail to register the listener, fail right now on the consumer thread.
           .get
+          // Schedule the actual callback for async execution with `.toFuture`.
+          .sequence_
           .toFuture
         ()
       }
@@ -101,20 +107,18 @@ object ConsumerConverters {
       ): Unit = {
         // If you're thinking about deriving ToTry timeout based on ConsumerConfig.maxPollInterval
         // please have a look on https://github.com/evolution-gaming/skafka/issues/125
-        val result = partitions
-          .asScala
+        partitions.asScala
           .toList
-          .traverse { _.asScala[F] }
-          .map { partitions =>
-            partitions
-              .toSortedSet
+          // Note: `traverse(_.asScala[F])` may cause StackOverflowError later, when executed
+          // synchronously with `.toTry`. Traversing into `Try` directly avoids this.
+          .traverse { _.asScala[Try] }
+          .flatMap { topicPartitions =>
+            topicPartitions.toSortedSet
               .toNes
+              .traverse_ { partitions => call(partitions).run(RebalanceConsumer(consumer)) }
           }
-          .toTry
-          .flatMap {
-            _.foldMapM { partitions => call(partitions).run(RebalanceConsumer(consumer)) }
-          }
-        result.fold(throw _, _ => ())
+          // If we fail to make a `call(..).run(..)`, fail right now on the consumer thread.
+          .get
       }
 
       new RebalanceListenerJ {

@@ -60,7 +60,7 @@ lazy val root = (project in file(".")
   settings commonSettings
   settings (publish / skip := true)
   settings (alias)
-  aggregate (skafka, `play-json`, metrics, tests))
+  aggregate (skafka, `play-json`, circe, metrics, tests))
 
 lazy val skafka = (project in file("skafka")
   settings commonSettings
@@ -88,6 +88,12 @@ lazy val `play-json` = (project in file("modules/play-json")
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Dependencies.`play-json-jsoniter`, scalatest % Test)))
+
+lazy val circe = (project in file("modules/circe")
+  settings (name := "skafka-circe")
+  settings commonSettings
+  dependsOn skafka
+  settings (libraryDependencies += Dependencies.circe))
 
 lazy val metrics = (project in file("modules/metrics")
   settings (name := "skafka-metrics")

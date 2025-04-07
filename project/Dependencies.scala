@@ -14,7 +14,7 @@ object Dependencies {
   val discipline             = "org.typelevel"          %% "discipline-scalatest"       % "2.3.0"
 
   object Kafka {
-    private val version = "3.4.0"
+    private val version = "4.0.0"
     val clients         = "org.apache.kafka" % "kafka-clients" % version
   }
 

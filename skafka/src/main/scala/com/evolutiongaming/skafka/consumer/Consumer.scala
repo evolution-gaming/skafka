@@ -568,11 +568,11 @@ object Consumer {
         }
 
         def currentLag(partition: TopicPartition): F[Option[Long]] = {
-          val lag = consumer.currentLag(partition.asJava)
-          val r =
+          serialNonBlocking {
+            val lag = consumer.currentLag(partition.asJava)
             if (lag.isEmpty) None
             else lag.getAsLong.some
-          r.pure[F]
+          }
         }
 
         def groupMetadata = {

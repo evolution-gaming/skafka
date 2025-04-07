@@ -44,14 +44,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       }
     }
 
-    "proxy sendOffsetsToTransaction" in new Scope {
-      val consumerGroupId = "consumerGroupId"
-      val offsets         = Nem.of((topicPartition, OffsetAndMetadata.empty))
-      verify(producer.sendOffsetsToTransaction(offsets, consumerGroupId)) { _ =>
-        sendOffsetsToTransaction shouldEqual consumerGroupId
-      }
-    }
-
     "proxy commitTransaction" in new Scope {
       verify(producer.commitTransaction) { _ =>
         commitTransaction shouldEqual true
@@ -109,11 +101,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
     "beginTransaction" in new Scope {
       verify(empty.beginTransaction) { _ => }
-    }
-
-    "sendOffsetsToTransaction" in new Scope {
-      val offsets = Nem.of((topicPartition, OffsetAndMetadata.empty))
-      verify(empty.sendOffsetsToTransaction(offsets, "consumerGroupId")) { _ => }
     }
 
     "commitTransaction" in new Scope {

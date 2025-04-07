@@ -90,7 +90,6 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit            = notImplemented
   def subscribe(pattern: Pattern): Unit                                                 = notImplemented
   def unsubscribe(): Unit                                                               = notImplemented
-  def poll(timeout: Long): ConsumerRecordsJ[String, String]                             = notImplemented
   def poll(timeout: DurationJ): ConsumerRecordsJ[String, String]                        = notImplemented
   def commitAsync(): Unit                                                               = notImplemented
   def commitAsync(callback: OffsetCommitCallback): Unit                                 = notImplemented

@@ -243,8 +243,6 @@ object SerialListenersTest {
 
         def unsubscribe() = {}
 
-        def poll(timeout: Long) = poll(Duration.ofMillis(timeout))
-
         def poll(timeout: Duration) = {
           val result = for {
             listener <- listenerRef.get

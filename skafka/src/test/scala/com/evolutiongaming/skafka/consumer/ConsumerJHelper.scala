@@ -56,9 +56,6 @@ object ConsumerJHelper {
 
       def unsubscribe() = f { self.unsubscribe() }
 
-      @nowarn("cat=deprecation")
-      def poll(timeout: Long) = f { self.poll(timeout) }
-
       def poll(timeout: Duration) = f { self.poll(timeout) }
 
       def commitSync() = f { self.commitSync() }

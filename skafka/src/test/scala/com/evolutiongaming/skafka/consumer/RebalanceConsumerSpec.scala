@@ -37,7 +37,6 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit                = unsupported
       def subscribe(pattern: Pattern): Unit                                                     = unsupported
       def unsubscribe(): Unit                                                                   = unsupported
-      def poll(timeout: Long): ConsumerRecordsJ[String, String]                                 = unsupported
       def poll(timeout: Duration): ConsumerRecordsJ[String, String]                             = unsupported
       def commitSync(): Unit                                                                    = supported // rebalanceConsumer.commit()
       def commitSync(timeout: Duration): Unit                                                   = supported // rebalanceConsumer.commit(timeout)

@@ -333,13 +333,9 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         Scope.this.unsubscribe = true
       }
 
-      def poll(timeout: Long) = {
+      def poll(timeout: DurationJ) = {
         val records = Map((topicPartition, List(consumerRecord.asJava))).asJavaMap(_.asJava, _.asJava)
         new ConsumerRecordsJ[Bytes, Bytes](records)
-      }
-
-      def poll(timeout: DurationJ) = {
-        poll(timeout.toMillis)
       }
 
       def commitSync() = {

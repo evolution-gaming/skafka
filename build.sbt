@@ -35,8 +35,6 @@ lazy val commonSettings = Seq(
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
   mimaBinaryIssueFilters ++= Seq(
-    // TODO remove after release of 17.2.0
-    ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.currentLag"),
   )
 )
 

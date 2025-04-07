@@ -15,7 +15,8 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndMetadata => OffsetAndMetadataJ,
   OffsetAndTimestamp => OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
 
@@ -36,6 +37,10 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): Unit = notImplemented
 
   def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ): Unit = notImplemented
+
+  def registerMetricForSubscription(metric: KafkaMetric): Unit = notImplemented
+
+  def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = notImplemented
 
   def seek(partition: TopicPartitionJ, offset: Long): Unit = notImplemented
 
@@ -91,17 +96,20 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
 
   def groupMetadata(): ConsumerGroupMetadataJ = notImplemented
 
-  def subscribe(topics: CollectionJ[String]): Unit                                      = notImplemented
-  def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListener): Unit = notImplemented
-  def assign(partitions: CollectionJ[TopicPartitionJ]): Unit                            = notImplemented
-  def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit            = notImplemented
-  def subscribe(pattern: Pattern): Unit                                                 = notImplemented
-  def unsubscribe(): Unit                                                               = notImplemented
-  def poll(timeout: DurationJ): ConsumerRecordsJ[String, String]                        = notImplemented
-  def commitAsync(): Unit                                                               = notImplemented
-  def commitAsync(callback: OffsetCommitCallback): Unit                                 = notImplemented
+  def subscribe(topics: CollectionJ[String]): Unit                                       = notImplemented
+  def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListener): Unit  = notImplemented
+  def assign(partitions: CollectionJ[TopicPartitionJ]): Unit                             = notImplemented
+  def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit             = notImplemented
+  def subscribe(pattern: Pattern): Unit                                                  = notImplemented
+  def subscribe(pattern: SubscriptionPattern): Unit                                      = notImplemented
+  def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListener): Unit = notImplemented
+  def unsubscribe(): Unit                                                                = notImplemented
+  def poll(timeout: DurationJ): ConsumerRecordsJ[String, String]                         = notImplemented
+  def commitAsync(): Unit                                                                = notImplemented
+  def commitAsync(callback: OffsetCommitCallback): Unit                                  = notImplemented
   def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback): Unit =
     notImplemented
+  def clientInstanceId(timeout: DurationJ): Uuid                                    = notImplemented
   def metrics(): MapJ[MetricName, _ <: Metric]                                      = notImplemented
   def pause(partitions: CollectionJ[TopicPartitionJ]): Unit                         = notImplemented
   def resume(partitions: CollectionJ[TopicPartitionJ]): Unit                        = notImplemented

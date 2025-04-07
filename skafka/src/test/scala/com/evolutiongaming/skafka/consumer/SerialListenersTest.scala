@@ -26,7 +26,8 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndMetadata => OffsetAndMetadataJ,
   OffsetAndTimestamp => OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -251,6 +252,10 @@ object SerialListenersTest {
 
         def subscribe(pattern: Pattern) = {}
 
+        def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListener) = {}
+
+        def subscribe(pattern: SubscriptionPattern) = {}
+
         def unsubscribe() = {}
 
         def poll(timeout: Duration) = {
@@ -289,6 +294,10 @@ object SerialListenersTest {
 
         def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback) = {}
 
+        def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
+
+        def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
+
         def seek(partition: TopicPartitionJ, offset: Long) = {}
 
         def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadataJ) = {}
@@ -308,6 +317,8 @@ object SerialListenersTest {
         def committed(partitions: SetJ[TopicPartitionJ], timeout: Duration) = {
           Map.empty[TopicPartitionJ, OffsetAndMetadataJ].asJava
         }
+
+        def clientInstanceId(timeout: Duration): Uuid = Uuid.ONE_UUID
 
         def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 

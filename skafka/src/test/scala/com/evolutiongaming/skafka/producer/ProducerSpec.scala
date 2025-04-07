@@ -156,13 +156,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       def beginTransaction() = Scope.this.beginTransaction = true
 
       def sendOffsetsToTransaction(
-        offsets: java.util.Map[TopicPartitionJ, OffsetAndMetadataJ],
-        consumerGroupId: String
-      ) = {
-        Scope.this.sendOffsetsToTransaction = consumerGroupId
-      }
-
-      def sendOffsetsToTransaction(
         offsets: util.Map[TopicPartitionJ, OffsetAndMetadataJ],
         groupMetadata: ConsumerGroupMetadataJ
       ) = {

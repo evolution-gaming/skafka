@@ -50,11 +50,6 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
           groupMetadata: ConsumerGroupMetadata
         ) = {}
 
-        def sendOffsetsToTransaction(
-          offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ],
-          consumerGroupId: String
-        ) = {}
-
         def commitTransaction() = {}
 
         def flush() = {}

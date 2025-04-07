@@ -24,10 +24,6 @@ object ProducerLogging {
 
       def beginTransaction = producer.beginTransaction
 
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        producer.sendOffsetsToTransaction(offsets, consumerGroupId)
-      }
-
       def commitTransaction = producer.commitTransaction
 
       def abortTransaction = producer.abortTransaction

@@ -29,12 +29,6 @@ trait Producer[F[_]] {
 
   def beginTransaction: F[Unit]
 
-  @deprecated("Deprecated in kafka-clients since 3.0.0", since = "15.0.0")
-  def sendOffsetsToTransaction(
-    offsets: Nem[TopicPartition, OffsetAndMetadata],
-    consumerGroupId: String
-  ): F[Unit]
-
   def commitTransaction: F[Unit]
 
   def abortTransaction: F[Unit]
@@ -69,11 +63,6 @@ object Producer {
       def initTransactions = empty
 
       def beginTransaction = empty
-
-      def sendOffsetsToTransaction(
-        offsets: Nem[TopicPartition, OffsetAndMetadata],
-        consumerGroupId: String
-      ) = empty
 
       def commitTransaction = empty
 
@@ -129,13 +118,6 @@ object Producer {
 
         def beginTransaction = {
           Sync[F].delay { producer.beginTransaction() }
-        }
-
-        def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
-          blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
         }
 
         def commitTransaction = {
@@ -245,16 +227,6 @@ object Producer {
         for {
           r <- producer.beginTransaction
           _ <- metrics.beginTransaction
-        } yield r
-      }
-
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt
-          d <- d
-          _ <- metrics.sendOffsetsToTransaction(d)
-          r <- r.liftTo[F]
         } yield r
       }
 
@@ -393,10 +365,6 @@ object Producer {
       def initTransactions = fg(self.initTransactions)
 
       def beginTransaction = fg(self.beginTransaction)
-
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        fg(self.sendOffsetsToTransaction(offsets, consumerGroupId))
-      }
 
       def commitTransaction = fg(self.commitTransaction)
 

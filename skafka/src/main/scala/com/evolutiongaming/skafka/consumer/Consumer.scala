@@ -85,6 +85,8 @@ trait Consumer[F[_], K, V] {
 
   def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]]
 
+  def clientMetrics: F[Seq[ClientMetric[F]]]
+
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]]
@@ -93,9 +95,9 @@ trait Consumer[F[_], K, V] {
 
   def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
 
-  def pause(partitions: Nes[TopicPartition]): F[Unit]
-
   def paused: F[Set[TopicPartition]]
+
+  def pause(partitions: Nes[TopicPartition]): F[Unit]
 
   def resume(partitions: Nes[TopicPartition]): F[Unit]
 
@@ -118,11 +120,9 @@ trait Consumer[F[_], K, V] {
 
   def groupMetadata: F[ConsumerGroupMetadata]
 
-  def wakeup: F[Unit]
-
   def enforceRebalance: F[Unit]
 
-  def clientMetrics: F[Seq[ClientMetric[F]]]
+  def wakeup: F[Unit]
 }
 
 object Consumer {

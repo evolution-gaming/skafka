@@ -19,13 +19,13 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.12", "3.3.1", "2.12.18"),
+  crossScalaVersions := Seq("2.13.16", "3.3.5", "2.12.20"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   Compile / doc / scalacOptions += "-no-link-warnings",
   scalacOptions ++= crossSettings(
     scalaVersion.value,
-    if3 = List("-Ykind-projector", "-language:implicitConversions", "-explain", "-deprecation"),
-    if2 = List("-Xsource:3"),
+    if3 = List("-release:17", "-Ykind-projector", "-language:implicitConversions", "-explain", "-deprecation"),
+    if2 = List("-release:17", "-Xsource:3"),
   ),
   libraryDependencies ++= crossSettings(
     scalaVersion.value,

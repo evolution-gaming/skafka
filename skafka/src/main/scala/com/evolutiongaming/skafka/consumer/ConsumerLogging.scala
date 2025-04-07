@@ -398,6 +398,15 @@ object ConsumerLogging {
         } yield a
       }
 
+      def currentLag(partition: TopicPartition): F[Option[Long]] = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.currentLag(partition)
+          d <- d
+          _ <- log.debug(s"currentLag in ${d.toMillis}ms, partition: $partition, result: $a")
+        } yield a
+      }
+
       def groupMetadata = {
         for {
           d <- MeasureDuration[F].start

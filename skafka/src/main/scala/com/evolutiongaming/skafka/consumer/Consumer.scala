@@ -85,6 +85,8 @@ trait Consumer[F[_], K, V] {
 
   def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]]
 
+  def clientMetrics: F[Seq[ClientMetric[F]]]
+
   def partitions(topic: Topic): F[List[PartitionInfo]]
 
   def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]]
@@ -93,9 +95,9 @@ trait Consumer[F[_], K, V] {
 
   def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]]
 
-  def pause(partitions: Nes[TopicPartition]): F[Unit]
-
   def paused: F[Set[TopicPartition]]
+
+  def pause(partitions: Nes[TopicPartition]): F[Unit]
 
   def resume(partitions: Nes[TopicPartition]): F[Unit]
 
@@ -116,13 +118,13 @@ trait Consumer[F[_], K, V] {
 
   def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]]
 
-  def groupMetadata: F[ConsumerGroupMetadata]
+  def currentLag(partition: TopicPartition): F[Option[Long]]
 
-  def wakeup: F[Unit]
+  def groupMetadata: F[ConsumerGroupMetadata]
 
   def enforceRebalance: F[Unit]
 
-  def clientMetrics: F[Seq[ClientMetric[F]]]
+  def wakeup: F[Unit]
 }
 
 object Consumer {
@@ -226,6 +228,8 @@ object Consumer {
       def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         Map.empty[TopicPartition, Offset].pure[F]
       }
+
+      def currentLag(partition: TopicPartition): F[Option[Long]] = Option.empty[Long].pure[F]
 
       def groupMetadata = ConsumerGroupMetadata.Empty.pure[F]
 
@@ -561,6 +565,14 @@ object Consumer {
         def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
           val timeoutJ = timeout.asJava
           offsetsOf(partitions) { consumer.endOffsets(_, timeoutJ) }
+        }
+
+        def currentLag(partition: TopicPartition): F[Option[Long]] = {
+          serialNonBlocking {
+            val lag = consumer.currentLag(partition.asJava)
+            if (lag.isEmpty) None
+            else lag.getAsLong.some
+          }
         }
 
         def groupMetadata = {
@@ -924,6 +936,13 @@ object Consumer {
         def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
           val topics = partitions.map(_.topic).toList
           call("end_offsets", topics) { self.endOffsets(partitions, timeout) }
+        }
+
+        def currentLag(partition: TopicPartition): F[Option[Long]] = {
+          for {
+            _ <- count("current_lag", List(partition.topic))
+            r <- self.currentLag(partition)
+          } yield r
         }
 
         def groupMetadata = {
@@ -1307,6 +1326,13 @@ object Consumer {
           call("end_offsets", topics) { self.endOffsets(partitions, timeout) }
         }
 
+        def currentLag(partition: TopicPartition): F[Option[Long]] = {
+          for {
+            _ <- count("current_lag", List(partition.topic))
+            r <- self.currentLag(partition)
+          } yield r
+        }
+
         def groupMetadata = {
           call1("group_metadata") { self.groupMetadata }
         }
@@ -1462,6 +1488,10 @@ object Consumer {
 
       def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         fg(self.endOffsets(partitions, timeout))
+      }
+
+      def currentLag(partition: TopicPartition): G[Option[Long]] = {
+        fg(self.currentLag(partition))
       }
 
       def groupMetadata = fg(self.groupMetadata)

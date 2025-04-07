@@ -95,8 +95,6 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def commitAsync(callback: OffsetCommitCallback): Unit                                 = notImplemented
   def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback): Unit =
     notImplemented
-  def committed(partition: TopicPartitionJ): OffsetAndMetadataJ                     = notImplemented
-  def committed(partition: TopicPartitionJ, timeout: DurationJ): OffsetAndMetadataJ = notImplemented
   def metrics(): MapJ[MetricName, _ <: Metric]                                      = notImplemented
   def pause(partitions: CollectionJ[TopicPartitionJ]): Unit                         = notImplemented
   def resume(partitions: CollectionJ[TopicPartitionJ]): Unit                        = notImplemented

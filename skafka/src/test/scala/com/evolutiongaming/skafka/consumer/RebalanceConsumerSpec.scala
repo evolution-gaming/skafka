@@ -58,8 +58,6 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def position(partition: TopicPartition): Long = supported // rebalanceConsumer.position(partition)
       def position(partition: TopicPartition, timeout: Duration): Long =
         supported // rebalanceConsumer.position(partition, timeout)
-      def committed(partition: TopicPartition): OffsetAndMetadata                    = unsupported
-      def committed(partition: TopicPartition, timeout: Duration): OffsetAndMetadata = unsupported
       def committed(partitions: util.Set[TopicPartition]): util.Map[TopicPartition, OffsetAndMetadata] =
         supported // rebalanceConsumer.committed(partitions)
       def committed(

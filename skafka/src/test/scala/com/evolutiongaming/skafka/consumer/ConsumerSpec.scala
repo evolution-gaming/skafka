@@ -383,10 +383,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def position(partition: TopicPartitionJ, timeout: DurationJ) = position(partition)
 
-      def committed(partition: TopicPartitionJ) = offsetAndMetadata.asJava
-
-      def committed(partition: TopicPartitionJ, timeout: DurationJ) = offsetAndMetadata.asJava
-
       def committed(partitions: util.Set[TopicPartitionJ]) =
         if (!committedNull)
           offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)

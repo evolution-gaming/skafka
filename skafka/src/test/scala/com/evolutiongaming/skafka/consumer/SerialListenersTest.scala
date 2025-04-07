@@ -291,14 +291,6 @@ object SerialListenersTest {
 
         def position(partition: TopicPartitionJ, timeout: Duration) = Offset.min.value
 
-        def committed(partition: TopicPartitionJ) = {
-          new OffsetAndMetadataJ(Offset.min.value, "metadata")
-        }
-
-        def committed(partition: TopicPartitionJ, timeout: Duration) = {
-          new OffsetAndMetadataJ(Offset.min.value, "metadata")
-        }
-
         def committed(partitions: SetJ[TopicPartitionJ]) = {
           Map.empty[TopicPartitionJ, OffsetAndMetadataJ].asJava
         }

@@ -102,16 +102,6 @@ object ConsumerJHelper {
         f { self.position(partition, timeout) }
       }
 
-      @nowarn("cat=deprecation")
-      def committed(partition: TopicPartitionJ) = {
-        f { self.committed(partition) }
-      }
-
-      @nowarn("cat=deprecation")
-      def committed(partition: TopicPartitionJ, timeout: Duration) = {
-        f { self.committed(partition, timeout) }
-      }
-
       def committed(partitions: SetJ[TopicPartitionJ]) = {
         f { self.committed(partitions) }
       }

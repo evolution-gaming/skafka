@@ -23,7 +23,8 @@ import org.apache.kafka.clients.producer.{
   ProducerRecord => ProducerRecordJ,
   RecordMetadata => RecordMetadataJ
 }
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Metric, MetricName, Uuid, TopicPartition => TopicPartitionJ, Uuid}
 
 import scala.jdk.CollectionConverters._
 import org.scalatest.matchers.should.Matchers
@@ -165,11 +166,17 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         Nil.asJava
       }
 
+      def clientInstanceId(timeout: java.time.Duration): Uuid = Uuid.ONE_UUID
+
       def metrics(): util.Map[MetricName, Metric] = Map.empty.asJava
 
       def close() = {}
 
       def close(timeout: java.time.Duration) = {}
+
+      def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
+
+      def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
 
       def send(record: ProducerRecordJ[Bytes, Bytes]): FutureJ[RecordMetadataJ] = completableFuture
 
@@ -191,7 +198,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         .toTry
         .get
         ._1
-        .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id))
+        .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id, FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
     }
   }

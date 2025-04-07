@@ -35,12 +35,8 @@ lazy val commonSettings = Seq(
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
   mimaBinaryIssueFilters ++= Seq(
-    ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.subscribe"),
-    ProblemFilters.exclude[DirectMissingMethodProblem](
-      "com.evolutiongaming.skafka.Converters#MapJOps.asScalaMap$extension"
-    ),
-    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.consumer.ConsumerMetrics#ConsumerMetricsOps.mapK$extension"),
-    ProblemFilters.exclude[DirectMissingMethodProblem]("com.evolutiongaming.skafka.producer.ProducerMetrics#ProducerMetricsOps.mapK$extension"),
+    // TODO remove after release of 17.2.0
+    ProblemFilters.exclude[ReversedMissingMethodProblem]("com.evolutiongaming.skafka.consumer.Consumer.currentLag"),
   )
 )
 

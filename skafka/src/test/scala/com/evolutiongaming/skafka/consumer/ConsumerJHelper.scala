@@ -6,10 +6,9 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 import cats.implicits._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
-
-import scala.annotation.nowarn
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, SubscriptionPattern, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Uuid, TopicPartition => TopicPartitionJ}
 
 object ConsumerJHelper {
 
@@ -54,6 +53,12 @@ object ConsumerJHelper {
 
       def subscribe(pattern: Pattern) = f { self.subscribe(pattern) }
 
+      def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListener): Unit = {
+        f { self.subscribe(pattern, callback) }
+      }
+
+      def subscribe(pattern: SubscriptionPattern): Unit = f { self.subscribe(pattern) }
+
       def unsubscribe() = f { self.unsubscribe() }
 
       def poll(timeout: Duration) = f { self.poll(timeout) }
@@ -78,6 +83,14 @@ object ConsumerJHelper {
 
       def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback) = {
         f { self.commitAsync(offsets, callback) }
+      }
+
+      def registerMetricForSubscription(metric: KafkaMetric): Unit = {
+        f { self.registerMetricForSubscription(metric) }
+      }
+
+      def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {
+        f { self.unregisterMetricFromSubscription(metric) }
       }
 
       def seek(partition: TopicPartitionJ, offset: Long) = {
@@ -109,6 +122,8 @@ object ConsumerJHelper {
       def committed(partitions: SetJ[TopicPartitionJ], timeout: Duration) = {
         f { self.committed(partitions, timeout) }
       }
+
+      def clientInstanceId(timeout: Duration): Uuid = f { self.clientInstanceId(timeout) }
 
       def metrics() = f { self.metrics() }
 

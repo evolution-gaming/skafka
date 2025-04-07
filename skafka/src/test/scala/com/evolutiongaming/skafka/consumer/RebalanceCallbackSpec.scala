@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.consumer
 import java.lang.{Long => LongJ}
 import java.time.{Duration => DurationJ}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
-import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 
 import cats.arrow.FunctionK
 import cats.effect.IO
@@ -470,6 +470,19 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
         tryRun(subscription, consumer) mustBe Try(output)
         ioTests(_.subscription, output, consumer)
+      }
+
+      "currentLag" in {
+        val input  = partition1
+        val output = Some(42L)
+        val outputJava = OptionalLong.of(output.value)
+
+        val consumer = new ExplodingConsumer {
+          override def currentLag(partition: TopicPartitionJ): OptionalLong = outputJava
+        }
+
+        tryRun(currentLag(input.s), consumer) mustBe Try(output)
+        ioTests(_.currentLag(input.s), output, consumer)
       }
 
     }

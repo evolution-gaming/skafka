@@ -357,6 +357,9 @@ sealed trait RebalanceCallbackApi[F[_]] {
   final def subscription: RebalanceCallback[F, Set[Topic]] =
     WithConsumer(_.subscription())
 
+  final def currentLag(partition: TopicPartition): RebalanceCallback[F, Option[Long]] =
+    WithConsumer(_.currentLag(partition))
+
 }
 
 private[consumer] trait RebalanceCallbackLowPrioInstances {

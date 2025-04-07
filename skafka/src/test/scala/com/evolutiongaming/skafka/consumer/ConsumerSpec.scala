@@ -243,6 +243,10 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       consumer.endOffsets(partitions, 1.second) should produce(Map((topicPartition, offset)))
     }
 
+    "currentLag" in new Scope {
+      verify(consumer.currentLag(topicPartition)) { _ shouldEqual Some(1L) }
+    }
+
     "groupMetadata" in new Scope {
       val consumerGroupMetadata = ConsumerGroupMetadata(
         groupId         = "groupId",
@@ -466,7 +470,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         Scope.this.wakeup = true
       }
 
-      def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.empty()
+      def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.of(1L)
 
       def enforceRebalance(reason: Metadata): Unit = {}
     }

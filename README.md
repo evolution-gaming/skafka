@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-click-blue)](https://evolution.jfrog.io/artifactory/api/search/latestVersion?g=com.evolutiongaming&a=skafka_2.13&repos=public)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellowgreen.svg)](https://opensource.org/licenses/MIT)
 
-Scala wrapper for [kafka-clients v3.4.0](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/3.4.0)
+Scala wrapper for [kafka-clients v4.0.0](https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients/4.0.0)
 
 ## Motivation
 

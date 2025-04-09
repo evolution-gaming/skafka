@@ -6,7 +6,7 @@ import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Functor, Monad, MonadError, MonadThrow, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{Blocking, Log, MeasureDuration, ToTry}
+import com.evolutiongaming.catshelper.{Log, MeasureDuration, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{
@@ -16,7 +16,7 @@ import org.apache.kafka.clients.producer.{
   RecordMetadata => RecordMetadataJ
 }
 
-import scala.concurrent.{ExecutionContext, ExecutionException}
+import scala.concurrent.ExecutionException
 import scala.jdk.CollectionConverters._
 
 /**
@@ -82,14 +82,6 @@ object Producer {
     }
   }
 
-  @deprecated("Use of(ProducerConfig)", since = "12.0.1")
-  def of[F[_]: ToTry: Async](
-    config: ProducerConfig,
-    executorBlocking: ExecutionContext
-  ): Resource[F, Producer[F]] = {
-    of(config)
-  }
-
   def of[F[_]: ToTry: Async](
     config: ProducerConfig
   ): Resource[F, Producer[F]] = {
@@ -98,11 +90,6 @@ object Producer {
   }
 
   private sealed abstract class Main
-
-  @deprecated("Use fromProducerJ2", since = "12.0.1")
-  def fromProducerJ1[F[_]: Blocking: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
-    fromProducerJ2(producer)
-  }
 
   def fromProducerJ2[F[_]: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
 
@@ -305,16 +292,6 @@ object Producer {
       ProducerLogging(self, log)
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate
-     *  version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
-     *  and `withLogging1` using `MeasureDuration` from `cats-helper`.
-     *  This should not be used and should be removed in a reasonable amount of time.
-     */
-    @deprecated("Use `withLogging`", since = "16.0.2")
-    def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      withLogging(log)
-    }
-
     /**
       * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
       */
@@ -325,38 +302,10 @@ object Producer {
       ProducerLogging(self, log, charsToTrim)
     }
 
-    /**
-     * The sole purpose of this method is to support binary compatibility with an intermediate
-     * version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
-     * and `withLogging1` using `MeasureDuration` from `cats-helper`.
-     * This should not be used and should be removed in a reasonable amount of time.
-     *
-     * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
-     */
-    @deprecated("Use `withLogging`", since = "16.0.2")
-    def withLogging1(
-      log: Log[F],
-      charsToTrim: Int
-    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      withLogging(log, charsToTrim)
-    }
-
     def withMetrics[E](
       metrics: ProducerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
       Producer(self, metrics)
-    }
-
-    /** The sole purpose of this method is to support binary compatibility with an intermediate
-      * version (namely, 15.2.0) which had `withMetrics` method using `MeasureDuration` from `smetrics`
-      * and `withMetrics1` using `MeasureDuration` from `cats-helper`.
-      * This should not be used and should be removed in a reasonable amount of time.
-      */
-    @deprecated("Use `withMetrics`", since = "16.0.2")
-    def withMetrics1[E](
-      metrics: ProducerMetrics[F]
-    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
-      withMetrics(metrics)
     }
 
     def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {

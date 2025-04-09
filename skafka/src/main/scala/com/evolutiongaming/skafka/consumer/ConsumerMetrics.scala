@@ -341,35 +341,7 @@ object ConsumerMetrics {
     }
   }
 
-  private sealed abstract class MapK
-
   implicit class ConsumerMetricsOps[F[_]](val self: ConsumerMetrics[F]) extends AnyVal {
-
-    @deprecated("Use mapK(f, g) instead", "16.2.0")
-    def mapK[G[_]](f: F ~> G): ConsumerMetrics[G] = {
-      new MapK with ConsumerMetrics[G] {
-
-        def call(name: String, topic: Topic, latency: FiniteDuration, success: Boolean) = {
-          f(self.call(name, topic, latency, success))
-        }
-
-        def poll(topic: Topic, bytes: Int, records: Int, age: Option[FiniteDuration]) = {
-          f(self.poll(topic, bytes, records, age))
-        }
-
-        def count(name: String, topic: Topic) = {
-          f(self.count(name, topic))
-        }
-
-        def rebalance(name: String, topicPartition: TopicPartition) = {
-          f(self.rebalance(name, topicPartition))
-        }
-
-        def topics(latency: FiniteDuration) = {
-          f(self.topics(latency))
-        }
-      }
-    }
 
     def mapK[G[_]](
       fg: F ~> G,

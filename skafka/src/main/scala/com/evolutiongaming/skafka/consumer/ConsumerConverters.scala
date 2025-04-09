@@ -5,9 +5,7 @@ import java.time.Instant
 import java.util.{Collection => CollectionJ, Map => MapJ}
 
 import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
-import cats.effect.Concurrent
 import cats.implicits._
-import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
@@ -46,60 +44,9 @@ object ConsumerConverters {
     def asJava: OffsetAndTimestampJ = new OffsetAndTimestampJ(self.offset.value, self.timestamp.toEpochMilli)
   }
 
-  implicit class RebalanceListenerOps[F[_]](val self: RebalanceListener[F]) extends AnyVal {
-
-    def asJava(
-      serialListeners: SerialListeners[F]
-    )(implicit F: Concurrent[F], toTry: ToTry[F], toFuture: ToFuture[F]): RebalanceListenerJ = {
-
-      def onPartitions(
-        partitions: CollectionJ[TopicPartitionJ],
-        call: Nes[TopicPartition] => F[Unit]
-      ): Unit = {
-        // The whole callback runs partly on the consumer thread, and partly asynchronously.
-        // First, on the consumer thread, we pre-process the partition list, and register
-        // our listener in `serialListeners`.
-        // Then, asynchronously, we execute the registered listener.
-        partitions.asScala
-          .toList
-          // Note: `traverse(_.asScala[F])` may cause StackOverflowError later, when executed
-          // synchronously with `.toTry`. Traversing into `Try` directly avoids this.
-          .traverse(_.asScala[Try])
-          .flatMap { topicPartitions =>
-            topicPartitions
-              .toSortedSet
-              .toNes
-              .traverse { partitions => serialListeners.listener(call(partitions)) }
-              .toTry
-          }
-          // If we fail to register the listener, fail right now on the consumer thread.
-          .get
-          // Schedule the actual callback for async execution with `.toFuture`.
-          .sequence_
-          .toFuture
-        ()
-      }
-
-      new RebalanceListenerJ {
-
-        def onPartitionsAssigned(partitions: CollectionJ[TopicPartitionJ]) = {
-          onPartitions(partitions, self.onPartitionsAssigned)
-        }
-
-        def onPartitionsRevoked(partitions: CollectionJ[TopicPartitionJ]) = {
-          onPartitions(partitions, self.onPartitionsRevoked)
-        }
-
-        override def onPartitionsLost(partitions: CollectionJ[TopicPartitionJ]) = {
-          onPartitions(partitions, self.onPartitionsLost)
-        }
-      }
-    }
-  }
-
   implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
 
-    def asJava(consumer: ConsumerJ[_, _])(implicit F: Concurrent[F], toTry: ToTry[F]): RebalanceListenerJ = {
+    def asJava(consumer: ConsumerJ[_, _])(implicit toTry: ToTry[F]): RebalanceListenerJ = {
 
       val rebalanceConsumer = RebalanceConsumer(consumer)
 

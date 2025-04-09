@@ -480,7 +480,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         .toTry
         .get
         ._1
-        .withMetrics1(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
+        .withMetrics1(ConsumerMetrics.empty[IO].mapK(FunctionK.id, FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)
     }

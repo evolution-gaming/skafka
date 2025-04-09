@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import cats.data.{NonEmptySet => Nes}
@@ -11,7 +10,7 @@ import cats.effect.implicits._
 import cats.effect.kernel.Deferred
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{Blocking, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
@@ -38,7 +37,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     `consumer.poll error`[IO].run()
   }
 
-  private def `consumer.poll`[F[_]: Async: ToTry: ToFuture: Blocking] = {
+  private def `consumer.poll`[F[_]: Async: ToTry] = {
 
     val result = for {
       actions   <- Actions.of[F].toResource
@@ -111,7 +110,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     result.use { _.pure[F] }
   }
 
-  private def `consumer.poll error`[F[_]: ToTry: ToFuture: Blocking: Async] = {
+  private def `consumer.poll error`[F[_]: ToTry: Async] = {
 
     val error: Throwable = new RuntimeException("error") with NoStackTrace
 
@@ -350,8 +349,6 @@ object SerialListenersTest {
         def enforceRebalance() = {}
 
         def close() = {}
-
-        def close(timeout: Long, unit: TimeUnit) = {}
 
         def close(timeout: Duration) = {}
 

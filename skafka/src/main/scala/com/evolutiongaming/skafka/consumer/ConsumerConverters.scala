@@ -102,6 +102,8 @@ object ConsumerConverters {
 
     def asJava(consumer: ConsumerJ[_, _])(implicit F: Concurrent[F], toTry: ToTry[F]): RebalanceListenerJ = {
 
+      val rebalanceConsumer = RebalanceConsumer(consumer)
+
       def onPartitions(
         partitions: CollectionJ[TopicPartitionJ],
         call: Nes[TopicPartition] => RebalanceCallback[F, Unit]
@@ -118,7 +120,7 @@ object ConsumerConverters {
             topicPartitions
               .toSortedSet
               .toNes
-              .traverse_ { partitions => call(partitions).run(RebalanceConsumer(consumer)) }
+              .traverse_ { partitions => call(partitions).run(rebalanceConsumer) }
           }
           // If we fail to make a `call(..).run(..)`, fail right now on the consumer thread.
           .get

@@ -16,12 +16,6 @@ trait ConsumerOf[F[_]] {
 
 object ConsumerOf {
 
-  @deprecated("Use apply1", since = "12.0.1")
-  def apply[F[_]: Async: ToTry: ToFuture: MeasureDuration](
-    executorBlocking: ExecutionContext,
-    metrics: Option[ConsumerMetrics[F]] = None
-  ): ConsumerOf[F] = apply1(metrics)
-
   def apply1[F[_]: Async: ToTry: ToFuture: MeasureDuration](
     metrics: Option[ConsumerMetrics[F]] = None
   ): ConsumerOf[F] = {

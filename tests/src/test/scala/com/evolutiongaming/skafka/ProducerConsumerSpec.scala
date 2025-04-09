@@ -192,7 +192,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
                 IO.cede *>
                 IO.delay(())
             ).lift
-            // with IO.shift attempts we make sure that
+            // with IO.cede attempts we make sure that
             // kafka java consumer.position method would be called from the same thread as consumer.poll
             // otherwise kafka java consumer throws
             // ConcurrentModificationException("KafkaConsumer is not safe for multi-threaded access")

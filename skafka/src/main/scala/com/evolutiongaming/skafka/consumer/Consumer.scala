@@ -257,13 +257,6 @@ object Consumer {
     fromConsumerJ1(CreateConsumerJ(config, fromBytesK, fromBytesV))
   }
 
-  @deprecated("Use fromConsumerJ1", since = "12.0.1")
-  def fromConsumerJ[F[_]: ToFuture: ToTry: Blocking: Async, K, V](
-    consumer: F[ConsumerJ[K, V]]
-  ): Resource[F, Consumer[F, K, V]] = {
-    fromConsumerJ1(consumer)
-  }
-
   def fromConsumerJ1[F[_]: ToFuture: ToTry: Async, K, V](
     consumer: F[ConsumerJ[K, V]]
   ): Resource[F, Consumer[F, K, V]] = {

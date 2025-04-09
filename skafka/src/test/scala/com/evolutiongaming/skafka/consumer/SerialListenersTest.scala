@@ -23,7 +23,6 @@ import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPa
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
@@ -39,45 +38,39 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     `consumer.poll error`[IO].run()
   }
 
-  @nowarn("cat=deprecation")
   private def `consumer.poll`[F[_]: Async: ToTry: ToFuture: Blocking] = {
 
     val result = for {
       actions   <- Actions.of[F].toResource
       consumerJ <- consumerJ[F, Bytes, Bytes](actions).toResource
-      consumer  <- Consumer.fromConsumerJ(consumerJ.pure[F])
+      consumer  <- Consumer.fromConsumerJ1(consumerJ.pure[F])
       assigned0 <- Deferred[F, Unit].toResource
-      assigned1 <- Deferred[F, Unit].toResource
       revoked0  <- Deferred[F, Unit].toResource
-      revoked1  <- Deferred[F, Unit].toResource
       lost0     <- Deferred[F, Unit].toResource
-      lost1     <- Deferred[F, Unit].toResource
-      listener = new RebalanceListener[F] {
+      listener = new RebalanceListener1WithConsumer[F] {
+        import RebalanceCallback.syntax.*
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsAssignedEnter)
-            _ <- assigned0.complete(())
-            _ <- assigned1.get
-            _ <- actions.add(Action.PartitionsAssignedExit)
+            _ <- actions.add(Action.PartitionsAssignedEnter).lift
+            _ <- assigned0.complete(()).lift
+            _ <- actions.add(Action.PartitionsAssignedExit).lift
           } yield {}
         }
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsRevokedEnter)
-            _ <- revoked0.complete(())
-            _ <- revoked1.get
-            _ <- actions.add(Action.PartitionsRevokedExit)
+            _ <- actions.add(Action.PartitionsRevokedEnter).lift
+            _ <- revoked0.complete(()).lift
+            _ <- actions.add(Action.PartitionsRevokedExit).lift
           } yield {}
         }
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsLostEnter)
-            _ <- lost0.complete(())
-            _ <- lost1.get
-            _ <- actions.add(Action.PartitionsLostExit)
+            _ <- actions.add(Action.PartitionsLostEnter).lift
+            _ <- lost0.complete(()).lift
+            _ <- actions.add(Action.PartitionsLostExit).lift
           } yield {}
         }
       }
@@ -86,34 +79,31 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
         a <- consumer.poll(1.millis)
         _ <- actions.add(Action.PollExit)
       } yield a
-      _     <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
+      _     <- consumer.subscribe(Nes.of("topic"), listener).toResource
       fiber <- poll.start.toResource
 
       _ <- assigned0.get.toResource
       _ <- consumer.topics.toResource
-      _ <- assigned1.complete(()).toResource
 
       _ <- revoked0.get.toResource
       _ <- consumer.topics.toResource
-      _ <- revoked1.complete(()).toResource
 
       _ <- lost0.get.toResource
       _ <- consumer.topics.toResource
-      _ <- lost1.complete(()).toResource
 
       _       <- fiber.joinWithNever.toResource
       actions <- actions.get.toResource
       _ = actions shouldEqual List(
         Action.PollEnter,
         Action.PartitionsAssignedEnter,
-        Action.Topics,
         Action.PartitionsAssignedExit,
         Action.PartitionsRevokedEnter,
-        Action.Topics,
         Action.PartitionsRevokedExit,
         Action.PartitionsLostEnter,
-        Action.Topics,
         Action.PartitionsLostExit,
+        Action.Topics,
+        Action.Topics,
+        Action.Topics,
         Action.PollExit
       )
     } yield {}
@@ -121,7 +111,6 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     result.use { _.pure[F] }
   }
 
-  @nowarn("cat=deprecation")
   private def `consumer.poll error`[F[_]: ToTry: ToFuture: Blocking: Async] = {
 
     val error: Throwable = new RuntimeException("error") with NoStackTrace
@@ -129,31 +118,30 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     val result = for {
       actions   <- Actions.of[F].toResource
       consumerJ <- consumerJ[F, Bytes, Bytes](actions).toResource
-      consumer  <- Consumer.fromConsumerJ(consumerJ.pure[F])
+      consumer  <- Consumer.fromConsumerJ1(consumerJ.pure[F])
       deferred0 <- Deferred[F, Unit].toResource
-      deferred1 <- Deferred[F, Unit].toResource
-      listener = new RebalanceListener[F] {
+      listener = new RebalanceListener1WithConsumer[F] {
+        import RebalanceCallback.syntax.*
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsAssignedEnter)
-            _ <- deferred0.complete(())
-            _ <- deferred1.get
-            _ <- error.raiseError[F, Unit]
+            _ <- actions.add(Action.PartitionsAssignedEnter).lift
+            _ <- deferred0.complete(()).lift
+            _ <- error.raiseError[F, Unit].lift
           } yield {}
         }
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsRevokedEnter)
-            _ <- actions.add(Action.PartitionsRevokedExit)
+            _ <- actions.add(Action.PartitionsRevokedEnter).lift
+            _ <- actions.add(Action.PartitionsRevokedExit).lift
           } yield {}
         }
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsLostEnter)
-            _ <- actions.add(Action.PartitionsLostExit)
+            _ <- actions.add(Action.PartitionsLostEnter).lift
+            _ <- actions.add(Action.PartitionsLostExit).lift
           } yield {}
         }
       }
@@ -162,11 +150,10 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
         a <- consumer.poll(1.millis)
         _ <- actions.add(Action.PollExit)
       } yield a
-      _       <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
+      _       <- consumer.subscribe(Nes.of("topic"), listener).toResource
       fiber   <- poll.start.toResource
       _       <- deferred0.get.toResource
       _       <- consumer.topics.toResource
-      _       <- deferred1.complete(()).toResource
       _       <- consumer.topics.toResource
       result  <- fiber.joinWithNever.attempt.toResource
       _        = result shouldEqual error.asLeft

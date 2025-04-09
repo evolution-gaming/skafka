@@ -74,14 +74,14 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "subscribe topics" in new Scope {
-      verify(consumer.subscribe(Nes.of(topic), Some(rebalanceListener))) { _ =>
+      verify(consumer.subscribe(Nes.of(topic), rebalanceListener)) { _ =>
         subscribeTopics shouldEqual List(topic)
       }
     }
 
     "subscribe pattern" in new Scope {
       val pattern = Pattern.compile(".")
-      verify(consumer.subscribe(pattern, Some(rebalanceListener))) { _ =>
+      verify(consumer.subscribe(pattern, rebalanceListener)) { _ =>
         subscribePattern shouldEqual Some(pattern)
       }
     }
@@ -295,14 +295,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     var seekToEnd = List.empty[TopicPartitionJ]
 
-    val rebalanceListener = new RebalanceListener[IO] {
-
-      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO.unit
-
-      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO.unit
-
-      def onPartitionsLost(partitions: Nes[TopicPartition]) = IO.unit
-    }
+    val rebalanceListener = RebalanceListener1.empty[IO]
 
     protected def committedNull = false
 

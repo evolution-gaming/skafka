@@ -6,10 +6,9 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 import cats.implicits._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
-
-import scala.annotation.nowarn
+import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, SubscriptionPattern, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Uuid, TopicPartition => TopicPartitionJ}
 
 object ConsumerJHelper {
 
@@ -54,10 +53,13 @@ object ConsumerJHelper {
 
       def subscribe(pattern: Pattern) = f { self.subscribe(pattern) }
 
-      def unsubscribe() = f { self.unsubscribe() }
+      def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListener): Unit = {
+        f { self.subscribe(pattern, callback) }
+      }
 
-      @nowarn("cat=deprecation")
-      def poll(timeout: Long) = f { self.poll(timeout) }
+      def subscribe(pattern: SubscriptionPattern): Unit = f { self.subscribe(pattern) }
+
+      def unsubscribe() = f { self.unsubscribe() }
 
       def poll(timeout: Duration) = f { self.poll(timeout) }
 
@@ -83,6 +85,14 @@ object ConsumerJHelper {
         f { self.commitAsync(offsets, callback) }
       }
 
+      def registerMetricForSubscription(metric: KafkaMetric): Unit = {
+        f { self.registerMetricForSubscription(metric) }
+      }
+
+      def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {
+        f { self.unregisterMetricFromSubscription(metric) }
+      }
+
       def seek(partition: TopicPartitionJ, offset: Long) = {
         f { self.seek(partition, offset) }
       }
@@ -105,16 +115,6 @@ object ConsumerJHelper {
         f { self.position(partition, timeout) }
       }
 
-      @nowarn("cat=deprecation")
-      def committed(partition: TopicPartitionJ) = {
-        f { self.committed(partition) }
-      }
-
-      @nowarn("cat=deprecation")
-      def committed(partition: TopicPartitionJ, timeout: Duration) = {
-        f { self.committed(partition, timeout) }
-      }
-
       def committed(partitions: SetJ[TopicPartitionJ]) = {
         f { self.committed(partitions) }
       }
@@ -122,6 +122,8 @@ object ConsumerJHelper {
       def committed(partitions: SetJ[TopicPartitionJ], timeout: Duration) = {
         f { self.committed(partitions, timeout) }
       }
+
+      def clientInstanceId(timeout: Duration): Uuid = f { self.clientInstanceId(timeout) }
 
       def metrics() = f { self.metrics() }
 

@@ -4,21 +4,21 @@ import java.util
 import java.util.concurrent.{CompletableFuture, Future => FutureJ}
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyMap => Nem}
 import cats.effect.IO
 import cats.implicits._
 import com.evolutiongaming.catshelper.MeasureDuration
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite._
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata => OffsetAndMetadataJ
 }
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Metric, MetricName, Uuid, TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
 import org.scalatest.matchers.should.Matchers
@@ -41,14 +41,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     "proxy beginTransaction" in new Scope {
       verify(producer.beginTransaction) { _ =>
         beginTransaction shouldEqual true
-      }
-    }
-
-    "proxy sendOffsetsToTransaction" in new Scope {
-      val consumerGroupId = "consumerGroupId"
-      val offsets         = Nem.of((topicPartition, OffsetAndMetadata.empty))
-      verify(producer.sendOffsetsToTransaction(offsets, consumerGroupId)) { _ =>
-        sendOffsetsToTransaction shouldEqual consumerGroupId
       }
     }
 
@@ -111,11 +103,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       verify(empty.beginTransaction) { _ => }
     }
 
-    "sendOffsetsToTransaction" in new Scope {
-      val offsets = Nem.of((topicPartition, OffsetAndMetadata.empty))
-      verify(empty.sendOffsetsToTransaction(offsets, "consumerGroupId")) { _ => }
-    }
-
     "commitTransaction" in new Scope {
       verify(empty.commitTransaction) { _ => }
     }
@@ -156,13 +143,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       def beginTransaction() = Scope.this.beginTransaction = true
 
       def sendOffsetsToTransaction(
-        offsets: java.util.Map[TopicPartitionJ, OffsetAndMetadataJ],
-        consumerGroupId: String
-      ) = {
-        Scope.this.sendOffsetsToTransaction = consumerGroupId
-      }
-
-      def sendOffsetsToTransaction(
         offsets: util.Map[TopicPartitionJ, OffsetAndMetadataJ],
         groupMetadata: ConsumerGroupMetadataJ
       ) = {
@@ -178,11 +158,17 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         Nil.asJava
       }
 
+      def clientInstanceId(timeout: java.time.Duration): Uuid = Uuid.ONE_UUID
+
       def metrics(): util.Map[MetricName, Metric] = Map.empty.asJava
 
       def close() = {}
 
       def close(timeout: java.time.Duration) = {}
+
+      def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
+
+      def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
 
       def send(record: ProducerRecordJ[Bytes, Bytes]): FutureJ[RecordMetadataJ] = completableFuture
 
@@ -202,7 +188,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         .toTry
         .get
         ._1
-        .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id))
+        .withMetrics(ProducerMetrics.empty[IO].mapK(FunctionK.id, FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
     }
   }

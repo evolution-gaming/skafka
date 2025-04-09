@@ -7,7 +7,6 @@ import cats.implicits._
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
 
-import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
 
 object ConsumerLogging {
@@ -78,34 +77,6 @@ object ConsumerLogging {
           a <- consumer.subscribe(pattern)
           d <- d
           _ <- log.debug(s"subscribe in ${d.toMillis}ms, pattern: $pattern")
-        } yield a
-      }
-
-      @nowarn("cat=deprecation")
-      def subscribe(topics: Nes[Topic], listener: Option[RebalanceListener[F]]) = {
-
-        val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging(log)
-
-        for {
-          d <- MeasureDuration[F].start
-          a <- consumer.subscribe(topics, listenerLogging.some)
-          d <- d
-          _ <- log.debug(
-            s"subscribe in ${d.toMillis}ms, topics: ${topics.mkString_(", ")}, listener: ${listener.isDefined}"
-          )
-        } yield a
-      }
-
-      @nowarn("cat=deprecation")
-      def subscribe(pattern: Pattern, listener: Option[RebalanceListener[F]]) = {
-
-        val listenerLogging = (listener getOrElse RebalanceListener.empty[F]).withLogging(log)
-
-        for {
-          d <- MeasureDuration[F].start
-          a <- consumer.subscribe(pattern, listenerLogging.some)
-          d <- d
-          _ <- log.debug(s"subscribe in ${d.toMillis}ms, pattern: $pattern, listener: ${listener.isDefined}")
         } yield a
       }
 

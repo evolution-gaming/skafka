@@ -319,30 +319,6 @@ object ProducerMetrics {
 
   implicit class ProducerMetricsOps[F[_]](val self: ProducerMetrics[F]) extends AnyVal {
 
-    @deprecated("Use mapK(f, g) instead", "16.2.0")
-    def mapK[G[_]](f: F ~> G): ProducerMetrics[G] = new ProducerMetrics[G] {
-
-      def initTransactions(latency: FiniteDuration) = f(self.initTransactions(latency))
-
-      def beginTransaction = f(self.beginTransaction)
-
-      def sendOffsetsToTransaction(latency: FiniteDuration) = f(self.sendOffsetsToTransaction(latency))
-
-      def commitTransaction(latency: FiniteDuration) = f(self.commitTransaction(latency))
-
-      def abortTransaction(latency: FiniteDuration) = f(self.abortTransaction(latency))
-
-      def send(topic: Topic, latency: FiniteDuration, bytes: Int) = f(self.send(topic, latency, bytes))
-
-      def block(topic: Topic, latency: FiniteDuration) = f(self.block(topic, latency))
-
-      def failure(topic: Topic, latency: FiniteDuration) = f(self.failure(topic, latency))
-
-      def partitions(topic: Topic, latency: FiniteDuration) = f(self.partitions(topic, latency))
-
-      def flush(latency: FiniteDuration) = f(self.flush(latency))
-    }
-
     def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F

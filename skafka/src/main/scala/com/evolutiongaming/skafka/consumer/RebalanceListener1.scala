@@ -116,5 +116,36 @@ object RebalanceListener1 {
         self.onPartitionsLost(partitions).mapK(fg)
     }
 
+    // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
+//    def withLogging(log: Log[F])(implicit F: FlatMap[F], measureDuration: MeasureDuration[F]): RebalanceListener[F] =
+//      new RebalanceListener[F] {
+//
+//        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+//          for {
+//            d <- MeasureDuration[F].start
+//            a <- self.onPartitionsAssigned(partitions)
+//            d <- d
+//            _ <- log.debug(s"onPartitionsAssigned ${partitions.mkString_(", ")} in ${d.toMillis}ms")
+//          } yield a
+//        }
+//
+//        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
+//          for {
+//            d <- MeasureDuration[F].start
+//            a <- self.onPartitionsRevoked(partitions)
+//            d <- d
+//            _ <- log.debug(s"onPartitionsRevoked ${partitions.mkString_(", ")} in ${d.toMillis}ms")
+//          } yield a
+//        }
+//
+//        def onPartitionsLost(partitions: Nes[TopicPartition]) = {
+//          for {
+//            d <- MeasureDuration[F].start
+//            a <- self.onPartitionsLost(partitions)
+//            d <- d
+//            _ <- log.debug(s"onPartitionsLost ${partitions.mkString_(", ")} in ${d.toMillis}ms")
+//          } yield a
+//        }
+//      }
   }
 }

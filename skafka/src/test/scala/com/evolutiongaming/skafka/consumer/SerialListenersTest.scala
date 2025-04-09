@@ -10,7 +10,7 @@ import cats.effect.implicits._
 import cats.effect.kernel.Deferred
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{ToFuture, ToTry}
+import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._

@@ -4,14 +4,13 @@ import java.util
 import java.util.concurrent.{CompletableFuture, Future => FutureJ}
 
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyMap => Nem}
 import cats.effect.IO
 import cats.implicits._
 import com.evolutiongaming.catshelper.MeasureDuration
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
-import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite._
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,

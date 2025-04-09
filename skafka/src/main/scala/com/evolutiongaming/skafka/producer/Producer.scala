@@ -1,7 +1,6 @@
 package com.evolutiongaming.skafka
 package producer
 
-import cats.data.{NonEmptyMap => Nem}
 import cats.effect.{Async, Deferred, Resource, Sync}
 import cats.effect.implicits._
 import cats.implicits._

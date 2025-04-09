@@ -8,7 +8,6 @@ import cats.arrow.FunctionK
 import cats.data.{NonEmptyList, NonEmptySet => Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
 import cats.implicits._
-import cats.effect.implicits._
 import com.dimafeng.testcontainers.KafkaContainer
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.Log

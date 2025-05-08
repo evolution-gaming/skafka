@@ -45,6 +45,7 @@ import scala.util.Try
   * + endOffsets
   * + groupMetadata
   * + listTopics
+  * - clientInstanceId
   * - metrics
   * + offsetsForTimes
   * + partitionsFor
@@ -53,6 +54,8 @@ import scala.util.Try
   * - poll
   * + position
   * - resume
+  * - registerMetricForSubscription
+  * - unregisterMetricFromSubscription
   * + seek
   * + seekToBeginning
   * + seekToEnd
@@ -60,6 +63,7 @@ import scala.util.Try
   * + subscription
   * - unsubscribe
   * - wakeup
+  * + currentLag
   * - enforceRebalance
   * }}}
   *
@@ -127,6 +131,8 @@ trait RebalanceConsumer {
   def seekToEnd(partitions: Nes[TopicPartition]): Try[Unit]
 
   def subscription(): Try[Set[Topic]]
+
+  def currentLag(partition: TopicPartition): Try[Option[Long]]
 }
 
 object RebalanceConsumer {
@@ -260,6 +266,13 @@ object RebalanceConsumer {
 
       def subscription() =
         Try { c.subscription().asScala.toSet }
+
+      def currentLag(partition: TopicPartition): Try[Option[Long]] =
+        Try {
+          val lag = c.currentLag(partition.asJava)
+          if (lag.isEmpty) None
+          else Some(lag.getAsLong)
+        }
     }
   }
 }

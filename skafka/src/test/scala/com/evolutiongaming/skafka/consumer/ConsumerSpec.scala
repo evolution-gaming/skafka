@@ -17,8 +17,9 @@ import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
-import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric}
+import org.apache.kafka.clients.consumer.{SubscriptionPattern, Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Node, Uuid, TopicPartition => TopicPartitionJ, MetricName, Metric}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -58,6 +59,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     offlineReplicas = List(node)
   )
 
+  private val clientId = Uuid.ONE_UUID
+
   "Consumer" should {
 
     "assign" in new Scope {
@@ -71,14 +74,14 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "subscribe topics" in new Scope {
-      verify(consumer.subscribe(Nes.of(topic), Some(rebalanceListener))) { _ =>
+      verify(consumer.subscribe(Nes.of(topic), rebalanceListener)) { _ =>
         subscribeTopics shouldEqual List(topic)
       }
     }
 
     "subscribe pattern" in new Scope {
       val pattern = Pattern.compile(".")
-      verify(consumer.subscribe(pattern, Some(rebalanceListener))) { _ =>
+      verify(consumer.subscribe(pattern, rebalanceListener)) { _ =>
         subscribePattern shouldEqual Some(pattern)
       }
     }
@@ -292,14 +295,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     var seekToEnd = List.empty[TopicPartitionJ]
 
-    val rebalanceListener = new RebalanceListener[IO] {
-
-      def onPartitionsAssigned(partitions: Nes[TopicPartition]) = IO.unit
-
-      def onPartitionsRevoked(partitions: Nes[TopicPartition]) = IO.unit
-
-      def onPartitionsLost(partitions: Nes[TopicPartition]) = IO.unit
-    }
+    val rebalanceListener = RebalanceListener1.empty[IO]
 
     protected def committedNull = false
 
@@ -329,17 +325,17 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def subscribe(pattern: Pattern) = {}
 
+      def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListenerJ): Unit = {}
+
+      def subscribe(pattern: SubscriptionPattern): Unit = {}
+
       def unsubscribe() = {
         Scope.this.unsubscribe = true
       }
 
-      def poll(timeout: Long) = {
+      def poll(timeout: DurationJ) = {
         val records = Map((topicPartition, List(consumerRecord.asJava))).asJavaMap(_.asJava, _.asJava)
         new ConsumerRecordsJ[Bytes, Bytes](records)
-      }
-
-      def poll(timeout: DurationJ) = {
-        poll(timeout.toMillis)
       }
 
       def commitSync() = {
@@ -369,6 +365,10 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         callback.onComplete(offsets, null)
       }
 
+      def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
+
+      def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
+
       def seek(partition: TopicPartitionJ, offset: Long) = {
         Scope.this.seek = Some((partition, offset))
       }
@@ -387,10 +387,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def position(partition: TopicPartitionJ, timeout: DurationJ) = position(partition)
 
-      def committed(partition: TopicPartitionJ) = offsetAndMetadata.asJava
-
-      def committed(partition: TopicPartitionJ, timeout: DurationJ) = offsetAndMetadata.asJava
-
       def committed(partitions: util.Set[TopicPartitionJ]) =
         if (!committedNull)
           offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
@@ -402,6 +398,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
           offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
         else
           Map(new TopicPartitionJ(topic, partition.value) -> null).asJavaMap(identity, identity)
+
+      def clientInstanceId(timeout: DurationJ): Uuid = clientId
 
       def metrics(): MapJ[MetricName, _ <: Metric] = new java.util.HashMap()
 
@@ -482,7 +480,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         .toTry
         .get
         ._1
-        .withMetrics1(ConsumerMetrics.empty[IO].mapK(FunctionK.id))
+        .withMetrics1(ConsumerMetrics.empty[IO].mapK(FunctionK.id, FunctionK.id))
         .mapK(FunctionK.id, FunctionK.id)
         .withLogging(Log.empty)
     }

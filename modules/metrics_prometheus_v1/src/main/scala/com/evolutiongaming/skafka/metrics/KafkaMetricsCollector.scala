@@ -47,41 +47,37 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
   override def collect(): MetricSnapshots = {
     for {
       metrics      <- kafkaClientMetrics
-      metricsGroups = metrics.groupBy(m => (m.name, m.group)).values.toList
+      metricsGroups = metrics.groupBy(m => (m.name, m.group, m.description)).toList
       result <- metricsGroups
-        .traverse { metricsGroup =>
-          val metric         = metricsGroup.head
-          val prometheusName = getPrometheusName(metric)
-          prometheusName match {
-            case Some(name) =>
-              metricsGroup
-                .toVector
-                .traverse(buildSample(_))
-                .map(_.flatten)
-                .map {
-                  case samples if samples.nonEmpty =>
-                    Some(buildSnapshot(name, metric.description, samples))
+        .traverse {
+          case ((name, group, description), metricsGroup) =>
+            getPrometheusName(name, group, description) match {
+              case Some(name) =>
+                metricsGroup
+                  .toVector
+                  .traverse(buildSample(_))
+                  .map(_.flatten)
+                  .map {
+                    case samples if samples.nonEmpty =>
+                      Some(buildSnapshot(name, description, samples))
 
-                  case _ => Option.empty[MetricSnapshot]
-                }
+                    case _ => Option.empty[MetricSnapshot]
+                  }
 
-            case None => Option.empty[MetricSnapshot].pure
-          }
+              case None => Option.empty[MetricSnapshot].pure
+            }
         }
         .map(_.flatten.asJava)
     } yield new MetricSnapshots(result)
   }.toTry.get
 
-  protected def getPrometheusName(metric: ClientMetric[F]): Option[String] = {
-    (metric.name, metric.description) match {
-      case (name, description) if name.nonEmpty && description.nonEmpty =>
-        val prometheusName =
-          (prefix.toList :+ metric.group :+ metric.name).mkString("_").replaceAll("-", "_")
+  protected def getPrometheusName(name: String, description: String, group: String): Option[String] = {
+    if (name.nonEmpty && description.nonEmpty) {
+      val prometheusName =
+        (prefix.toList :+ group :+ name).mkString("_").replaceAll("-", "_")
 
-        if (MetricNameRegex.findFirstIn(prometheusName).contains(prometheusName)) prometheusName.some else None
-
-      case _ => None
-    }
+      if (MetricNameRegex.findFirstIn(prometheusName).contains(prometheusName)) prometheusName.some else None
+    } else None
   }
 
   private def buildSnapshot(metricName: String, description: String, samples: Vector[MetricSample]): MetricSnapshot =

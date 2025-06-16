@@ -7,9 +7,9 @@ ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
   CrossVersion.partialVersion(scalaVersion) match {
-    case Some((3, _)) => if3
+    case Some((3, _))       => if3
     case Some((2, 12 | 13)) => if2
-    case _ => Nil
+    case _                  => Nil
   }
 
 lazy val commonSettings = Seq(
@@ -19,7 +19,7 @@ lazy val commonSettings = Seq(
   organizationName := "Evolution",
   organizationHomepage := Some(url("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
-  crossScalaVersions := Seq("2.13.16", "3.3.6", "2.12.20"),
+  crossScalaVersions := Seq("2.13.16", "3.3.6"),
   licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
   Compile / doc / scalacOptions += "-no-link-warnings",
   scalacOptions ++= crossSettings(
@@ -44,9 +44,8 @@ val alias: Seq[sbt.Def.Setting[?]] =
 //      "check",
 //      "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check",
 //    ) ++
-    addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
+  addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
     addCommandAlias("build", "+all compile test")
-
 
 lazy val root = (project in file(".")
   disablePlugins (MimaPlugin)
@@ -54,28 +53,30 @@ lazy val root = (project in file(".")
   settings commonSettings
   settings (publish / skip := true)
   settings (alias)
-  aggregate (skafka, `play-json`, metrics, tests))
+  aggregate (skafka, `play-json`, metrics, `metrics-prometheus-v1`, tests))
 
 lazy val skafka = (project in file("skafka")
   settings commonSettings
-  settings (name := "skafka",
-  scalacOptions -= "-Ywarn-unused:params",
-  libraryDependencies ++= Seq(
-    Cats.core,
-    CatsEffect.effect,
-    CatsEffect.effectStd,
-    `config-tools`,
-    Kafka.clients,
-    `future-helper`,
-    `cats-helper`,
-    Smetrics.smetrics,
-    scalatest  % Test,
-    Cats.laws  % Test,
-    discipline % Test,
-    CatsEffect.effectTestKit % Test,
-    `scala-java8-compat`,
-    `collection-compat`
-  )))
+  settings (
+    name := "skafka",
+    scalacOptions -= "-Ywarn-unused:params",
+    libraryDependencies ++= Seq(
+      Cats.core,
+      CatsEffect.effect,
+      CatsEffect.effectStd,
+      `config-tools`,
+      Kafka.clients,
+      `future-helper`,
+      `cats-helper`,
+      Smetrics.smetrics,
+      scalatest                % Test,
+      Cats.laws                % Test,
+      discipline               % Test,
+      CatsEffect.effectTestKit % Test,
+      `scala-java8-compat`,
+      `collection-compat`
+    )
+  ))
 
 lazy val `play-json` = (project in file("modules/play-json")
   settings (name := "skafka-play-json")
@@ -88,6 +89,14 @@ lazy val metrics = (project in file("modules/metrics")
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))
+
+lazy val `metrics-prometheus-v1` = (project in file("modules/metrics_prometheus_v1")
+  settings commonSettings
+  dependsOn skafka
+  settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus-v1`))
+  settings (name := "skafka-metrics-prometheus-v1")
+  settings (organization := "com.evolution")
+  settings (versionPolicyCheck / skip := true))
 
 lazy val tests = (project in file("tests")
   settings (name := "skafka-tests")

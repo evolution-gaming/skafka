@@ -1,4 +1,4 @@
-package com.evolutiongaming.skafka.metrics
+package com.evolution.skafka.metrics
 
 import cats.Monad
 import cats.syntax.all._

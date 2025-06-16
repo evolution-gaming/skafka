@@ -1,4 +1,4 @@
-package com.evolutiongaming.skafka.metrics
+package com.evolution.skafka.metrics
 
 import cats.syntax.all._
 import cats.effect.syntax.resource._

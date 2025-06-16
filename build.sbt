@@ -91,10 +91,11 @@ lazy val metrics = (project in file("modules/metrics")
   settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))
 
 lazy val `metrics-prometheus-v1` = (project in file("modules/metrics_prometheus_v1")
-  settings (name := "skafka-metrics-prometheus-v1")
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus-v1`))
+  settings (name := "skafka-metrics-prometheus-v1")
+  settings (organization := "com.evolution")
   settings (versionPolicyCheck / skip := true))
 
 lazy val tests = (project in file("tests")

@@ -7,11 +7,11 @@ import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.ClientMetric
 
 import scala.jdk.CollectionConverters._
-import scala.util.matching.Regex
 import io.prometheus.metrics.model.registry.MultiCollector
 import io.prometheus.metrics.model.snapshots._
 
 import KafkaMetricsCollector._
+import scala.util.Try
 
 /** Prometheus collector for Kafka client metrics.
   *
@@ -40,18 +40,17 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
   customLabels: List[(String, String)],
 ) extends MultiCollector {
 
-  private val MetricNameRegex: Regex                 = "[a-zA-Z_:][a-zA-Z0-9_:]*".r
-  private val LabelNameRegex: Regex                  = "[a-zA-Z_][a-zA-Z0-9_]*".r
   private val (customLabelsKeys, customLabelsValues) = customLabels.separate
 
   override def collect(): MetricSnapshots = {
     for {
       metrics      <- kafkaClientMetrics
-      metricsGroups = metrics.groupBy(m => (m.name, m.group, m.description)).toList
+      metricsGroups = metrics.groupBy(m => (m.name, m.group)).toList
       result <- metricsGroups
         .traverse {
-          case ((name, group, description), metricsGroup) =>
-            getPrometheusName(name, group, description) match {
+          case ((name, group), metricsGroup) =>
+            val description = metricsGroup.head.description
+            getPrometheusName(name = name, group = group, description = description) match {
               case Some(name) =>
                 metricsGroup
                   .toVector
@@ -59,7 +58,7 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
                   .map(_.flatten)
                   .map {
                     case samples if samples.nonEmpty =>
-                      Some(buildSnapshot(name, description, samples))
+                      Some(buildSnapshot(metricName = name, description = description, samples = samples))
 
                     case _ => Option.empty[MetricSnapshot]
                   }
@@ -71,12 +70,10 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
     } yield new MetricSnapshots(result)
   }.toTry.get
 
-  protected def getPrometheusName(name: String, description: String, group: String): Option[String] = {
+  protected def getPrometheusName(name: String, group: String, description: String): Option[String] = {
     if (name.nonEmpty && description.nonEmpty) {
-      val prometheusName =
-        (prefix.toList :+ group :+ name).mkString("_").replaceAll("-", "_")
-
-      if (MetricNameRegex.findFirstIn(prometheusName).contains(prometheusName)) prometheusName.some else None
+      val prometheusName = (prefix.toList :+ group :+ name).mkString("_")
+      Try(PrometheusNaming.sanitizeMetricName(prometheusName)).toOption
     } else None
   }
 
@@ -115,10 +112,7 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
   private def buildSample(metric: ClientMetric[F]): F[Option[MetricSample]] = {
     val tags = metric.tags.flatMap {
       case (key, value) =>
-        val prometheusKey = key.replaceAll("-", "_")
-        if (LabelNameRegex.findFirstIn(prometheusKey).contains(prometheusKey))
-          (prometheusKey -> value).some
-        else None
+        Try(PrometheusNaming.sanitizeLabelName(key)).toOption.map(_ -> value)
     }
     val tagsKeys   = (tags.keys.toList ++ customLabelsKeys)
     val tagsValues = (tags.values.toList ++ customLabelsValues)

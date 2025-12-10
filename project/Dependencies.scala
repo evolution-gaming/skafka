@@ -8,7 +8,7 @@ object Dependencies {
   val `testcontainers-kafka` = "com.dimafeng"           %% "testcontainers-scala-kafka" % "0.44.0"
   val `play-json-jsoniter`   = "com.evolution"          %% "play-json-jsoniter"         % "1.2.3"
   val `scala-java8-compat`   = "org.scala-lang.modules" %% "scala-java8-compat"         % "1.0.2"
-  val `collection-compat`    = "org.scala-lang.modules" %% "scala-collection-compat"    % "2.13.0"
+  val `collection-compat`    = "org.scala-lang.modules" %% "scala-collection-compat"    % "2.14.0"
   val scalatest              = "org.scalatest"          %% "scalatest"                  % "3.2.19"
   val `kind-projector`       = "org.typelevel"           % "kind-projector"             % "0.13.4"
   val discipline             = "org.typelevel"          %% "discipline-scalatest"       % "2.3.0"

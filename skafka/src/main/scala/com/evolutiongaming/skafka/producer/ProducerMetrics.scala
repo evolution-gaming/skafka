@@ -116,6 +116,7 @@ object ProducerMetrics {
     }
   }
 
+  @deprecated(message = "please use `histogramsPrometheusV1` instead", since = "17.3.0")
   def histograms[F[_]: Monad](
     registry: CollectorRegistry[F],
     prefix: Prefix = Prefix.Default

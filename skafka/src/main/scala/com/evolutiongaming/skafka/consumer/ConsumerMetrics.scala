@@ -266,6 +266,87 @@ object ConsumerMetrics {
       )
     }
   }
+
+  def histogramsPrometheusV1[F[_]: Monad](
+    registry: CollectorRegistry[F],
+    prefix: Prefix = Prefix.Default
+  ): Resource[F, ClientId => ConsumerMetrics[F]] = {
+
+    val callsCounter = registry.counter(
+      name   = s"${prefix}_calls",
+      help   = "Number of topic calls",
+      labels = LabelNames("client", "topic", "type")
+    )
+
+    val resultCounter = registry.counter(
+      name   = s"${prefix}_results",
+      help   = "Topic call result: success or failure",
+      labels = LabelNames("client", "topic", "type", "result")
+    )
+
+    val latencyHistogram = registry.histogram(
+      name    = s"${prefix}_latency_seconds",
+      help    = "Topic call latency in seconds",
+      buckets = latencyBuckets,
+      labels  = LabelNames("client", "topic", "type")
+    )
+
+    val recordsHistogram = registry.histogram(
+      name    = s"${prefix}_poll_records",
+      help    = "Number of records per poll",
+      buckets = pollCountBuckets,
+      labels  = LabelNames("client", "topic")
+    )
+
+    val bytesHistogram = registry.histogram(
+      name    = s"${prefix}_poll_histogram_bytes",
+      help    = "Number of bytes per poll",
+      buckets = pollBytesBuckets,
+      labels  = LabelNames("client", "topic")
+    )
+
+    val rebalancesCounter = registry.counter(
+      name   = s"${prefix}_rebalances",
+      help   = "Number of rebalances",
+      labels = LabelNames("client", "topic", "type")
+    )
+
+    val topicsLatency = registry.histogram(
+      name    = s"${prefix}_topics_latency_seconds",
+      help    = "List topics latency in seconds",
+      buckets = latencyBuckets,
+      labels  = LabelNames("client")
+    )
+    val ageHistogram = registry.histogram(
+      name    = s"${prefix}_poll_age_seconds",
+      help    = "Poll records age, time since record.timestamp",
+      buckets = pollAgeBuckets,
+      labels  = LabelNames("client", "topic")
+    )
+
+    for {
+      callsCounter      <- callsCounter
+      resultCounter     <- resultCounter
+      latencyHistogram  <- latencyHistogram
+      recordsHistogram  <- recordsHistogram
+      bytesHistogram    <- bytesHistogram
+      rebalancesCounter <- rebalancesCounter
+      topicsLatency     <- topicsLatency
+      ageHistogram      <- ageHistogram
+    } yield { (clientId: ClientId) =>
+      new Histograms(
+        callsCounter,
+        resultCounter,
+        latencyHistogram,
+        recordsHistogram,
+        bytesHistogram,
+        rebalancesCounter,
+        topicsLatency,
+        ageHistogram,
+        clientId
+      )
+    }
+  }
   private val latencyBuckets =
     ProducerMetrics.latencyBuckets
   private val pollCountBuckets =

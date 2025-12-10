@@ -116,6 +116,7 @@ object ProducerMetrics {
     }
   }
 
+  @deprecated(message = "please use `histogramsPrometheusV1` instead", since = "17.3.0")
   def histograms[F[_]: Monad](
     registry: CollectorRegistry[F],
     prefix: Prefix = Prefix.Default
@@ -145,6 +146,46 @@ object ProducerMetrics {
     )
     val callCount =
       registry.counter(name = s"${prefix}_calls_total", help = "Call count", labels = LabelNames("client", "type"))
+    for {
+      latencyHistogram <- latencyHistogram
+      bytesHistogram   <- bytesHistogram
+      resultCounter    <- resultCounter
+      callLatency      <- callLatency
+      callCount        <- callCount
+    } yield { (clientId: ClientId) =>
+      new Histograms[F](latencyHistogram, bytesHistogram, resultCounter, callLatency, callCount, clientId)
+    }
+  }
+
+  def histogramsPrometheusV1[F[_]: Monad](
+    registry: CollectorRegistry[F],
+    prefix: Prefix = Prefix.Default
+  ): Resource[F, ClientId => ProducerMetrics[F]] = {
+    val latencyHistogram = registry.histogram(
+      name    = s"${prefix}_latency",
+      help    = "Latency in seconds",
+      buckets = latencyBuckets,
+      labels  = LabelNames("client", "topic", "type")
+    )
+    val bytesHistogram = registry.histogram(
+      name    = s"${prefix}_bytes",
+      help    = "Message size in bytes",
+      buckets = recordBytesBuckets,
+      labels  = LabelNames("client", "topic")
+    )
+    val resultCounter = registry.counter(
+      name   = s"${prefix}_results",
+      help   = "Result: success or failure",
+      labels = LabelNames("client", "topic", "result")
+    )
+    val callLatency = registry.histogram(
+      name    = s"${prefix}_call_latency",
+      help    = "Call latency in seconds",
+      buckets = latencyBuckets,
+      labels  = LabelNames("client", "type")
+    )
+    val callCount =
+      registry.counter(name = s"${prefix}_calls", help = "Call count", labels = LabelNames("client", "type"))
     for {
       latencyHistogram <- latencyHistogram
       bytesHistogram   <- bytesHistogram

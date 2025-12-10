@@ -1,6 +1,9 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ master ]
+  pull_request:
 
 jobs:
   test:
@@ -10,11 +13,11 @@ jobs:
     strategy:
       matrix:
         scala:
-          - 2.13.16
-          - 3.3.6
+          - 2.13.18
+          - 3.3.7
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: coursier/cache-action@v6
 
@@ -28,8 +31,11 @@ jobs:
       - name: setup SBT
         uses: sbt/setup-sbt@v1
 
+      - name: check code ${{ matrix.scala }}
+        run: sbt ++${{ matrix.scala }} clean check
+
       - name: build ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} clean coverage test versionPolicyCheck
+        run: sbt ++${{ matrix.scala }} clean coverage test
 
       - name: test coverage
         if: success()
@@ -38,10 +44,3 @@ jobs:
           COVERALLS_FLAG_NAME: Scala ${{ matrix.scala }}
         run: sbt ++${{ matrix.scala }} coverageReport coverageAggregate coveralls
 
-      - name: slack
-        uses: homoluctus/slatify@master
-        if: failure() && github.ref == 'refs/heads/master'
-        with:
-          type: ${{ job.status }}
-          job_name: Build
-          url: ${{ secrets.SLACK_WEBHOOK }}

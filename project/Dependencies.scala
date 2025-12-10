@@ -4,13 +4,13 @@ object Dependencies {
 
   val `config-tools`         = "com.evolutiongaming"    %% "config-tools"               % "1.0.5"
   val `future-helper`        = "com.evolutiongaming"    %% "future-helper"              % "1.0.7"
-  val `cats-helper`          = "com.evolutiongaming"    %% "cats-helper"                % "3.11.0"
+  val `cats-helper`          = "com.evolutiongaming"    %% "cats-helper"                % "3.11.3"
   val `testcontainers-kafka` = "com.dimafeng"           %% "testcontainers-scala-kafka" % "0.44.0"
-  val `play-json-jsoniter`   = "com.evolution"          %% "play-json-jsoniter"         % "1.1.1"
+  val `play-json-jsoniter`   = "com.evolution"          %% "play-json-jsoniter"         % "1.2.3"
   val `scala-java8-compat`   = "org.scala-lang.modules" %% "scala-java8-compat"         % "1.0.2"
   val `collection-compat`    = "org.scala-lang.modules" %% "scala-collection-compat"    % "2.13.0"
   val scalatest              = "org.scalatest"          %% "scalatest"                  % "3.2.19"
-  val `kind-projector`       = "org.typelevel"           % "kind-projector"             % "0.13.3"
+  val `kind-projector`       = "org.typelevel"           % "kind-projector"             % "0.13.4"
   val discipline             = "org.typelevel"          %% "discipline-scalatest"       % "2.3.0"
 
   object Kafka {
@@ -19,7 +19,7 @@ object Dependencies {
   }
 
   object Logback {
-    private val version = "1.4.14"
+    private val version = "1.5.21"
     val core            = "ch.qos.logback" % "logback-core"    % version
     val classic         = "ch.qos.logback" % "logback-classic" % version
   }
@@ -37,7 +37,7 @@ object Dependencies {
   }
 
   object CatsEffect {
-    private val version = "3.5.7"
+    private val version = "3.6.3"
     val effect          = "org.typelevel" %% "cats-effect"         % version
     val effectStd       = "org.typelevel" %% "cats-effect-std"     % version
     val effectTestKit   = "org.typelevel" %% "cats-effect-testkit" % version

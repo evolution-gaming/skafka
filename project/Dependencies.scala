@@ -9,7 +9,6 @@ object Dependencies {
   val `play-json-jsoniter`   = "com.evolution"          %% "play-json-jsoniter"         % "1.1.1"
   val `scala-java8-compat`   = "org.scala-lang.modules" %% "scala-java8-compat"         % "1.0.2"
   val `collection-compat`    = "org.scala-lang.modules" %% "scala-collection-compat"    % "2.14.0"
-  // force rebase
   val scalatest              = "org.scalatest"          %% "scalatest"                  % "3.2.19"
   val `kind-projector`       = "org.typelevel"           % "kind-projector"             % "0.13.3"
   val discipline             = "org.typelevel"          %% "discipline-scalatest"       % "2.3.0"

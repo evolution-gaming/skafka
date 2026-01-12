@@ -123,6 +123,20 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
         none[MetricSample]
     }
   }
+
+  override def getPrometheusNames(): java.util.List[String] =
+    getMetricNames().toTry.getOrElse(List.empty).asJava
+
+  private def getMetricNames(): F[List[String]] = {
+    kafkaClientMetrics.map { metrics =>
+      val metricsGroups = metrics.groupBy(m => (m.name, m.group)).toList
+      metricsGroups.flatMap { case ((name, group), metricsGroup) =>
+        val description = metricsGroup.head.description
+        getPrometheusName(name, group, description)
+      }.distinct
+    }
+  }
+
 }
 
 object KafkaMetricsCollector {

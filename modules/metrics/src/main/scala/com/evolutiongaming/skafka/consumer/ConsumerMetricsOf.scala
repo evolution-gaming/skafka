@@ -65,7 +65,7 @@ object ConsumerMetricsOf {
     def exposeJavaClientMetrics(
       prometheus: CollectorRegistry,
       prefix: Option[String] = None,
-    )(implicit F: Sync[F], toTry: ToTry[F]): Resource[F, ConsumerMetrics[F]] =
+    )(implicit F: Sync[F], toTry: ToTry[F], uuidGen: UUIDGen[F]): Resource[F, ConsumerMetrics[F]] =
       withJavaClientMetrics(source, prometheus, prefix)
 
   }

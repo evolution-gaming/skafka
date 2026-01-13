@@ -9,6 +9,7 @@ import com.evolutiongaming.skafka.ClientMetric
 import io.prometheus.metrics.model.registry.PrometheusRegistry
 
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /** Allows reporting metrics of multiple Kafka clients inside a single VM.
   *
@@ -40,10 +41,14 @@ trait KafkaMetricsRegistry[F[_]] {
 
 object KafkaMetricsRegistry {
 
+  private val activeRegistrations = new ConcurrentHashMap[(PrometheusRegistry, Option[String]), Unit]()
+
   def of[F[_]: Sync: ToTry: UUIDGen](
     prometheus: PrometheusRegistry,
     prefix: Option[String] = None,
-  ): Resource[F, KafkaMetricsRegistry[F]] =
+  ): Resource[F, KafkaMetricsRegistry[F]] = {
+    val key = (prometheus, prefix)
+
     for {
       sources <- Ref[F].of(Map.empty[UUID, F[Seq[ClientMetric[F]]]]).toResource
 
@@ -62,10 +67,23 @@ object KafkaMetricsRegistry {
         .widen[Seq[ClientMetric[F]]]
 
       collector = new KafkaMetricsCollector[F](metrics, prefix, List.empty)
-      allocate  = Sync[F].delay { prometheus.register(collector) }
-      release   = Sync[F].delay { prometheus.unregister(collector) }
 
-      _ <- Resource.make(allocate)(_ => release)
+      _ <- Resource.make {
+        Sync[F].delay {
+          val previous = Option(activeRegistrations.putIfAbsent(key, ()))
+          if (previous.isDefined) {
+            throw new IllegalStateException(
+              s"KafkaMetricsRegistry already registered for this PrometheusRegistry instance with prefix=$prefix"
+            )
+          }
+          prometheus.register(collector)
+        }
+      } { _ =>
+        Sync[F].delay {
+          prometheus.unregister(collector)
+          activeRegistrations.remove(key)
+        }.void
+      }
     } yield new KafkaMetricsRegistry[F] {
 
       def register(metrics: F[Seq[ClientMetric[F]]]): Resource[F, Unit] =
@@ -78,5 +96,6 @@ object KafkaMetricsRegistry {
           _ <- Resource.make(allocate)(_ => release)
         } yield {}
     }
+  }
 
 }

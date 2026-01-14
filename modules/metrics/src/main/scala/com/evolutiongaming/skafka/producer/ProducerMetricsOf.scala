@@ -90,7 +90,7 @@ object ProducerMetricsOf {
     def exposeJavaClientMetrics(
       prometheus: CollectorRegistry,
       prefix: Option[String],
-    )(implicit F: Sync[F], toTry: ToTry[F]): Resource[F, ProducerMetrics[F]] =
+    )(implicit F: Sync[F], toTry: ToTry[F], uuidGen: UUIDGen[F]): Resource[F, ProducerMetrics[F]] =
       withJavaClientMetrics(source, prometheus, prefix)
 
   }

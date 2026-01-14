@@ -55,7 +55,7 @@ object ConsumerMetricsOf {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
     } yield consumerMetricsOf(source, registry)
 
-  private def consumerMetricsOf[F[_]](
+  def consumerMetricsOf[F[_]](
     source: ConsumerMetrics[F],
     registry: KafkaMetricsRegistry[F],
   ): ConsumerMetrics[F] = new WithJavaClientMetrics(source, registry)
@@ -74,7 +74,7 @@ object ConsumerMetricsOf {
     def exposeJavaClientMetrics(
       prometheus: PrometheusRegistry,
       prefix: Option[String] = None,
-    )(implicit F: Sync[F], toTry: ToTry[F]): Resource[F, ConsumerMetrics[F]] =
+    )(implicit F: Sync[F], toTry: ToTry[F], uuidGen: UUIDGen[F]): Resource[F, ConsumerMetrics[F]] =
       withJavaClientMetrics(source, prometheus, prefix)
 
   }

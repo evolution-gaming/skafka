@@ -99,8 +99,7 @@ lazy val `metrics-prometheus-v1` = (project in file("modules/metrics_prometheus_
     CatsEffect.effectTestKit % Test
   ))
   settings (name := "skafka-metrics-prometheus-v1")
-  settings (organization := "com.evolution")
-  settings (versionPolicyCheck / skip := true))
+  settings (organization := "com.evolution"))
 
 lazy val tests = (project in file("tests")
   settings (name := "skafka-tests")

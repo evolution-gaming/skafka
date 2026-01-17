@@ -10,8 +10,7 @@ import io.prometheus.client.CollectorRegistry
 
 import java.util.UUID
 
-/**
-  * Allows reporting metrics of multiple Kafka clients inside a single VM.
+/** Allows reporting metrics of multiple Kafka clients inside a single VM.
   *
   * Example:
   * {{{
@@ -32,9 +31,7 @@ import java.util.UUID
   */
 trait KafkaMetricsRegistry[F[_]] {
 
-  /**
-    * Register a function to obtain a list of client metrics.
-    * Normally, you would pass
+  /** Register a function to obtain a list of client metrics. Normally, you would pass
     * [[com.evolutiongaming.skafka.consumer.Consumer#clientMetrics]] or
     * [[com.evolutiongaming.skafka.producer.Producer#clientMetrics]]
     */

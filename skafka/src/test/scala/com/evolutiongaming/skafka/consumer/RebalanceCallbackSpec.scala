@@ -74,7 +74,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       "handleErrorWith" - {
         import cats.syntax.applicativeError._
 
-        /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error */
+        /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error
+          */
         def testFailedInput[A](
           input: RebalanceCallback[Try, A],
           recoverValue: A,
@@ -195,8 +196,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "beginningOffsets" in {
-        val input  = partitions
-        val output = offsetsMap
+        val input    = partitions
+        val output   = offsetsMap
         val consumer = new ExplodingConsumer {
           override def beginningOffsets(p: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
             p mustBe input.j
@@ -220,7 +221,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "commit" in {
-        val input = offsetsAndMetadataMap
+        val input    = offsetsAndMetadataMap
         val consumer = new ExplodingConsumer {
           override def commitSync(): Unit = ()
 
@@ -250,8 +251,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "committed" in {
-        val input  = partitions
-        val output = offsetsAndMetadataMap
+        val input    = partitions
+        val output   = offsetsAndMetadataMap
         val consumer = new ExplodingConsumer {
           override def committed(p: SetJ[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] = {
             p mustBe input.j
@@ -275,8 +276,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "endOffsets" in {
-        val input  = partitions
-        val output = offsetsMap
+        val input    = partitions
+        val output   = offsetsMap
         val consumer = new ExplodingConsumer {
           override def endOffsets(p: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
             p mustBe input.j
@@ -314,7 +315,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         val output = partitionInfoMap
 
         val consumer = new ExplodingConsumer {
-          override def listTopics(): MapJ[Topic, ListJ[PartitionInfoJ]] = output.j
+          override def listTopics(): MapJ[Topic, ListJ[PartitionInfoJ]]                   = output.j
           override def listTopics(timeout: DurationJ): MapJ[Topic, ListJ[PartitionInfoJ]] = {
             timeout mustBe timeouts.j
             output.j
@@ -746,14 +747,14 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       "cats traverse is working for RebalanceCallback[Nothing, *]" in {
         val seekResult: AtomicReference[List[String]] = new AtomicReference(List.empty)
-        val consumer = new ExplodingConsumer {
+        val consumer                                  = new ExplodingConsumer {
           override def seek(partition: TopicPartitionJ, offset: Long): Unit = {
             val _ = seekResult.getAndUpdate(_ :+ partition.topic())
           }
         }.asRebalanceConsumer
 
         import cats.implicits._
-        val topics = List(1, 2, 3)
+        val topics                          = List(1, 2, 3)
         val rc: RebalanceCallback[IO, Unit] = for {
           a <- topics.foldMapM(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))
         } yield a

@@ -44,7 +44,7 @@ object RebalanceListener1SyntaxSpec {
       groupByTopic(partitions) traverse_ {
         case (_, partitions) =>
           for {
-            _ <- someF.lift
+            _                 <- someF.lift
             partitionsOffsets <- partitions.toNonEmptyList traverse { partition =>
               // fails to compile with `RebalanceCallback.position` variant at
               // _ <- someF2(partitionsOffsets).lift

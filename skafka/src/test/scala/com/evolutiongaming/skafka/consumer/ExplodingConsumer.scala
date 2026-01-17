@@ -6,16 +6,23 @@ import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetAndTimestamp => OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetAndTimestamp => OffsetAndTimestampJ
+}
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
 
-/**
-  * It is intentional to have all methods as `notImplemented` (throws NotImplementedOnPurpose)
+/** It is intentional to have all methods as `notImplemented` (throws NotImplementedOnPurpose)
   *
-  * It is used to verify the only expected interaction in corresponding tests
-  * by implementing the only expected method to be called in test
+  * It is used to verify the only expected interaction in corresponding tests by implementing the only expected method
+  * to be called in test
   */
 class ExplodingConsumer extends ConsumerJ[String, String] {
   def assignment(): SetJ[TopicPartitionJ] = notImplemented

@@ -37,8 +37,8 @@ object SslSupportConfig {
 
   def apply(config: Config): SslSupportConfig =
     new SslSupportConfig(
-      keystoreType = config.getOpt[KeystoreType]("ssl-keystore-type", "ssl.keystore.type"),
-      keystoreKey  = config.getOpt[String]("ssl-keystore-key", "ssl.keystore.key"),
+      keystoreType             = config.getOpt[KeystoreType]("ssl-keystore-type", "ssl.keystore.type"),
+      keystoreKey              = config.getOpt[String]("ssl-keystore-key", "ssl.keystore.key"),
       keystoreCertificateChain =
         config.getOpt[String]("ssl-keystore-certificate-chain", "ssl.keystore.certificate.chain"),
       keystoreLocation       = config.getOpt[String]("ssl-keystore-location", "ssl.keystore.location"),

@@ -7,9 +7,10 @@ import org.apache.kafka.clients.{CommonClientConfigs => C}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-/**
-  * @param bootstrapServers should be in the form of "host1:port1","host2:port2,..."
-  * @param clientId         An id string to pass to the server when making requests
+/** @param bootstrapServers
+  *   should be in the form of "host1:port1","host2:port2,..."
+  * @param clientId
+  *   An id string to pass to the server when making requests
   */
 final case class CommonConfig(
   bootstrapServers: Nel[String]                   = Nel.of("localhost:9092"),
@@ -55,12 +56,13 @@ object CommonConfig {
 
   val Default: CommonConfig = CommonConfig()
 
-  private implicit val SecurityProtocolFromConf: FromConf[SecurityProtocol] = FromConf[SecurityProtocol] { (conf, path) =>
-    val str   = conf.getString(path)
-    val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
-    value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
-    }
+  private implicit val SecurityProtocolFromConf: FromConf[SecurityProtocol] = FromConf[SecurityProtocol] {
+    (conf, path) =>
+      val str   = conf.getString(path)
+      val value = SecurityProtocol.Values.find { _.name equalsIgnoreCase str }
+      value getOrElse {
+        throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse SecurityProtocol from $str")
+      }
   }
 
   private implicit val ClientDnsLookupFromConf: FromConf[ClientDnsLookup] = FromConf[ClientDnsLookup] { (conf, path) =>
@@ -93,16 +95,16 @@ object CommonConfig {
         getDuration("connections-max-idle", "connections.max.idle.ms") getOrElse default.connectionsMaxIdle,
       receiveBufferBytes =
         get[Int]("receive-buffer-bytes", "receive.buffer.bytes") getOrElse default.receiveBufferBytes,
-      sendBufferBytes = get[Int]("send-buffer-bytes", "send.buffer.bytes") getOrElse default.sendBufferBytes,
-      requestTimeout  = getDuration("request-timeout", "request.timeout.ms") getOrElse default.requestTimeout,
-      metadataMaxAge  = getDuration("metadata-max-age", "metadata.max.age.ms") getOrElse default.metadataMaxAge,
+      sendBufferBytes     = get[Int]("send-buffer-bytes", "send.buffer.bytes") getOrElse default.sendBufferBytes,
+      requestTimeout      = getDuration("request-timeout", "request.timeout.ms") getOrElse default.requestTimeout,
+      metadataMaxAge      = getDuration("metadata-max-age", "metadata.max.age.ms") getOrElse default.metadataMaxAge,
       reconnectBackoffMax =
         getDuration("reconnect-backoff-max", "reconnect.backoff.max.ms") getOrElse default.reconnectBackoffMax,
       reconnectBackoff = getDuration("reconnect-backoff", "reconnect.backoff.ms") getOrElse default.reconnectBackoff,
       retryBackoff     = getDuration("retry-backoff", "retry.backoff.ms") getOrElse default.retryBackoff,
       securityProtocol =
         get[SecurityProtocol]("security-protocol", "security.protocol") getOrElse default.securityProtocol,
-      metrics = MetricsConfig(config),
+      metrics         = MetricsConfig(config),
       clientDnsLookup =
         get[ClientDnsLookup]("client-dns-lookup", "client.dns.lookup") getOrElse default.clientDnsLookup,
       socketConnectionSetupTimeoutMax =

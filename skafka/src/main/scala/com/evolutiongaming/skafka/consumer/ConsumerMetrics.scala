@@ -111,7 +111,7 @@ object ConsumerMetrics {
       bytesSummary      <- bytesSummary
       rebalancesCounter <- rebalancesCounter
       topicsLatency     <- topicsLatency
-      ageSummary <- registry.summary(
+      ageSummary        <- registry.summary(
         name      = s"${prefix}_poll_age",
         help      = "Poll records age, time since record.timestamp",
         quantiles = Quantiles.Default,

@@ -43,10 +43,9 @@ object ProducerOf {
     }
   }
 
-  /** The sole purpose of this method is to support binary compatibility with an intermediate
-    *  version (namely, 15.2.0) which had `apply1` method using `MeasureDuration` from `smetrics`
-    *  and `apply2` using `MeasureDuration` from `cats-helper`.
-    *  This should not be used and should be removed in a reasonable amount of time.
+  /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
+    * which had `apply1` method using `MeasureDuration` from `smetrics` and `apply2` using `MeasureDuration` from
+    * `cats-helper`. This should not be used and should be removed in a reasonable amount of time.
     */
   @deprecated("Use `apply1`", since = "16.0.3")
   def apply2[F[_]: MeasureDuration: ToTry: Async](

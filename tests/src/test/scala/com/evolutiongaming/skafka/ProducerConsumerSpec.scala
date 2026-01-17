@@ -79,7 +79,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         groupId         = Some(s"group-$topic"),
         autoOffsetReset = AutoOffsetReset.Earliest,
         autoCommit      = false,
-        common = CommonConfig(
+        common          = CommonConfig(
           bootstrapServers = NonEmptyList.one(kafkaContainer.bootstrapServers),
           clientId         = Some(UUID.randomUUID().toString)
         )
@@ -129,7 +129,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       assigned <- Deferred[IO, Unit]
       listener  = listenerOf(assigned = assigned)
       consumer  = consumerOf(topic, listener.some)
-      _ <- consumer.use { consumer =>
+      _        <- consumer.use { consumer =>
         val poll = consumer
           .poll(10.millis)
           .foreverM
@@ -210,17 +210,18 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     }
 
     val result = for {
-      testCompleted    <- Deferred[IO, Unit]
-      positions        <- Ref.of[IO, Set[Offset]](Set.empty)
-      rebalanceCounter <- Ref.of[IO, Int](0)
-      completeTestIfNeeded = for {
-        rebalanceCounter <- rebalanceCounter.get
-        positions        <- positions.get
-        completed <-
-          if (rebalanceCounter >= requiredNumberOfRebalances || positions.size > 1)
-            testCompleted.complete(()).handleError(_ => ()).void
-          else IO.unit
-      } yield completed
+      testCompleted       <- Deferred[IO, Unit]
+      positions           <- Ref.of[IO, Set[Offset]](Set.empty)
+      rebalanceCounter    <- Ref.of[IO, Int](0)
+      completeTestIfNeeded =
+        for {
+          rebalanceCounter <- rebalanceCounter.get
+          positions        <- positions.get
+          completed        <-
+            if (rebalanceCounter >= requiredNumberOfRebalances || positions.size > 1)
+              testCompleted.complete(()).handleError(_ => ()).void
+            else IO.unit
+        } yield completed
 
       consumer = consumerOf(topic, none)
       producer = producerOf(Acks.One, idempotence = false)
@@ -238,7 +239,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
           consumer <- consumer
           listener  = listenerOf(positions, rebalanceCounter, assigned)
           _        <- consumer.subscribe(Nes.of(topic), listener).toResource
-          poll = {
+          poll      = {
             consumer.poll(10.millis).onError({ case e => IO.delay(println(s"${System.nanoTime()} poll failed $e")) })
           }
           // without IO.cancelBoundary consumer.poll is called after consumer was closed
@@ -306,7 +307,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
             committed <- consumer.committed(partitions)
             offset     = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
             _         <- offsets.update(_ :+ offset).lift
-            a <- consumer.commit(
+            a         <- consumer.commit(
               partitions.map(_ -> OffsetAndMetadata(Offset.unsafe(offset.value + 1))).toNonEmptyList.toNem
             )
           } yield a
@@ -316,13 +317,14 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     }
 
     val result = for {
-      testCompleted    <- Deferred[IO, Unit]
-      offsets          <- Ref.of[IO, List[Offset]](List.empty)
-      rebalanceCounter <- Ref.of[IO, Int](0)
-      completeTestIfNeeded = for {
-        rebalanceCounter <- rebalanceCounter.get
-        completed        <- if (rebalanceCounter >= requiredNumberOfRebalances) testCompleted.complete(()) else IO.unit
-      } yield completed
+      testCompleted       <- Deferred[IO, Unit]
+      offsets             <- Ref.of[IO, List[Offset]](List.empty)
+      rebalanceCounter    <- Ref.of[IO, Int](0)
+      completeTestIfNeeded =
+        for {
+          rebalanceCounter <- rebalanceCounter.get
+          completed <- if (rebalanceCounter >= requiredNumberOfRebalances) testCompleted.complete(()) else IO.unit
+        } yield completed
 
       consumer = consumerOf(topic, none)
       producer = producerOf(Acks.One, idempotence = false)
@@ -445,7 +447,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       val key       = "key1"
       val value     = "value1"
       val timestamp = instant
-      val record = ProducerRecord(
+      val record    = ProducerRecord(
         topic     = topic,
         value     = Some(value),
         key       = Some(key),
@@ -485,7 +487,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       keyAndValues shouldEqual List((Some(key), record.value))
 
       val timestamp = instant
-      val delete =
+      val delete    =
         ProducerRecord[String, String](topic = topic, key = Some(key), timestamp = Some(timestamp), headers = headers)
 
       val deleteMetadata = produce(delete)

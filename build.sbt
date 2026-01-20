@@ -53,7 +53,7 @@ lazy val root = (project in file(".")
   settings commonSettings
   settings (publish / skip := true)
   settings (alias)
-  aggregate (skafka, `play-json`, metrics, `metrics-prometheus-v1`, tests))
+  aggregate (skafka, `play-json`, metrics, `metrics-prometheus-v1`, tests, circe))
 
 lazy val skafka = (project in file("skafka")
   settings commonSettings
@@ -89,6 +89,12 @@ lazy val metrics = (project in file("modules/metrics")
   settings commonSettings
   dependsOn skafka
   settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))
+
+lazy val circe = (project in file("modules/circe")
+  settings (name := "skafka-circe")
+  settings commonSettings
+  dependsOn skafka
+  settings (libraryDependencies ++= Seq(Dependencies.circe)))
 
 lazy val `metrics-prometheus-v1` = (project in file("modules/metrics_prometheus_v1")
   settings commonSettings

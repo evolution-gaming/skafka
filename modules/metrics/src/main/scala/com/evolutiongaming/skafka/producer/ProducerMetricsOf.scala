@@ -11,13 +11,16 @@ import scala.concurrent.duration.FiniteDuration
 
 object ProducerMetricsOf {
 
-  /**
-    * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
+  /** Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
     *
-    * @param sourceOf original [[ProducerMetrics]] factory
-    * @param prometheus instance of Prometheus registry
-    * @param prefix metric name prefix
-    * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
+    * @param sourceOf
+    *   original [[ProducerMetrics]] factory
+    * @param prometheus
+    *   instance of Prometheus registry
+    * @param prefix
+    *   metric name prefix
+    * @return
+    *   [[ProducerMetrics]] that exposes Java Kafka client metrics
     */
   def withJavaClientMetrics[F[_]: Sync: ToTry: UUIDGen](
     sourceOf: ClientId => ProducerMetrics[F],
@@ -31,13 +34,16 @@ object ProducerMetricsOf {
       producerMetricsOf(source, registry)
     }
 
-  /**
-    * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
+  /** Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
     *
-    * @param source original [[ProducerMetrics]]
-    * @param prometheus instance of Prometheus registry
-    * @param prefix metric name prefix
-    * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
+    * @param source
+    *   original [[ProducerMetrics]]
+    * @param prometheus
+    *   instance of Prometheus registry
+    * @param prefix
+    *   metric name prefix
+    * @return
+    *   [[ProducerMetrics]] that exposes Java Kafka client metrics
     */
   def withJavaClientMetrics[F[_]: Sync: ToTry: UUIDGen](
     source: ProducerMetrics[F],
@@ -80,12 +86,14 @@ object ProducerMetricsOf {
 
   implicit final class ProducerMetricsOps[F[_]](val source: ProducerMetrics[F]) extends AnyVal {
 
-    /**
-      * Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
+    /** Construct [[ProducerMetrics]] that will expose Java Kafka client metrics.
       *
-      * @param prometheus instance of Prometheus registry
-      * @param prefix metric name prefix
-      * @return [[ProducerMetrics]] that exposes Java Kafka client metrics
+      * @param prometheus
+      *   instance of Prometheus registry
+      * @param prefix
+      *   metric name prefix
+      * @return
+      *   [[ProducerMetrics]] that exposes Java Kafka client metrics
       */
     def exposeJavaClientMetrics(
       prometheus: CollectorRegistry,

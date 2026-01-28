@@ -28,8 +28,7 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 
-/**
-  * See [[org.apache.kafka.clients.consumer.Consumer]]
+/** See [[org.apache.kafka.clients.consumer.Consumer]]
   */
 trait Consumer[F[_], K, V] {
 
@@ -279,7 +278,7 @@ object Consumer {
       semaphore            <- Semaphore(1).toResource
       consumer             <- consumer.toResource
       clientMetricsProvider = ClientMetricsProvider[F](consumer)
-      around = new Around {
+      around                = new Around {
         def apply[A](f: => A) = {
           semaphore
             .permit
@@ -605,11 +604,12 @@ object Consumer {
 
       val topics = for {
         topicPartitions <- self.assignment
-      } yield for {
-        topicPartition <- topicPartitions
-      } yield {
-        topicPartition.topic
-      }
+      } yield
+        for {
+          topicPartition <- topicPartitions
+        } yield {
+          topicPartition.topic
+        }
 
       def call[A](name: String, topics: Iterable[Topic])(fa: F[A]): F[A] = {
         for {
@@ -739,17 +739,19 @@ object Consumer {
         def poll(timeout: FiniteDuration) = {
           for {
             records <- call1("poll") { self.poll(timeout) }
-            _ <- records
+            _       <- records
               .values
               .values
               .flatMap { _.toList }
               .groupBy { _.topic }
               .toList
-              .foldMapM { case (topic, records) =>
-                val bytes = records.foldLeft(0) { case (bytes, record) =>
-                  bytes + record.value.foldMap { _.serializedSize }
-                }
-                metrics.poll(topic, bytes = bytes, records = records.size, age = none)
+              .foldMapM {
+                case (topic, records) =>
+                  val bytes = records.foldLeft(0) {
+                    case (bytes, record) =>
+                      bytes + record.value.foldMap { _.serializedSize }
+                  }
+                  metrics.poll(topic, bytes = bytes, records = records.size, age = none)
               }
           } yield records
         }
@@ -975,11 +977,12 @@ object Consumer {
 
       val topics = for {
         topicPartitions <- self.assignment
-      } yield for {
-        topicPartition <- topicPartitions
-      } yield {
-        topicPartition.topic
-      }
+      } yield
+        for {
+          topicPartition <- topicPartitions
+        } yield {
+          topicPartition.topic
+        }
 
       def call[A](name: String, topics: Iterable[Topic])(fa: F[A]): F[A] = {
         for {
@@ -1005,7 +1008,7 @@ object Consumer {
       def count1(name: String): F[Unit] = {
         for {
           topics <- topics
-          r <- count(name, topics)
+          r      <- count(name, topics)
         } yield r
       }
 
@@ -1116,27 +1119,28 @@ object Consumer {
               .flatMap { _.toList }
               .groupBy { _.topic }
               .toList
-              .foldMapM { case (topic, records) =>
-                val bytes = records.foldLeft(0) { case (bytes, record) =>
-                  bytes + record.value.foldMap { _.serializedSize }
-                }
-                val age = records
-                  .foldLeft(none[Long]) { case (timestamp, record) =>
-                    record
-                      .timestampAndType
-                      .fold {
-                        timestamp
-                      } { timestampAndType =>
-                        val timestamp1 = timestampAndType
-                          .timestamp
-                          .toEpochMilli
-                        timestamp
-                          .fold { timestamp1 } { _ min timestamp1 }
-                          .some
-                      }
+              .foldMapM {
+                case (topic, records) =>
+                  val bytes = records.foldLeft(0) {
+                    case (bytes, record) =>
+                      bytes + record.value.foldMap { _.serializedSize }
                   }
-                  .map { timestamp => now - timestamp.millis }
-                metrics.poll(topic, bytes = bytes, records = records.size, age = age)
+                  val age = records
+                    .foldLeft(none[Long]) {
+                      case (timestamp, record) =>
+                        record
+                          .timestampAndType
+                          .fold {
+                            timestamp
+                          } { timestampAndType =>
+                            val timestamp1 = timestampAndType
+                              .timestamp
+                              .toEpochMilli
+                            timestamp.fold { timestamp1 } { _ min timestamp1 }.some
+                          }
+                    }
+                    .map { timestamp => now - timestamp.millis }
+                  metrics.poll(topic, bytes = bytes, records = records.size, age = age)
               }
           } yield records
 
@@ -1355,10 +1359,10 @@ object Consumer {
       }
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate
-      * version (namely, 15.2.0) which had `withMetrics1` method using `MeasureDuration` from `smetrics`
-      * and `withMetrics2` using `MeasureDuration` from `cats-helper`.
-      * This should not be used and should be removed in a reasonable amount of time.
+    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
+      * which had `withMetrics1` method using `MeasureDuration` from `smetrics` and `withMetrics2` using
+      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
+      * time.
       */
     @deprecated("Use `withMetrics1`", since = "16.0.2")
     def withMetrics2[E](
@@ -1370,11 +1374,11 @@ object Consumer {
       ConsumerLogging(log, self)
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate
-     *  version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
-     *  and `withLogging1` using `MeasureDuration` from `cats-helper`.
-     *  This should not be used and should be removed in a reasonable amount of time.
-     */
+    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
+      * which had `withLogging` method using `MeasureDuration` from `smetrics` and `withLogging1` using
+      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
+      * time.
+      */
     @deprecated("Use `withLogging`", since = "16.0.2")
     def withLogging1(log: Log[F])(implicit F: Monad[F], measureDuration: MeasureDuration[F]): Consumer[F, K, V] = {
       withLogging(log)

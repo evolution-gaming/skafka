@@ -6,7 +6,12 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 import cats.implicits._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  Consumer => ConsumerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ
+}
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
 
 import scala.annotation.nowarn
@@ -17,7 +22,7 @@ object ConsumerJHelper {
 
     def errorOnConcurrentAccess: ConsumerJ[K, V] = {
       val threadIdRef = new AtomicReference(none[Long])
-      val lock = new ByName {
+      val lock        = new ByName {
         def apply[A](f: => A) = {
           threadIdRef
             .get()

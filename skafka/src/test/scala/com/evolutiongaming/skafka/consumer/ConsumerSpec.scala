@@ -17,7 +17,14 @@ import com.evolutiongaming.skafka.IOMatchers._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
+import org.apache.kafka.clients.consumer.{
+  Consumer => ConsumerJ,
+  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
+  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
+  OffsetCommitCallback => OffsetCommitCallbackJ
+}
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -38,7 +45,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
   private val partitions         = Nes.of(topicPartition)
   private val instant            = Instant.now().truncatedTo(ChronoUnit.MILLIS)
   private val offsetAndTimestamp = OffsetAndTimestamp(offset, instant)
-  private val consumerRecord = ConsumerRecord(
+  private val consumerRecord     = ConsumerRecord(
     topicPartition   = topicPartition,
     offset           = offset,
     timestampAndType = Some(TimestampAndType(instant, TimestampType.create)),
@@ -209,7 +216,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     "offsetsForTimes" in new Scope {
       val timestampsToSearch = Map((topicPartition, offset), (topicPartition2, offset))
-      val expected = Map(
+      val expected           = Map(
         (topicPartition, Option(offsetAndTimestamp)),
         (topicPartition2, Option.empty)
       )
@@ -219,7 +226,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     "offsetsForTimes with timeout" in new Scope {
       val timestampsToSearch = Map((topicPartition, offset), (topicPartition2, offset))
-      val expected = Map(
+      val expected           = Map(
         (topicPartition, Option(offsetAndTimestamp)),
         (topicPartition2, Option.empty)
       )

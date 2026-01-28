@@ -8,8 +8,7 @@ import org.apache.kafka.clients.consumer.{ConsumerConfig => C}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 
-/**
-  * Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
+/** Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
   */
 final case class ConsumerConfig(
   common: CommonConfig                       = CommonConfig.Default,
@@ -20,20 +19,21 @@ final case class ConsumerConfig(
   heartbeatInterval: FiniteDuration          = 3.seconds,
   autoCommit: Boolean                        = true,
   autoCommitInterval: Option[FiniteDuration] = None,
-  partitionAssignmentStrategy: String        = "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
-  autoOffsetReset: AutoOffsetReset           = AutoOffsetReset.Latest,
-  defaultApiTimeout: FiniteDuration          = 1.minute,
-  fetchMinBytes: Int                         = 1,
-  fetchMaxBytes: Int                         = 52428800,
-  fetchMaxWait: FiniteDuration               = 500.millis,
-  maxPartitionFetchBytes: Int                = 1048576,
-  checkCrcs: Boolean                         = true,
-  interceptorClasses: List[String]           = Nil,
-  excludeInternalTopics: Boolean             = true,
-  isolationLevel: IsolationLevel             = IsolationLevel.ReadUncommitted,
-  saslSupport: SaslSupportConfig             = SaslSupportConfig.Default,
-  sslSupport: SslSupportConfig               = SslSupportConfig.Default,
-  clientRack: Option[String]                 = None,
+  partitionAssignmentStrategy: String        =
+    "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
+  autoOffsetReset: AutoOffsetReset  = AutoOffsetReset.Latest,
+  defaultApiTimeout: FiniteDuration = 1.minute,
+  fetchMinBytes: Int                = 1,
+  fetchMaxBytes: Int                = 52428800,
+  fetchMaxWait: FiniteDuration      = 500.millis,
+  maxPartitionFetchBytes: Int       = 1048576,
+  checkCrcs: Boolean                = true,
+  interceptorClasses: List[String]  = Nil,
+  excludeInternalTopics: Boolean    = true,
+  isolationLevel: IsolationLevel    = IsolationLevel.ReadUncommitted,
+  saslSupport: SaslSupportConfig    = SaslSupportConfig.Default,
+  sslSupport: SslSupportConfig      = SslSupportConfig.Default,
+  clientRack: Option[String]        = None,
 ) {
 
   def bindings: Map[String, String] = {
@@ -109,11 +109,11 @@ object ConsumerConfig {
     }
 
     ConsumerConfig(
-      common          = CommonConfig(config, default.common),
-      groupId         = get[String]("group-id", "group.id") orElse default.groupId,
-      maxPollRecords  = get[Int]("max-poll-records", "max.poll.records") getOrElse default.maxPollRecords,
-      maxPollInterval = getDuration("max-poll-interval", "max.poll.interval.ms") getOrElse default.maxPollInterval,
-      sessionTimeout  = getDuration("session-timeout", "session.timeout.ms") getOrElse default.sessionTimeout,
+      common            = CommonConfig(config, default.common),
+      groupId           = get[String]("group-id", "group.id") orElse default.groupId,
+      maxPollRecords    = get[Int]("max-poll-records", "max.poll.records") getOrElse default.maxPollRecords,
+      maxPollInterval   = getDuration("max-poll-interval", "max.poll.interval.ms") getOrElse default.maxPollInterval,
+      sessionTimeout    = getDuration("session-timeout", "session.timeout.ms") getOrElse default.sessionTimeout,
       heartbeatInterval =
         getDuration("heartbeat-interval", "heartbeat.interval.ms") getOrElse default.heartbeatInterval,
       autoCommit = get[Boolean]("auto-commit", "enable-auto-commit", "enable.auto.commit") getOrElse default.autoCommit,
@@ -127,12 +127,12 @@ object ConsumerConfig {
         get[AutoOffsetReset]("auto-offset-reset", "auto.offset.reset") getOrElse default.autoOffsetReset,
       defaultApiTimeout =
         get[FiniteDuration]("default-api-timeout", "default.api.timeout.ms") getOrElse default.defaultApiTimeout,
-      fetchMinBytes = get[Int]("fetch-min-bytes", "fetch.min.bytes") getOrElse default.fetchMinBytes,
-      fetchMaxBytes = get[Int]("fetch-max-bytes", "fetch.max.bytes") getOrElse default.fetchMaxBytes,
-      fetchMaxWait  = getDuration("fetch-max-wait", "fetch.max.wait.ms") getOrElse default.fetchMaxWait,
+      fetchMinBytes          = get[Int]("fetch-min-bytes", "fetch.min.bytes") getOrElse default.fetchMinBytes,
+      fetchMaxBytes          = get[Int]("fetch-max-bytes", "fetch.max.bytes") getOrElse default.fetchMaxBytes,
+      fetchMaxWait           = getDuration("fetch-max-wait", "fetch.max.wait.ms") getOrElse default.fetchMaxWait,
       maxPartitionFetchBytes =
         get[Int]("max-partition-fetch-bytes", "max.partition.fetch.bytes") getOrElse default.maxPartitionFetchBytes,
-      checkCrcs = get[Boolean]("check-crcs", "check.crcs") getOrElse default.checkCrcs,
+      checkCrcs          = get[Boolean]("check-crcs", "check.crcs") getOrElse default.checkCrcs,
       interceptorClasses =
         get[List[String]]("interceptor-classes", "interceptor.classes") getOrElse default.interceptorClasses,
       excludeInternalTopics =
@@ -144,7 +144,7 @@ object ConsumerConfig {
     )
   }
 
-  //for binary compatibility
+  // for binary compatibility
   private[consumer] def apply(
     common: CommonConfig,
     groupId: Option[String],

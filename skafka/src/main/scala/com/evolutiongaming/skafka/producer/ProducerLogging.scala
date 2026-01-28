@@ -14,8 +14,8 @@ object ProducerLogging {
   def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F]): Producer[F] =
     apply(producer, log, charsToTrim = 1024)
 
-  /**
-    * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+  /** @param charsToTrim
+    *   a number of chars from record's value to log when producing fails because of a too large record
     */
   def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int): Producer[F] = {
 
@@ -36,15 +36,16 @@ object ProducerLogging {
         val a = for {
           d <- MeasureDuration[F].start
           a <- producer.send(record)
-        } yield for {
-          a <- a.attempt
-          d <- d
-          _ <- a match {
-            case Right(a) => log.debug(s"send in ${d.toMillis}ms, $record, result: $a")
-            case Left(e)  => logError(record, e)
-          }
-          a <- a.liftTo[F]
-        } yield a
+        } yield
+          for {
+            a <- a.attempt
+            d <- d
+            _ <- a match {
+              case Right(a) => log.debug(s"send in ${d.toMillis}ms, $record, result: $a")
+              case Left(e)  => logError(record, e)
+            }
+            a <- a.liftTo[F]
+          } yield a
 
         a.handleErrorWith { e =>
           for {

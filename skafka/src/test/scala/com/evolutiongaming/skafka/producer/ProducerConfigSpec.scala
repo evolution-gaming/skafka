@@ -46,7 +46,7 @@ class ProducerConfigSpec extends AnyFunSuite with Matchers {
 
   test("bindings") {
     val configs = ProducerConfig(
-      common          = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
+      common = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
       transactionalId = Some("transactionId")
     )
 

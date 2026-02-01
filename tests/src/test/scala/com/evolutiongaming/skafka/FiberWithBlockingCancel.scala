@@ -13,7 +13,7 @@ object FiberWithBlockingCancel {
     def startAwaitExit(implicit c: Concurrent[F]): F[Fiber[F, Throwable, A]] = {
       for {
         deferred <- Deferred[F, Unit]
-        fiber <- self.guarantee {
+        fiber    <- self.guarantee {
           deferred.complete(()).handleError { _ => true }.void
         }.start
       } yield {

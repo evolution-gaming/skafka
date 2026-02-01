@@ -99,9 +99,9 @@ class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
       ref.updateAndGet(state => state.copy(checks = state.checks - 1)).map(_.checks <= 0)
 
     val result = for {
-      ref <- Ref.of[IO, State](State(checks = 2))
+      ref        <- Ref.of[IO, State](State(checks = 2))
       healthCheck = KafkaHealthCheck.of[IO](
-        key = "key",
+        key    = "key",
         config =
           KafkaHealthCheck.Config(topic = "topic", initial = 0.millis, interval = 0.millis, timeout = 100.millis),
         stop     = stopOf(ref),
@@ -115,7 +115,7 @@ class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
     } yield state shouldEqual State(
       checks     = 0,
       subscribed = "topic".some,
-      logs = List(
+      logs       = List(
         "debug key send 2:0",
         "debug key send 2",
         "debug key send 1:0",

@@ -99,7 +99,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
       Sync[F].uncancelable { _ =>
         for {
           started <- Deferred[F, Unit]
-          fiber <- Concurrent[F].start {
+          fiber   <- Concurrent[F].start {
             for {
               _ <- started.complete(())
               a <- fa

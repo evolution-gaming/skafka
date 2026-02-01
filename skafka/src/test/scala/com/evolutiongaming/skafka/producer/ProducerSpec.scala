@@ -17,7 +17,12 @@ import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata => OffsetAndMetadataJ
 }
-import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
+import org.apache.kafka.clients.producer.{
+  Callback,
+  Producer => ProducerJ,
+  ProducerRecord => ProducerRecordJ,
+  RecordMetadata => RecordMetadataJ
+}
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._

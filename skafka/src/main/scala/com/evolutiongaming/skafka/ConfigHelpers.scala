@@ -12,7 +12,7 @@ object ConfigHelpers {
   implicit val ClassFromConf: FromConf[Class[_]] = FromConf[Class[_]] { (conf, path) =>
     val className = conf.getString(path)
     Try(Class.forName(className)) match {
-      case Failure(_)     => throw new ConfigException.BadValue(conf.origin(), path, s"Class '$className' doesn't exist")
+      case Failure(_) => throw new ConfigException.BadValue(conf.origin(), path, s"Class '$className' doesn't exist")
       case Success(value) => value
     }
   }

@@ -55,7 +55,7 @@ object ProducerMetricsOf {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
     } yield producerMetricsOf(source, registry)
 
-   def producerMetricsOf[F[_]](
+  def producerMetricsOf[F[_]](
     source: ProducerMetrics[F],
     registry: KafkaMetricsRegistry[F],
   ): ProducerMetrics[F] =

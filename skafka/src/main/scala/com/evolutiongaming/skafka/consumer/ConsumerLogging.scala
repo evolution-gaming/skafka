@@ -41,7 +41,7 @@ object ConsumerLogging {
 
       def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
         // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
-        val listenerLogging = listener //.withLogging(log)
+        val listenerLogging = listener // .withLogging(log)
 
         for {
           d <- MeasureDuration[F].start
@@ -62,7 +62,7 @@ object ConsumerLogging {
 
       def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
         // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
-        val listenerLogging = listener //.withLogging(log)
+        val listenerLogging = listener // .withLogging(log)
 
         for {
           d <- MeasureDuration[F].start
@@ -351,7 +351,7 @@ object ConsumerLogging {
           a <- consumer.offsetsForTimes(timestampsToSearch, timeout)
           d <- d
           _ <- log.debug(s"offsetsForTimes in ${d.toMillis}ms, partitions: ${timestampsToSearch
-            .mkString(", ")}, timeout: $timeout, result: ${a.mkString(", ")}")
+              .mkString(", ")}, timeout: $timeout, result: ${a.mkString(", ")}")
         } yield a
       }
 
@@ -372,7 +372,7 @@ object ConsumerLogging {
           a <- consumer.beginningOffsets(partitions, timeout)
           d <- d
           _ <- log.debug(s"beginningOffsets in ${d.toMillis}ms, partitions: ${partitions
-            .mkString_(", ")}, timeout: $timeout, result: ${a.mkString(", ")}")
+              .mkString_(", ")}, timeout: $timeout, result: ${a.mkString(", ")}")
         } yield a
       }
 

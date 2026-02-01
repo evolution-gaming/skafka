@@ -95,7 +95,7 @@ lazy val `metrics-prometheus-v1` = (project in file("modules/metrics_prometheus_
   dependsOn skafka
   settings (libraryDependencies ++= Seq(
     Smetrics.`smetrics-prometheus-v1`,
-    scalatest % Test,
+    scalatest                % Test,
     CatsEffect.effectTestKit % Test
   ))
   settings (name := "skafka-metrics-prometheus-v1")

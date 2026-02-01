@@ -74,8 +74,9 @@ class KafkaMetricsRegistrySpec extends AnyFunSuite with Matchers {
       registry1 <- KafkaMetricsRegistry.of[IO](prometheus, Some("kafka1"))
       registry2 <- KafkaMetricsRegistry.of[IO](prometheus, Some("kafka2"))
     } yield (registry1, registry2))
-      .use { case (r1, r2) =>
-        IO.pure((r1, r2))
+      .use {
+        case (r1, r2) =>
+          IO.pure((r1, r2))
       }
       .unsafeRunSync()
 
@@ -91,8 +92,9 @@ class KafkaMetricsRegistrySpec extends AnyFunSuite with Matchers {
       registry1 <- KafkaMetricsRegistry.of[IO](prometheus1, Some("kafka"))
       registry2 <- KafkaMetricsRegistry.of[IO](prometheus2, Some("kafka"))
     } yield (registry1, registry2))
-      .use { case (r1, r2) =>
-        IO.pure((r1, r2))
+      .use {
+        case (r1, r2) =>
+          IO.pure((r1, r2))
       }
       .unsafeRunSync()
 

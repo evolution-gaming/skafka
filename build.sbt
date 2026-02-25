@@ -5,7 +5,7 @@ ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / evictionErrorLevel := Level.Warn
 ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
 
-def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]) =
+def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]): List[T] =
   CrossVersion.partialVersion(scalaVersion) match {
     case Some((3, _))       => if3
     case Some((2, 12 | 13)) => if2
@@ -47,17 +47,25 @@ val alias: Seq[sbt.Def.Setting[?]] =
   addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
     addCommandAlias("build", "+all compile test")
 
-lazy val root = (project in file(".")
-  disablePlugins (MimaPlugin)
-  settings (name := "skafka")
-  settings commonSettings
-  settings (publish / skip := true)
-  settings (alias)
-  aggregate (skafka, `play-json`, metrics, `metrics-prometheus-v1`, tests))
+lazy val root = project
+  .in(file("."))
+  .disablePlugins(MimaPlugin)
+  .settings(name := "skafka")
+  .settings(commonSettings)
+  .settings(publish / skip := true)
+  .settings(alias)
+  .aggregate(
+    skafka,
+    `play-json`,
+    metrics,
+    `metrics-prometheus-v1`,
+    tests,
+  )
 
-lazy val skafka = (project in file("skafka")
-  settings commonSettings
-  settings (
+lazy val skafka = project
+  .in(file("skafka"))
+  .settings(commonSettings)
+  .settings(
     name := "skafka",
     scalacOptions -= "-Ywarn-unused:params",
     libraryDependencies ++= Seq(
@@ -76,41 +84,64 @@ lazy val skafka = (project in file("skafka")
       `scala-java8-compat`,
       `collection-compat`
     )
-  ))
+  )
 
-lazy val `play-json` = (project in file("modules/play-json")
-  settings (name := "skafka-play-json")
-  settings commonSettings
-  dependsOn skafka
-  settings (libraryDependencies ++= Seq(Dependencies.`play-json-jsoniter`, scalatest % Test)))
+lazy val `play-json` = project
+  .in(file("modules/play-json"))
+  .settings(name := "skafka-play-json")
+  .settings(commonSettings)
+  .dependsOn(skafka)
+  .settings(
+    libraryDependencies ++= Seq(
+      `play-json-jsoniter`,
+      scalatest % Test,
+    )
+  )
 
-lazy val metrics = (project in file("modules/metrics")
-  settings (name := "skafka-metrics")
-  settings commonSettings
-  dependsOn skafka
-  settings (libraryDependencies ++= Seq(Smetrics.`smetrics-prometheus`)))
+lazy val metrics = project
+  .in(file("modules/metrics"))
+  .settings(name := "skafka-metrics")
+  .settings(commonSettings)
+  .dependsOn(skafka)
+  .settings(
+    libraryDependencies ++= Seq(
+      Smetrics.`smetrics-prometheus`,
+    )
+  )
 
-lazy val `metrics-prometheus-v1` = (project in file("modules/metrics_prometheus_v1")
-  settings commonSettings
-  dependsOn skafka
-  settings (libraryDependencies ++= Seq(
-    Smetrics.`smetrics-prometheus-v1`,
-    scalatest % Test,
-    CatsEffect.effectTestKit % Test
-  ))
-  settings (name := "skafka-metrics-prometheus-v1")
-  settings (organization := "com.evolution"))
+lazy val `metrics-prometheus-v1` = project
+  .in(file("modules/metrics_prometheus_v1"))
+  .settings(commonSettings)
+  .dependsOn(skafka)
+  .settings(
+    libraryDependencies ++= Seq(
+      Smetrics.`smetrics-prometheus-v1`,
+      scalatest                % Test,
+      CatsEffect.effectTestKit % Test,
+    )
+  )
+  .settings(name := "skafka-metrics-prometheus-v1")
+  .settings(organization := "com.evolution")
 
-lazy val tests = (project in file("tests")
-  settings (name := "skafka-tests")
-  settings commonSettings
-  settings Seq(publish / skip := true, Test / fork := true, Test / parallelExecution := false)
-  dependsOn skafka % "compile->compile;test->test"
-  settings (libraryDependencies ++= Seq(
-    `testcontainers-kafka`   % Test,
-    Slf4j.api                % Test,
-    Slf4j.`log4j-over-slf4j` % Test,
-    Logback.core             % Test,
-    Logback.classic          % Test,
-    scalatest                % Test
-  )))
+lazy val tests = project
+  .in(file("tests"))
+  .settings(name := "skafka-tests")
+  .settings(commonSettings)
+  .settings(
+    Seq(
+      publish / skip := true,
+      Test / fork := true,
+      Test / parallelExecution := false,
+    )
+  )
+  .dependsOn(skafka % "compile->compile;test->test")
+  .settings(
+    libraryDependencies ++= Seq(
+      `testcontainers-kafka`   % Test,
+      Slf4j.api                % Test,
+      Slf4j.`log4j-over-slf4j` % Test,
+      Logback.core             % Test,
+      Logback.classic          % Test,
+      scalatest                % Test
+    )
+  )

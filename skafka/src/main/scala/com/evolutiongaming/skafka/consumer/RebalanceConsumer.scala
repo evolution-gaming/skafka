@@ -61,6 +61,7 @@ import scala.util.Try
   * - unsubscribe
   * - wakeup
   * - enforceRebalance
+  * - clientInstanceId
   * }}}
   *
   * If you want to support more methods, please double check kafka documentation and implementation about

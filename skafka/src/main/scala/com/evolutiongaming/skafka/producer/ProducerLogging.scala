@@ -5,7 +5,10 @@ import cats.implicits._
 import cats.MonadThrow
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{OffsetAndMetadata, ToBytes, Topic, TopicPartition}
+import org.apache.kafka.common.Uuid
 import org.apache.kafka.common.errors.RecordTooLargeException
+
+import scala.concurrent.duration.FiniteDuration
 
 object ProducerLogging {
 
@@ -74,6 +77,8 @@ object ProducerLogging {
           case _ =>
             log.error(s"failed to send record $record: $err")
         }
+
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = producer.clientInstanceId(timeout)
     }
   }
 }

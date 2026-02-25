@@ -6,6 +6,7 @@ import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
 import cats.implicits._
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
+import org.apache.kafka.common.Uuid
 
 import scala.annotation.nowarn
 import scala.concurrent.duration.FiniteDuration
@@ -266,6 +267,15 @@ object ConsumerLogging {
           _ <- log.debug(
             s"committed in ${d.toMillis}ms, partitions: ${partitions.mkString_(", ")}, timeout: $timeout, result: $a"
           )
+        } yield a
+      }
+
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.clientInstanceId(timeout)
+          d <- d
+          _ <- log.debug(s"clientInstanceId in ${d.toMillis}ms")
         } yield a
       }
 

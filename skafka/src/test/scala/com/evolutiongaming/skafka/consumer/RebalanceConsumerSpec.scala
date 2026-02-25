@@ -15,7 +15,7 @@ import org.apache.kafka.clients.consumer.{
   Consumer => ConsumerJ,
   ConsumerRecords => ConsumerRecordsJ
 }
-import org.apache.kafka.common.{TopicPartition, PartitionInfo, MetricName, Metric}
+import org.apache.kafka.common.{TopicPartition, PartitionInfo, MetricName, Metric, Uuid}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
@@ -106,6 +106,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def wakeup(): Unit                                           = unsupported
       def currentLag(topicPartition: TopicPartition): OptionalLong = unsupported
       def enforceRebalance(reason: String): Unit                   = unsupported
+      def clientInstanceId(timeout: Duration): Uuid                = unsupported
     }
 
     // useless test to suppress unused consumerJ warning

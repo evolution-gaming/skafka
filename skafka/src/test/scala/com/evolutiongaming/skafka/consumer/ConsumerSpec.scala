@@ -18,7 +18,7 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, ConsumerGroupMetadata => ConsumerGroupMetadataJ, ConsumerRebalanceListener => ConsumerRebalanceListenerJ, ConsumerRecords => ConsumerRecordsJ, OffsetAndMetadata => OffsetAndMetadataJ, OffsetCommitCallback => OffsetCommitCallbackJ}
-import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric}
+import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric, Uuid}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -473,6 +473,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.of(1L)
 
       def enforceRebalance(reason: Metadata): Unit = {}
+
+      def clientInstanceId(timeout: DurationJ): Uuid = Uuid.ZERO_UUID
     }
 
     val consumer: Consumer[IO, Bytes, Bytes] = {

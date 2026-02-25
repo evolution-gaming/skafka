@@ -16,7 +16,9 @@ import org.apache.kafka.clients.producer.{
   ProducerRecord => ProducerRecordJ,
   RecordMetadata => RecordMetadataJ
 }
+import org.apache.kafka.common.Uuid
 
+import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionException}
 import scala.jdk.CollectionConverters._
 
@@ -52,6 +54,8 @@ trait Producer[F[_]] {
   def flush: F[Unit]
 
   def clientMetrics: F[Seq[ClientMetric[F]]]
+
+  def clientInstanceId(timeout: FiniteDuration): F[Uuid]
 }
 
 object Producer {
@@ -91,6 +95,8 @@ object Producer {
       def flush = empty
 
       def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
+
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = Uuid.ZERO_UUID.pure[F]
     }
   }
 
@@ -211,6 +217,10 @@ object Producer {
         private val metricsProvider = ClientMetricsProvider[F](producer)
 
         def clientMetrics = metricsProvider.get
+
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          blocking { producer.clientInstanceId(timeout.asJava) }
+        }
       }
     }
 
@@ -323,6 +333,16 @@ object Producer {
       }
 
       def clientMetrics = producer.clientMetrics
+
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+        for {
+          d <- MeasureDuration[F].start
+          r <- producer.clientInstanceId(timeout).attempt
+          d <- d
+          _ <- metrics.clientInstanceId(d)
+          r <- r.liftTo[F]
+        } yield r
+      }
     }
   }
 
@@ -415,6 +435,8 @@ object Producer {
       def flush = fg(self.flush)
 
       def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
+
+      def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
     }
 
     def toSend: Send[F] = Send(self)

@@ -55,7 +55,7 @@ object ProducerMetricsOf {
       registry <- KafkaMetricsRegistry.of(prometheus, prefix)
     } yield producerMetricsOf(source, registry)
 
-   def producerMetricsOf[F[_]](
+  def producerMetricsOf[F[_]](
     source: ProducerMetrics[F],
     registry: KafkaMetricsRegistry[F],
   ): ProducerMetrics[F] =
@@ -83,6 +83,7 @@ object ProducerMetricsOf {
       override def exposeJavaMetrics(producer: Producer[F]): Resource[F, Unit] =
         registry.register(producer.clientMetrics)
 
+      override def clientInstanceId(latency: FiniteDuration): F[Unit] = source.clientInstanceId(latency)
     }
 
   implicit final class ProducerMetricsOps[F[_]](val source: ProducerMetrics[F]) extends AnyVal {

@@ -7,7 +7,7 @@ import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 import cats.implicits._
 import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{TopicPartition => TopicPartitionJ, Uuid}
 
 import scala.annotation.nowarn
 
@@ -176,6 +176,8 @@ object ConsumerJHelper {
       def currentLag(topicPartition: TopicPartitionJ): OptionalLong = f { self.currentLag(topicPartition) }
 
       def enforceRebalance(reason: String): Unit = f { self.enforceRebalance(reason) }
+
+      def clientInstanceId(timeout: Duration): Uuid = f { self.clientInstanceId(timeout) }
     }
   }
 

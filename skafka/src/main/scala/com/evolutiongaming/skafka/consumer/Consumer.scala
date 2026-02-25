@@ -18,7 +18,7 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndMetadata => OffsetAndMetadataJ,
   OffsetAndTimestamp => OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ, Uuid}
 
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
@@ -84,6 +84,8 @@ trait Consumer[F[_], K, V] {
   def committed(partitions: Nes[TopicPartition]): F[Map[TopicPartition, OffsetAndMetadata]]
 
   def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]]
+
+  def clientInstanceId(timeout: FiniteDuration): F[Uuid]
 
   def clientMetrics: F[Seq[ClientMetric[F]]]
 
@@ -190,6 +192,8 @@ object Consumer {
       def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
         Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
       }
+
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = Uuid.ZERO_UUID.pure[F]
 
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
@@ -507,6 +511,10 @@ object Consumer {
 
         def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
           committed1(partitions) { consumer.committed(_, timeout.asJava) }
+        }
+
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          serialBlocking { consumer.clientInstanceId(timeout.asJava) }
         }
 
         def partitions(topic: Topic) = {
@@ -854,6 +862,13 @@ object Consumer {
             _ <- count("committed", topics)
             r <- self.committed(partitions, timeout)
           } yield r
+        }
+
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          for {
+            _ <- count1("client_instance_id")
+            a <- self.clientInstanceId(timeout)
+          } yield a
         }
 
         def partitions(topic: Topic) = {
@@ -1244,6 +1259,13 @@ object Consumer {
           } yield r
         }
 
+        override def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          for {
+            _ <- count1("client_instance_id")
+            a <- self.clientInstanceId(timeout)
+          } yield a
+        }
+
         def partitions(topic: Topic) = {
           for {
             _ <- count("partitions", List(topic))
@@ -1453,6 +1475,8 @@ object Consumer {
       def committed(partitions: Nes[TopicPartition]) = fg(self.committed(partitions))
 
       def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = fg(self.committed(partitions, timeout))
+
+      def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
 
       def partitions(topic: Topic) = fg(self.partitions(topic))
 

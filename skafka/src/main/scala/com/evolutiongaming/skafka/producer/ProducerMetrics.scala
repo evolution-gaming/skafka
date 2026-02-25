@@ -33,6 +33,8 @@ trait ProducerMetrics[F[_]] {
 
   def flush(latency: FiniteDuration): F[Unit]
 
+  def clientInstanceId(latency: FiniteDuration): F[Unit]
+
   private[producer] def exposeJavaMetrics(@nowarn producer: Producer[F]): Resource[F, Unit] = Resource.unit[F]
 }
 
@@ -68,6 +70,8 @@ object ProducerMetrics {
     override def partitions(topic: Topic, latency: FiniteDuration): F[Unit] = unit
 
     override def flush(latency: FiniteDuration): F[Unit] = unit
+
+    override def clientInstanceId(latency: FiniteDuration): F[Unit] = unit
   }
 
   def of[F[_]: Monad](
@@ -275,6 +279,10 @@ object ProducerMetrics {
       observeLatency("flush", latency)
     }
 
+    override def clientInstanceId(latency: FiniteDuration): F[Unit] = {
+      observeLatency("client_instance_id", latency)
+    }
+
     private def sendMeasure(result: String, topic: Topic, latency: FiniteDuration): F[Unit] = {
       for {
         _ <- latencySummary.labels(clientId, topic, "send").observe(latency.toNanos.nanosToSeconds)
@@ -344,6 +352,10 @@ object ProducerMetrics {
       observeLatency("flush", latency)
     }
 
+    override def clientInstanceId(latency: FiniteDuration): F[Unit] = {
+      observeLatency("client_instance_id", latency)
+    }
+
     private def sendMeasure(result: String, topic: Topic, latency: FiniteDuration): F[Unit] = {
       for {
         _ <- latencyHistogram.labels(clientId, topic, "send").observe(latency.toNanos.nanosToSeconds)
@@ -382,6 +394,8 @@ object ProducerMetrics {
       def partitions(topic: Topic, latency: FiniteDuration) = f(self.partitions(topic, latency))
 
       def flush(latency: FiniteDuration) = f(self.flush(latency))
+
+      def clientInstanceId(latency: FiniteDuration): G[Unit] = f(self.clientInstanceId(latency))
     }
 
     def mapK[G[_]](
@@ -420,5 +434,7 @@ object ProducerMetrics {
 
     override def exposeJavaMetrics(producer: Producer[G]): Resource[G, Unit] =
       delegate.exposeJavaMetrics(producer.mapK[F](gf, fg)).mapK(fg)
+
+    override def clientInstanceId(latency: FiniteDuration): G[Unit] = fg(delegate.clientInstanceId(latency))
   }
 }

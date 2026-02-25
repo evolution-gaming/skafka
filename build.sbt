@@ -34,32 +34,18 @@ lazy val commonSettings = Seq(
   ),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
-  // TODO remove after release of v19.1.0
-  //  [error]   com.github.luben:zstd-jni: incompatible version change from 1.5.2-1 to 1.5.6-4 (compatibility: strict)
-  //  [error]   org.lz4:lz4-java: missing dependency
-  versionPolicyCheck / skip := true,
 )
 
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
   // add mima check exceptions here, like:
-  // TODO remove after release of v19.1.0
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "com.evolutiongaming.skafka.consumer.Consumer.clientInstanceId"
-  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "com.evolutiongaming.skafka.producer.Producer.clientInstanceId"
-  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "com.evolutiongaming.skafka.producer.ProducerMetrics.clientInstanceId"
-  ),
+//  ProblemFilters.exclude[ReversedMissingMethodProblem](
+//    "com.evolutiongaming.skafka.consumer.Consumer.clientInstanceId"
+//  ),
 )
 ThisBuild / versionPolicyIgnored ++= Seq(
   // add libraries, that are known to be binary compatible, here, like:
-  // TODO remove after release of v19.1.0
-  "com.github.luben" %% "zstd-jni",
+//  "com.github.luben" %% "zstd-jni",
 )
-
-ThisBuild / versionPolicyCheck / skip := true
 
 val alias: Seq[sbt.Def.Setting[?]] =
 //  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt; scalafixEnable; scalafixAll") ++

@@ -34,8 +34,26 @@ lazy val commonSettings = Seq(
   ),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
-  mimaBinaryIssueFilters ++= Seq(
+)
+
+ThisBuild / mimaBinaryIssueFilters ++= Seq(
+  // add mima check exceptions here, like:
+  // TODO remove after release of v19.1.0
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "com.evolutiongaming.skafka.consumer.Consumer.clientInstanceId"
+  ),
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "com.evolutiongaming.skafka.producer.Producer.clientInstanceId"
+  ),
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "com.evolutiongaming.skafka.producer.ProducerMetrics.clientInstanceId"
   )
+)
+ThisBuild / versionPolicyIgnored ++= Seq(
+  // add libraries here that are known to be binary compatible, like:
+  // TODO remove after release of v19.1.0
+  "com.github.luben" %% "zstd-jni",
+  "org.lz4" %% "lz4-java",
 )
 
 val alias: Seq[sbt.Def.Setting[?]] =

@@ -394,7 +394,7 @@ object ProducerMetrics {
 
       def flush(latency: FiniteDuration) = f(self.flush(latency))
 
-      def clientInstanceId(timeout: FiniteDuration): G[Unit] = f(self.clientInstanceId(timeout))
+      def clientInstanceId(latency: FiniteDuration): G[Unit] = f(self.clientInstanceId(latency))
     }
 
     def mapK[G[_]](

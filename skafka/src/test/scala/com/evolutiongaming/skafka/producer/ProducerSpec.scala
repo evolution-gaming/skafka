@@ -18,11 +18,13 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndMetadata => OffsetAndMetadataJ
 }
 import org.apache.kafka.clients.producer.{Callback, Producer => ProducerJ, ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
 
 import scala.jdk.CollectionConverters._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.time.Duration
 
 class ProducerSpec extends AnyWordSpec with Matchers {
 
@@ -192,6 +194,8 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       }
 
       def abortTransaction() = Scope.this.abortTransaction = true
+
+      def clientInstanceId(timeout: Duration): Uuid = Uuid.ZERO_UUID
     }
 
     val producer: Producer[IO] = {

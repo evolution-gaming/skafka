@@ -33,6 +33,8 @@ trait ProducerMetrics[F[_]] {
 
   def flush(latency: FiniteDuration): F[Unit]
 
+  def clientInstanceId(timeout: FiniteDuration): F[Unit]
+
   private[producer] def exposeJavaMetrics(@nowarn producer: Producer[F]): Resource[F, Unit] = Resource.unit[F]
 }
 
@@ -68,6 +70,8 @@ object ProducerMetrics {
     override def partitions(topic: Topic, latency: FiniteDuration): F[Unit] = unit
 
     override def flush(latency: FiniteDuration): F[Unit] = unit
+
+    override def clientInstanceId(timeout: FiniteDuration): F[Unit] = unit
   }
 
   def of[F[_]: Monad](
@@ -287,6 +291,9 @@ object ProducerMetrics {
         .labels(clientId, name)
         .observe(latency.toNanos.nanosToSeconds)
     }
+
+    override def clientInstanceId(timeout: FiniteDuration): F[Unit] =
+      callCount.labels(clientId, "client_instance_id").inc()
   }
 
   private final class Histograms[F[_]: Monad](
@@ -356,6 +363,10 @@ object ProducerMetrics {
         .labels(clientId, name)
         .observe(latency.toNanos.nanosToSeconds)
     }
+
+    override def clientInstanceId(timeout: FiniteDuration): F[Unit] =
+      callCount.labels(clientId, "client_instance_id").inc()
+
   }
 
   implicit class ProducerMetricsOps[F[_]](val self: ProducerMetrics[F]) extends AnyVal {
@@ -382,6 +393,8 @@ object ProducerMetrics {
       def partitions(topic: Topic, latency: FiniteDuration) = f(self.partitions(topic, latency))
 
       def flush(latency: FiniteDuration) = f(self.flush(latency))
+
+      def clientInstanceId(timeout: FiniteDuration): G[Unit] = f(self.clientInstanceId(timeout))
     }
 
     def mapK[G[_]](
@@ -420,5 +433,7 @@ object ProducerMetrics {
 
     override def exposeJavaMetrics(producer: Producer[G]): Resource[G, Unit] =
       delegate.exposeJavaMetrics(producer.mapK[F](gf, fg)).mapK(fg)
+
+    override def clientInstanceId(timeout: FiniteDuration): G[Unit] = fg(delegate.clientInstanceId(timeout))
   }
 }

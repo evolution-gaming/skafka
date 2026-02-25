@@ -18,7 +18,7 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndMetadata => OffsetAndMetadataJ,
   OffsetAndTimestamp => OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ, Uuid}
 
 import java.lang.{Long => LongJ}
 import java.util.regex.Pattern
@@ -84,6 +84,8 @@ trait Consumer[F[_], K, V] {
   def committed(partitions: Nes[TopicPartition]): F[Map[TopicPartition, OffsetAndMetadata]]
 
   def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]]
+
+  def clientInstanceId(timeout: FiniteDuration): F[Uuid]
 
   def clientMetrics: F[Seq[ClientMetric[F]]]
 
@@ -238,6 +240,8 @@ object Consumer {
       def enforceRebalance = empty
 
       def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
+
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = Uuid.ZERO_UUID.pure[F]
     }
   }
 
@@ -586,6 +590,10 @@ object Consumer {
         def enforceRebalance = serialBlocking { consumer.enforceRebalance() }
 
         def clientMetrics = clientMetricsProvider.get
+
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          serialBlocking { consumer.clientInstanceId(timeout.asJava) }
+        }
       }
     }
   }
@@ -964,6 +972,12 @@ object Consumer {
         }
 
         def clientMetrics = self.clientMetrics
+
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] =
+          for {
+            _ <- count1("client_instance_id")
+            a <- self.clientInstanceId(timeout)
+          } yield a
       }
     }
 
@@ -1352,6 +1366,12 @@ object Consumer {
         }
 
         def clientMetrics = self.clientMetrics
+
+        override def clientInstanceId(timeout: FiniteDuration): F[Uuid] =
+          for {
+            _ <- count1("client_instance_id")
+            a <- self.clientInstanceId(timeout)
+          } yield a
       }
     }
 
@@ -1501,6 +1521,8 @@ object Consumer {
       def enforceRebalance = fg(self.enforceRebalance)
 
       def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
+
+      def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
     }
   }
 }

@@ -279,6 +279,10 @@ object ProducerMetrics {
       observeLatency("flush", latency)
     }
 
+    override def clientInstanceId(latency: FiniteDuration): F[Unit] = {
+      observeLatency("client_instance_id", latency)
+    }
+
     private def sendMeasure(result: String, topic: Topic, latency: FiniteDuration): F[Unit] = {
       for {
         _ <- latencySummary.labels(clientId, topic, "send").observe(latency.toNanos.nanosToSeconds)
@@ -291,9 +295,6 @@ object ProducerMetrics {
         .labels(clientId, name)
         .observe(latency.toNanos.nanosToSeconds)
     }
-
-    override def clientInstanceId(latency: FiniteDuration): F[Unit] =
-      observeLatency("client_instance_id", latency)
   }
 
   private final class Histograms[F[_]: Monad](
@@ -351,6 +352,10 @@ object ProducerMetrics {
       observeLatency("flush", latency)
     }
 
+    override def clientInstanceId(latency: FiniteDuration): F[Unit] = {
+      observeLatency("client_instance_id", latency)
+    }
+
     private def sendMeasure(result: String, topic: Topic, latency: FiniteDuration): F[Unit] = {
       for {
         _ <- latencyHistogram.labels(clientId, topic, "send").observe(latency.toNanos.nanosToSeconds)
@@ -363,10 +368,6 @@ object ProducerMetrics {
         .labels(clientId, name)
         .observe(latency.toNanos.nanosToSeconds)
     }
-
-    override def clientInstanceId(latency: FiniteDuration): F[Unit] =
-      observeLatency("client_instance_id", latency)
-
   }
 
   implicit class ProducerMetricsOps[F[_]](val self: ProducerMetrics[F]) extends AnyVal {

@@ -193,6 +193,8 @@ object Consumer {
         Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
       }
 
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = Uuid.ZERO_UUID.pure[F]
+
       def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
 
       def partitions(topic: Topic, timeout: FiniteDuration) = List.empty[PartitionInfo].pure[F]
@@ -240,8 +242,6 @@ object Consumer {
       def enforceRebalance = empty
 
       def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
-
-      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = Uuid.ZERO_UUID.pure[F]
     }
   }
 
@@ -513,6 +513,10 @@ object Consumer {
           committed1(partitions) { consumer.committed(_, timeout.asJava) }
         }
 
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          serialBlocking { consumer.clientInstanceId(timeout.asJava) }
+        }
+
         def partitions(topic: Topic) = {
           partitions1 { Option(consumer.partitionsFor(topic)) }
         }
@@ -590,10 +594,6 @@ object Consumer {
         def enforceRebalance = serialBlocking { consumer.enforceRebalance() }
 
         def clientMetrics = clientMetricsProvider.get
-
-        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
-          serialBlocking { consumer.clientInstanceId(timeout.asJava) }
-        }
       }
     }
   }
@@ -864,6 +864,13 @@ object Consumer {
           } yield r
         }
 
+        def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          for {
+            _ <- count1("client_instance_id")
+            a <- self.clientInstanceId(timeout)
+          } yield a
+        }
+
         def partitions(topic: Topic) = {
           for {
             _ <- count("partitions", List(topic))
@@ -972,12 +979,6 @@ object Consumer {
         }
 
         def clientMetrics = self.clientMetrics
-
-        def clientInstanceId(timeout: FiniteDuration): F[Uuid] =
-          for {
-            _ <- count1("client_instance_id")
-            a <- self.clientInstanceId(timeout)
-          } yield a
       }
     }
 
@@ -1258,6 +1259,13 @@ object Consumer {
           } yield r
         }
 
+        override def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+          for {
+            _ <- count1("client_instance_id")
+            a <- self.clientInstanceId(timeout)
+          } yield a
+        }
+
         def partitions(topic: Topic) = {
           for {
             _ <- count("partitions", List(topic))
@@ -1366,12 +1374,6 @@ object Consumer {
         }
 
         def clientMetrics = self.clientMetrics
-
-        override def clientInstanceId(timeout: FiniteDuration): F[Uuid] =
-          for {
-            _ <- count1("client_instance_id")
-            a <- self.clientInstanceId(timeout)
-          } yield a
       }
     }
 
@@ -1474,6 +1476,8 @@ object Consumer {
 
       def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = fg(self.committed(partitions, timeout))
 
+      def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
+
       def partitions(topic: Topic) = fg(self.partitions(topic))
 
       def partitions(topic: Topic, timeout: FiniteDuration) = fg(self.partitions(topic, timeout))
@@ -1521,8 +1525,6 @@ object Consumer {
       def enforceRebalance = fg(self.enforceRebalance)
 
       def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
-
-      def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
     }
   }
 }

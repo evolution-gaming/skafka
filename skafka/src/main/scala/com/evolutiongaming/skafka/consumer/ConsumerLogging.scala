@@ -270,6 +270,15 @@ object ConsumerLogging {
         } yield a
       }
 
+      def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
+        for {
+          d <- MeasureDuration[F].start
+          a <- consumer.clientInstanceId(timeout)
+          d <- d
+          _ <- log.debug(s"clientInstanceId in ${d.toMillis}ms")
+        } yield a
+      }
+
       def partitions(topic: Topic) = {
         for {
           d <- MeasureDuration[F].start
@@ -436,15 +445,6 @@ object ConsumerLogging {
       }
 
       def clientMetrics = consumer.clientMetrics
-
-      def clientInstanceId(timeout: FiniteDuration): F[Uuid] =
-        for {
-          d <- MeasureDuration[F].start
-          a <- consumer.clientInstanceId(timeout)
-          d <- d
-          _ <- log.debug(s"clientInstanceId in ${d.toMillis}ms")
-        } yield a
-
     }
   }
 }

@@ -78,7 +78,7 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
     for {
       metrics      <- kafkaClientMetrics
       metricsGroups = metrics.groupBy(m => (m.name, m.group)).values.toList
-      result <- metricsGroups
+      result       <- metricsGroups
         .traverse { metricsGroup =>
           val metric         = metricsGroup.head
           val prometheusName = getPrometheusName(metric)

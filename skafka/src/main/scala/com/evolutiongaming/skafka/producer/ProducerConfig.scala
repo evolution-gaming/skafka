@@ -8,8 +8,7 @@ import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
 import scala.concurrent.duration._
 import scala.util.Try
 
-/**
-  * Check [[http://kafka.apache.org/documentation/#producerconfigs]]
+/** Check [[http://kafka.apache.org/documentation/#producerconfigs]]
   */
 final case class ProducerConfig(
   common: CommonConfig                              = CommonConfig.Default,
@@ -155,16 +154,16 @@ object ProducerConfig {
         "max-in-flight-requests-per-connection",
         "max.in.flight.requests.per.connection"
       ) getOrElse default.maxInFlightRequestsPerConnection,
-      partitionerClass = partitionerClass orElse default.partitionerClass,
+      partitionerClass   = partitionerClass orElse default.partitionerClass,
       interceptorClasses =
         get[List[String]]("interceptor-classes", "interceptor.classes") getOrElse default.interceptorClasses,
       idempotence =
         get[Boolean]("idempotence", "enable-idempotence", "enable.idempotence") getOrElse default.idempotence,
       transactionTimeout =
         getDuration("transaction-timeout", "transaction.timeout.ms") getOrElse default.transactionTimeout,
-      transactionalId = get[String]("transactional-id", "transactional.id") orElse default.transactionalId,
-      saslSupport     = SaslSupportConfig(config, default.saslSupport),
-      sslSupport      = SslSupportConfig(config),
+      transactionalId       = get[String]("transactional-id", "transactional.id") orElse default.transactionalId,
+      saslSupport           = SaslSupportConfig(config, default.saslSupport),
+      sslSupport            = SslSupportConfig(config),
       partitionerIgnoreKeys =
         get[Boolean]("partitioner-ignore-keys", "partitioner.ignore.keys") getOrElse default.partitionerIgnoreKeys,
       partitionerAdaptivePartitioningEnable =
@@ -178,7 +177,7 @@ object ProducerConfig {
     )
   }
 
-  //for binary compatibility
+  // for binary compatibility
   private[producer] def apply(
     common: CommonConfig,
     batchSize: Int,
@@ -217,7 +216,7 @@ object ProducerConfig {
     saslSupport                      = saslSupport,
   )
 
-  //for binary compatibility
+  // for binary compatibility
   private[producer] def apply(
     common: CommonConfig,
     batchSize: Int,

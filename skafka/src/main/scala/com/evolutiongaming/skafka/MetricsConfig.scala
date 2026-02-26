@@ -39,8 +39,8 @@ object MetricsConfig {
     }
 
     MetricsConfig(
-      sampleWindow = getDuration("metrics.sample-window", "metrics.sample.window.ms") getOrElse Default.sampleWindow,
-      numSamples   = get[Int]("metrics.num-samples", "metrics.num.samples") getOrElse Default.numSamples,
+      sampleWindow   = getDuration("metrics.sample-window", "metrics.sample.window.ms") getOrElse Default.sampleWindow,
+      numSamples     = get[Int]("metrics.num-samples", "metrics.num.samples") getOrElse Default.numSamples,
       recordingLevel =
         get[String]("metrics.recording-level", "metrics.recording.level") getOrElse Default.recordingLevel,
       reporters = get[List[String]]("metrics.reporters", "metric.reporters") getOrElse Default.reporters

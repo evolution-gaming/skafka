@@ -30,7 +30,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     interceptorClasses          = List("interceptorClasses"),
     excludeInternalTopics       = false,
     isolationLevel              = IsolationLevel.ReadCommitted,
-    saslSupport = SaslSupportConfig(
+    saslSupport                 = SaslSupportConfig(
       kerberosServiceName             = Some("service_name"),
       kerberosKinitCmd                = "/bin/kinit",
       kerberosTicketRenewWindowFactor = 0.4,
@@ -77,9 +77,9 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
   test("bindings") {
     val configs = ConsumerConfig(
-      common             = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
+      common = CommonConfig(bootstrapServers = Nel.of("localhost:9092", "127.0.0.1:9092"), clientId = Some("clientId")),
       autoCommitInterval = Some(5.seconds),
-      saslSupport = new SaslSupportConfig(
+      saslSupport        = new SaslSupportConfig(
         kerberosServiceName        = Some("service_name"),
         jaasConfig                 = Some(Plain("plain config")),
         clientCallbackHandlerClass = Some(classOf[ConsumerConfigSpec]),
@@ -101,10 +101,10 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     )
 
     configs.bindings shouldEqual Map(
-      "exclude.internal.topics"                  -> "true",
-      "reconnect.backoff.max.ms"                 -> "1000",
-      "auto.offset.reset"                        -> "latest",
-      "partition.assignment.strategy"            -> "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
+      "exclude.internal.topics"  -> "true",
+      "reconnect.backoff.max.ms" -> "1000",
+      "auto.offset.reset"        -> "latest",
+      "partition.assignment.strategy" -> "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
       "heartbeat.interval.ms"                    -> "3000",
       "check.crcs"                               -> "true",
       "auto.commit.interval.ms"                  -> "5000",

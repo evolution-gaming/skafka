@@ -12,7 +12,6 @@ object TimestampType {
 
   def append: TimestampType = Append
 
-
   case object Create extends TimestampType
 
   case object Append extends TimestampType

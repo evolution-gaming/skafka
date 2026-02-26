@@ -29,9 +29,9 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
 //    val rebalanceConsumer = RebalanceConsumer(new MockConsumer[String, String](OffsetResetStrategy.NONE))
 
     val consumerJ = new ConsumerJ[String, String] {
-      def assignment(): util.Set[TopicPartition]                                                = supported // rebalanceConsumer.assignment()
-      def subscription(): util.Set[String]                                                      = supported // rebalanceConsumer.subscription()
-      def subscribe(topics: util.Collection[String]): Unit                                      = unsupported
+      def assignment(): util.Set[TopicPartition]           = supported // rebalanceConsumer.assignment()
+      def subscription(): util.Set[String]                 = supported // rebalanceConsumer.subscription()
+      def subscribe(topics: util.Collection[String]): Unit = unsupported
       def subscribe(topics: util.Collection[String], callback: ConsumerRebalanceListener): Unit = unsupported
       def assign(partitions: util.Collection[TopicPartition]): Unit                             = unsupported
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit                = unsupported
@@ -39,8 +39,8 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def unsubscribe(): Unit                                                                   = unsupported
       def poll(timeout: Long): ConsumerRecordsJ[String, String]                                 = unsupported
       def poll(timeout: Duration): ConsumerRecordsJ[String, String]                             = unsupported
-      def commitSync(): Unit                                                                    = supported // rebalanceConsumer.commit()
-      def commitSync(timeout: Duration): Unit                                                   = supported // rebalanceConsumer.commit(timeout)
+      def commitSync(): Unit                  = supported // rebalanceConsumer.commit()
+      def commitSync(timeout: Duration): Unit = supported // rebalanceConsumer.commit(timeout)
       def commitSync(offsets: util.Map[TopicPartition, OffsetAndMetadata]): Unit =
         supported // rebalanceConsumer.commit(offsets)
       def commitSync(offsets: util.Map[TopicPartition, OffsetAndMetadata], timeout: Duration): Unit =
@@ -59,8 +59,8 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def position(partition: TopicPartition): Long = supported // rebalanceConsumer.position(partition)
       def position(partition: TopicPartition, timeout: Duration): Long =
         supported // rebalanceConsumer.position(partition, timeout)
-      def committed(partition: TopicPartition): OffsetAndMetadata                    = unsupported
-      def committed(partition: TopicPartition, timeout: Duration): OffsetAndMetadata = unsupported
+      def committed(partition: TopicPartition): OffsetAndMetadata                                      = unsupported
+      def committed(partition: TopicPartition, timeout: Duration): OffsetAndMetadata                   = unsupported
       def committed(partitions: util.Set[TopicPartition]): util.Map[TopicPartition, OffsetAndMetadata] =
         supported // rebalanceConsumer.committed(partitions)
       def committed(

@@ -9,13 +9,11 @@ sealed trait Acks extends Product {
 object Acks {
   val Values: Set[Acks] = Set(All, None, One)
 
-
   def all: Acks = All
 
   def none: Acks = None
 
   def one: Acks = One
-
 
   case object All extends Acks {
     def names = Nel.of("all", "-1")

@@ -22,8 +22,7 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionException}
 import scala.jdk.CollectionConverters._
 
-/**
-  * See [[org.apache.kafka.clients.producer.Producer]]
+/** See [[org.apache.kafka.clients.producer.Producer]]
   */
 trait Producer[F[_]] {
 
@@ -41,9 +40,9 @@ trait Producer[F[_]] {
 
   def abortTransaction: F[Unit]
 
-  /**
-    * @return Outer F[_] is about sending event (including batching if required),
-    * inner F[_] is about waiting and getting the result of the send operation.
+  /** @return
+    *   Outer F[_] is about sending event (including batching if required), inner F[_] is about waiting and getting the
+    *   result of the send operation.
     */
   def send[K, V](
     record: ProducerRecord[K, V]
@@ -197,10 +196,11 @@ object Producer {
             bytes  <- record.toBytes.handleErrorWith(toBytesError)
             bytesJ  = bytes.asJava
             result <- block(bytesJ)
-          } yield for {
-            result <- result
-            result <- result.asScala[F]
-          } yield result
+          } yield
+            for {
+              result <- result
+              result <- result.asScala[F]
+            } yield result
         }
 
         def partitions(topic: Topic) = {
@@ -300,16 +300,17 @@ object Producer {
             case Left(_)  => metrics.failure(topic, d)
           }
           r <- r.liftTo[F]
-        } yield for {
-          d <- MeasureDuration[F].start
-          r <- r.attempt
-          d <- d
-          _ <- r match {
-            case Right(r) => metrics.send(topic, d, r.valueSerializedSize getOrElse 0)
-            case Left(_)  => metrics.failure(topic, d)
-          }
-          r <- r.liftTo[F]
-        } yield r
+        } yield
+          for {
+            d <- MeasureDuration[F].start
+            r <- r.attempt
+            d <- d
+            _ <- r match {
+              case Right(r) => metrics.send(topic, d, r.valueSerializedSize getOrElse 0)
+              case Left(_)  => metrics.failure(topic, d)
+            }
+            r <- r.liftTo[F]
+          } yield r
       }
 
       def partitions(topic: Topic) = {
@@ -354,18 +355,18 @@ object Producer {
       ProducerLogging(self, log)
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate
-     *  version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
-     *  and `withLogging1` using `MeasureDuration` from `cats-helper`.
-     *  This should not be used and should be removed in a reasonable amount of time.
-     */
+    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
+      * which had `withLogging` method using `MeasureDuration` from `smetrics` and `withLogging1` using
+      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
+      * time.
+      */
     @deprecated("Use `withLogging`", since = "16.0.2")
     def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
       withLogging(log)
     }
 
-    /**
-      * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+    /** @param charsToTrim
+      *   a number of chars from record's value to log when producing fails because of a too large record
       */
     def withLogging(
       log: Log[F],
@@ -374,14 +375,14 @@ object Producer {
       ProducerLogging(self, log, charsToTrim)
     }
 
-    /**
-     * The sole purpose of this method is to support binary compatibility with an intermediate
-     * version (namely, 15.2.0) which had `withLogging` method using `MeasureDuration` from `smetrics`
-     * and `withLogging1` using `MeasureDuration` from `cats-helper`.
-     * This should not be used and should be removed in a reasonable amount of time.
-     *
-     * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
-     */
+    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
+      * which had `withLogging` method using `MeasureDuration` from `smetrics` and `withLogging1` using
+      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
+      * time.
+      *
+      * @param charsToTrim
+      *   a number of chars from record's value to log when producing fails because of a too large record
+      */
     @deprecated("Use `withLogging`", since = "16.0.2")
     def withLogging1(
       log: Log[F],
@@ -396,10 +397,10 @@ object Producer {
       Producer(self, metrics)
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate
-      * version (namely, 15.2.0) which had `withMetrics` method using `MeasureDuration` from `smetrics`
-      * and `withMetrics1` using `MeasureDuration` from `cats-helper`.
-      * This should not be used and should be removed in a reasonable amount of time.
+    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
+      * which had `withMetrics` method using `MeasureDuration` from `smetrics` and `withMetrics1` using
+      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
+      * time.
       */
     @deprecated("Use `withMetrics`", since = "16.0.2")
     def withMetrics1[E](

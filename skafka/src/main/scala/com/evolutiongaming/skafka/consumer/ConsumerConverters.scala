@@ -60,7 +60,8 @@ object ConsumerConverters {
         // First, on the consumer thread, we pre-process the partition list, and register
         // our listener in `serialListeners`.
         // Then, asynchronously, we execute the registered listener.
-        partitions.asScala
+        partitions
+          .asScala
           .toList
           // Note: `traverse(_.asScala[F])` may cause StackOverflowError later, when executed
           // synchronously with `.toTry`. Traversing into `Try` directly avoids this.
@@ -107,13 +108,15 @@ object ConsumerConverters {
       ): Unit = {
         // If you're thinking about deriving ToTry timeout based on ConsumerConfig.maxPollInterval
         // please have a look on https://github.com/evolution-gaming/skafka/issues/125
-        partitions.asScala
+        partitions
+          .asScala
           .toList
           // Note: `traverse(_.asScala[F])` may cause StackOverflowError later, when executed
           // synchronously with `.toTry`. Traversing into `Try` directly avoids this.
           .traverse { _.asScala[Try] }
           .flatMap { topicPartitions =>
-            topicPartitions.toSortedSet
+            topicPartitions
+              .toSortedSet
               .toNes
               .traverse_ { partitions => call(partitions).run(RebalanceConsumer(consumer)) }
           }

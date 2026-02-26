@@ -21,7 +21,7 @@ class CommonConfigSpec extends AnyFunSuite with Matchers {
     reconnectBackoff    = 6.millis,
     retryBackoff        = 7.seconds,
     securityProtocol    = SecurityProtocol.Ssl,
-    metrics =
+    metrics             =
       MetricsConfig(sampleWindow = 9.hours, numSamples = 10, recordingLevel = "DEBUG", reporters = List("reporter"))
   )
 

@@ -46,7 +46,7 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
     for {
       metrics      <- kafkaClientMetrics
       metricsGroups = metrics.groupBy(m => (m.name, m.group)).toList
-      result <- metricsGroups
+      result       <- metricsGroups
         .traverse {
           case ((name, group), metricsGroup) =>
             val description = metricsGroup.head.description
@@ -130,9 +130,10 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
   private def getMetricNames(): F[List[String]] = {
     kafkaClientMetrics.map { metrics =>
       val metricsGroups = metrics.groupBy(m => (m.name, m.group)).toList
-      metricsGroups.flatMap { case ((name, group), metricsGroup) =>
-        val description = metricsGroup.head.description
-        getPrometheusName(name, group, description)
+      metricsGroups.flatMap {
+        case ((name, group), metricsGroup) =>
+          val description = metricsGroup.head.description
+          getPrometheusName(name, group, description)
       }.distinct
     }
   }

@@ -7,6 +7,7 @@ import java.util.regex.Pattern
 import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
 import org.apache.kafka.clients.consumer.{
+  CloseOptions,
   ConsumerRebalanceListener,
   OffsetCommitCallback,
   SubscriptionPattern,
@@ -110,15 +111,16 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def commitAsync(callback: OffsetCommitCallback): Unit                                  = notImplemented
   def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback): Unit =
     notImplemented
-  def clientInstanceId(timeout: DurationJ): Uuid                                    = notImplemented
-  def metrics(): MapJ[MetricName, _ <: Metric]                                      = notImplemented
-  def pause(partitions: CollectionJ[TopicPartitionJ]): Unit                         = notImplemented
-  def resume(partitions: CollectionJ[TopicPartitionJ]): Unit                        = notImplemented
-  def enforceRebalance(): Unit                                                      = notImplemented
-  def close(): Unit                                                                 = notImplemented
-  def close(timeout: Long, unit: TimeUnit): Unit                                    = notImplemented
-  def close(timeout: DurationJ): Unit                                               = notImplemented
-  def wakeup(): Unit                                                                = notImplemented
+  def clientInstanceId(timeout: DurationJ): Uuid             = notImplemented
+  def metrics(): MapJ[MetricName, _ <: Metric]               = notImplemented
+  def pause(partitions: CollectionJ[TopicPartitionJ]): Unit  = notImplemented
+  def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
+  def enforceRebalance(): Unit                               = notImplemented
+  def close(): Unit                                          = notImplemented
+  def close(timeout: Long, unit: TimeUnit): Unit             = notImplemented
+  def close(timeout: DurationJ): Unit                        = notImplemented
+  def close(option: CloseOptions): Unit                      = notImplemented
+  def wakeup(): Unit                                         = notImplemented
 
   def asRebalanceConsumer: RebalanceConsumer = RebalanceConsumer(this)
 

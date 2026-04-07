@@ -17,6 +17,7 @@ import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{
+  CloseOptions,
   ConsumerRebalanceListener,
   OffsetCommitCallback,
   SubscriptionPattern,
@@ -362,6 +363,8 @@ object SerialListenersTest {
         def close() = {}
 
         def close(timeout: Duration) = {}
+
+        def close(option: CloseOptions): Unit = {}
 
         def wakeup() = {}
 

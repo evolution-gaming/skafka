@@ -6,8 +6,13 @@ import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
 import cats.implicits._
-import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommitCallback, SubscriptionPattern, Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ
+import org.apache.kafka.clients.consumer.{
+  ConsumerRebalanceListener,
+  CloseOptions,
+  OffsetCommitCallback,
+  SubscriptionPattern,
+  Consumer => ConsumerJ,
+  OffsetAndMetadata => OffsetAndMetadataJ,
 }
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{TopicPartition => TopicPartitionJ, Uuid}
@@ -174,6 +179,8 @@ object ConsumerJHelper {
       def close() = f { self.close() }
 
       def close(timeout: Duration) = f { self.close(timeout) }
+
+      def close(option: CloseOptions): Unit = f { self.close(option) }
 
       def wakeup() = f { self.wakeup() }
 

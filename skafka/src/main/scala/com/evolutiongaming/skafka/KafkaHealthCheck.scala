@@ -12,18 +12,15 @@ import com.evolutiongaming.skafka.producer.{ProducerConfig, ProducerRecord, Prod
 import scala.concurrent.CancellationException
 import scala.concurrent.duration._
 
-/**
-  * Provides a health check mechanism that repeatedly sends and consumes messages to/from Kafka.
+/** Provides a health check mechanism that repeatedly sends and consumes messages to/from Kafka.
   */
 trait KafkaHealthCheck[F[_]] {
 
-  /**
-    * Returns the last error that occurred during the health check.
+  /** Returns the last error that occurred during the health check.
     */
   def error: F[Option[Throwable]]
 
-  /**
-    * Blocks a fiber until the health check is done.
+  /** Blocks a fiber until the health check is done.
     */
   def done: F[Unit]
 }
@@ -71,7 +68,7 @@ object KafkaHealthCheck {
   ): Resource[F, KafkaHealthCheck[F]] = {
 
     val result = for {
-      ref <- Ref.of[F, Option[Throwable]](None)
+      ref   <- Ref.of[F, Option[Throwable]](None)
       fiber <- (producer, consumer)
         .tupled
         .use { case (producer, consumer) => run(key, config, stop, producer, consumer, ref.set, log) }
@@ -79,7 +76,7 @@ object KafkaHealthCheck {
     } yield {
       val result = new KafkaHealthCheck[F] {
         def error = ref.get
-        def done = fiber.join.flatMap {
+        def done  = fiber.join.flatMap {
           case Outcome.Succeeded(_) => Temporal[F].unit
           case Outcome.Errored(e)   => Temporal[F].raiseError(e)
           case Outcome.Canceled()   => Temporal[F].raiseError(new CancellationException("HealthCheck cancelled"))
@@ -118,7 +115,7 @@ object KafkaHealthCheck {
         for {
           records <- consumer.poll(config.pollTimeout)
           found    = records.find { record => record.key.contains_(key) && record.value.contains_(value) }
-          result <- found.fold {
+          result  <- found.fold {
             for {
               _ <- sleep
               _ <- produce(s"$n:$retry")
@@ -211,11 +208,12 @@ object KafkaHealthCheck {
         def poll(timeout: FiniteDuration) = {
           for {
             records <- consumer.poll(timeout)
-          } yield for {
-            record <- records.values.values.flatMap(_.toList)
-          } yield {
-            Record(key = record.key.map(_.value), value = record.value.map(_.value))
-          }
+          } yield
+            for {
+              record <- records.values.values.flatMap(_.toList)
+            } yield {
+              Record(key = record.key.map(_.value), value = record.value.map(_.value))
+            }
         }
       }
     }

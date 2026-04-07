@@ -4,8 +4,7 @@ import cats.data.{NonEmptySet => Nes}
 import cats.~>
 import com.evolutiongaming.skafka.TopicPartition
 
-/**
-  * Will be converted to [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]] during consumer.subscribe
+/** Will be converted to [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]] during consumer.subscribe
   *
   * Uses [[RebalanceCallback]] to describe the actions to be performed during rebalance.
   *
@@ -13,7 +12,8 @@ import com.evolutiongaming.skafka.TopicPartition
   *
   * Below is an example inspired by [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]] documentation.
   *
-  * Compiling and working example is available [[https://github.com/evolution-gaming/skafka/blob/master/skafka/src/test/scala/com/evolutiongaming/skafka/consumer/RebalanceListener1Spec.scala here]]
+  * Compiling and working example is available
+  * [[https://github.com/evolution-gaming/skafka/blob/master/skafka/src/test/scala/com/evolutiongaming/skafka/consumer/RebalanceListener1Spec.scala here]]
   * {{{
   *
   * class SaveOffsetsOnRebalance[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
@@ -47,8 +47,10 @@ import com.evolutiongaming.skafka.TopicPartition
   * }
   *
   * }}}
-  * @see [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
-  * @see [[com.evolutiongaming.skafka.consumer.RebalanceCallback]]
+  * @see
+  *   [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+  * @see
+  *   [[com.evolutiongaming.skafka.consumer.RebalanceCallback]]
   */
 trait RebalanceListener1[F[_]] {
 
@@ -60,8 +62,7 @@ trait RebalanceListener1[F[_]] {
 
 }
 
-/**
-  * Same as [[RebalanceListener1]] but with a `consumer` to allow a better type inference.
+/** Same as [[RebalanceListener1]] but with a `consumer` to allow a better type inference.
   *
   * {{{
   *    import RebalanceCallback.syntax._ // to allow writing `someF.lift` instead of `lift(someF)`

@@ -38,7 +38,7 @@ class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
 
     listener1.onPartitionsRevoked(partitions.s).run(consumer) mustBe Try(())
 
-    val rebalanceCallback: RebalanceCallback[IO,Unit] = listener1.onPartitionsLost(partitions.s)
+    val rebalanceCallback: RebalanceCallback[IO, Unit] = listener1.onPartitionsLost(partitions.s)
 
     rebalanceCallback.run(consumer) mustBe Try(())
 
@@ -100,7 +100,7 @@ object RebalanceListener1Spec {
       } yield a
 
     // do not need to save the offsets since these partitions are probably owned by other consumers already
-    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F,Unit] = RebalanceCallback.empty
+    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = RebalanceCallback.empty
   }
 
   def readOffsetsFromExternalStore[F[_]: Applicative](

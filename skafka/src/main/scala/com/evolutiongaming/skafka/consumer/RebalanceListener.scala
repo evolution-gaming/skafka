@@ -6,8 +6,7 @@ import cats.{Applicative, FlatMap, ~>}
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.TopicPartition
 
-/**
-  * See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
+/** See [[org.apache.kafka.clients.consumer.ConsumerRebalanceListener]]
   */
 trait RebalanceListener[F[_]] {
 

@@ -23,7 +23,7 @@ import org.apache.kafka.clients.producer.{
   RecordMetadata => RecordMetadataJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, Uuid, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
 
 import scala.jdk.CollectionConverters._
 import org.scalatest.matchers.should.Matchers
@@ -185,8 +185,6 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       }
 
       def abortTransaction() = Scope.this.abortTransaction = true
-
-      def clientInstanceId(timeout: Duration): Uuid = Uuid.ZERO_UUID
     }
 
     val producer: Producer[IO] = {

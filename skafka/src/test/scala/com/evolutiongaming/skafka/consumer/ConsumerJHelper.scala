@@ -10,7 +10,7 @@ import org.apache.kafka.clients.consumer.{ConsumerRebalanceListener, OffsetCommi
   OffsetAndMetadata => OffsetAndMetadataJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Uuid, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{TopicPartition => TopicPartitionJ, Uuid}
 
 object ConsumerJHelper {
 
@@ -180,8 +180,6 @@ object ConsumerJHelper {
       def currentLag(topicPartition: TopicPartitionJ): OptionalLong = f { self.currentLag(topicPartition) }
 
       def enforceRebalance(reason: String): Unit = f { self.enforceRebalance(reason) }
-
-      def clientInstanceId(timeout: Duration): Uuid = f { self.clientInstanceId(timeout) }
     }
   }
 

@@ -54,8 +54,11 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       consumerJ <- consumerJ[F, Bytes, Bytes](actions).toResource
       consumer  <- Consumer.fromConsumerJ1(consumerJ.pure[F])
       assigned0 <- Deferred[F, Unit].toResource
+      assigned1 <- Deferred[F, Unit].toResource
       revoked0  <- Deferred[F, Unit].toResource
+      revoked1  <- Deferred[F, Unit].toResource
       lost0     <- Deferred[F, Unit].toResource
+      lost1     <- Deferred[F, Unit].toResource
       listener   = new RebalanceListener1WithConsumer[F] {
         import RebalanceCallback.syntax.*
 
@@ -63,6 +66,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           for {
             _ <- actions.add(Action.PartitionsAssignedEnter).lift
             _ <- assigned0.complete(()).lift
+            _ <- assigned1.get.lift
             _ <- actions.add(Action.PartitionsAssignedExit).lift
           } yield {}
         }
@@ -71,6 +75,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           for {
             _ <- actions.add(Action.PartitionsRevokedEnter).lift
             _ <- revoked0.complete(()).lift
+            _ <- revoked1.get.lift
             _ <- actions.add(Action.PartitionsRevokedExit).lift
           } yield {}
         }
@@ -79,6 +84,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           for {
             _ <- actions.add(Action.PartitionsLostEnter).lift
             _ <- lost0.complete(()).lift
+            _ <- lost1.get.lift
             _ <- actions.add(Action.PartitionsLostExit).lift
           } yield {}
         }
@@ -94,26 +100,29 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
 
       _ <- assigned0.get.toResource
       _ <- consumer.topics.toResource
+      _ <- assigned1.complete(()).toResource
 
       _ <- revoked0.get.toResource
       _ <- consumer.topics.toResource
+      _ <- revoked1.complete(()).toResource
 
       _ <- lost0.get.toResource
       _ <- consumer.topics.toResource
+      _ <- lost1.complete(()).toResource
 
       _       <- fiber.joinWithNever.toResource
       actions <- actions.get.toResource
       _        = actions shouldEqual List(
         Action.PollEnter,
         Action.PartitionsAssignedEnter,
+        Action.Topics,
         Action.PartitionsAssignedExit,
         Action.PartitionsRevokedEnter,
+        Action.Topics,
         Action.PartitionsRevokedExit,
         Action.PartitionsLostEnter,
+        Action.Topics,
         Action.PartitionsLostExit,
-        Action.Topics,
-        Action.Topics,
-        Action.Topics,
         Action.PollExit
       )
     } yield {}
@@ -130,6 +139,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       consumerJ <- consumerJ[F, Bytes, Bytes](actions).toResource
       consumer  <- Consumer.fromConsumerJ1(consumerJ.pure[F])
       deferred0 <- Deferred[F, Unit].toResource
+      deferred1 <- Deferred[F, Unit].toResource
       listener   = new RebalanceListener1WithConsumer[F] {
         import RebalanceCallback.syntax.*
 
@@ -137,6 +147,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           for {
             _ <- actions.add(Action.PartitionsAssignedEnter).lift
             _ <- deferred0.complete(()).lift
+            _ <- deferred1.get.lift
             _ <- error.raiseError[F, Unit].lift
           } yield {}
         }
@@ -165,6 +176,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
       fiber   <- poll.start.toResource
       _       <- deferred0.get.toResource
       _       <- consumer.topics.toResource
+      _       <- deferred1.complete(()).toResource
       _       <- consumer.topics.toResource
       result  <- fiber.joinWithNever.attempt.toResource
       _        = result shouldEqual error.asLeft

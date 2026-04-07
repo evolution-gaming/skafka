@@ -1,13 +1,12 @@
 package com.evolutiongaming.skafka
 package producer
 
-import cats.data.{NonEmptyMap => Nem}
 import cats.effect.{Async, Deferred, Resource, Sync}
 import cats.effect.implicits._
 import cats.implicits._
 import cats.{Applicative, Functor, Monad, MonadError, MonadThrow, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{Blocking, Log, MeasureDuration, ToTry}
+import com.evolutiongaming.catshelper.{Log, MeasureDuration, ToTry}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{
@@ -19,7 +18,7 @@ import org.apache.kafka.clients.producer.{
 import org.apache.kafka.common.Uuid
 
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{ExecutionContext, ExecutionException}
+import scala.concurrent.ExecutionException
 import scala.jdk.CollectionConverters._
 
 /** See [[org.apache.kafka.clients.producer.Producer]]
@@ -29,12 +28,6 @@ trait Producer[F[_]] {
   def initTransactions: F[Unit]
 
   def beginTransaction: F[Unit]
-
-  @deprecated("Deprecated in kafka-clients since 3.0.0", since = "15.0.0")
-  def sendOffsetsToTransaction(
-    offsets: Nem[TopicPartition, OffsetAndMetadata],
-    consumerGroupId: String
-  ): F[Unit]
 
   def commitTransaction: F[Unit]
 
@@ -73,11 +66,6 @@ object Producer {
 
       def beginTransaction = empty
 
-      def sendOffsetsToTransaction(
-        offsets: Nem[TopicPartition, OffsetAndMetadata],
-        consumerGroupId: String
-      ) = empty
-
       def commitTransaction = empty
 
       def abortTransaction = empty
@@ -99,14 +87,6 @@ object Producer {
     }
   }
 
-  @deprecated("Use of(ProducerConfig)", since = "12.0.1")
-  def of[F[_]: ToTry: Async](
-    config: ProducerConfig,
-    executorBlocking: ExecutionContext
-  ): Resource[F, Producer[F]] = {
-    of(config)
-  }
-
   def of[F[_]: ToTry: Async](
     config: ProducerConfig
   ): Resource[F, Producer[F]] = {
@@ -115,11 +95,6 @@ object Producer {
   }
 
   private sealed abstract class Main
-
-  @deprecated("Use fromProducerJ2", since = "12.0.1")
-  def fromProducerJ1[F[_]: Blocking: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
-    fromProducerJ2(producer)
-  }
 
   def fromProducerJ2[F[_]: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
 
@@ -134,13 +109,6 @@ object Producer {
 
         def beginTransaction = {
           Sync[F].delay { producer.beginTransaction() }
-        }
-
-        def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-          val offsetsJ = offsets
-            .toSortedMap
-            .asJavaMap(_.asJava, _.asJava)
-          blocking { producer.sendOffsetsToTransaction(offsetsJ, consumerGroupId) }
         }
 
         def commitTransaction = {
@@ -258,16 +226,6 @@ object Producer {
         } yield r
       }
 
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        for {
-          d <- MeasureDuration[F].start
-          r <- producer.sendOffsetsToTransaction(offsets, consumerGroupId).attempt
-          d <- d
-          _ <- metrics.sendOffsetsToTransaction(d)
-          r <- r.liftTo[F]
-        } yield r
-      }
-
       def commitTransaction = {
         for {
           d <- MeasureDuration[F].start
@@ -355,18 +313,8 @@ object Producer {
       ProducerLogging(self, log)
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
-      * which had `withLogging` method using `MeasureDuration` from `smetrics` and `withLogging1` using
-      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
-      * time.
-      */
-    @deprecated("Use `withLogging`", since = "16.0.2")
-    def withLogging1(log: Log[F])(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      withLogging(log)
-    }
-
-    /** @param charsToTrim
-      *   a number of chars from record's value to log when producing fails because of a too large record
+    /**
+      * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
       */
     def withLogging(
       log: Log[F],
@@ -375,38 +323,10 @@ object Producer {
       ProducerLogging(self, log, charsToTrim)
     }
 
-    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
-      * which had `withLogging` method using `MeasureDuration` from `smetrics` and `withLogging1` using
-      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
-      * time.
-      *
-      * @param charsToTrim
-      *   a number of chars from record's value to log when producing fails because of a too large record
-      */
-    @deprecated("Use `withLogging`", since = "16.0.2")
-    def withLogging1(
-      log: Log[F],
-      charsToTrim: Int
-    )(implicit F: MonadThrow[F], measureDuration: MeasureDuration[F]): Producer[F] = {
-      withLogging(log, charsToTrim)
-    }
-
     def withMetrics[E](
       metrics: ProducerMetrics[F]
     )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
       Producer(self, metrics)
-    }
-
-    /** The sole purpose of this method is to support binary compatibility with an intermediate version (namely, 15.2.0)
-      * which had `withMetrics` method using `MeasureDuration` from `smetrics` and `withMetrics1` using
-      * `MeasureDuration` from `cats-helper`. This should not be used and should be removed in a reasonable amount of
-      * time.
-      */
-    @deprecated("Use `withMetrics`", since = "16.0.2")
-    def withMetrics1[E](
-      metrics: ProducerMetrics[F]
-    )(implicit F: MonadError[F, E], measureDuration: MeasureDuration[F]): Producer[F] = {
-      withMetrics(metrics)
     }
 
     def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {
@@ -414,10 +334,6 @@ object Producer {
       def initTransactions = fg(self.initTransactions)
 
       def beginTransaction = fg(self.beginTransaction)
-
-      def sendOffsetsToTransaction(offsets: Nem[TopicPartition, OffsetAndMetadata], consumerGroupId: String) = {
-        fg(self.sendOffsetsToTransaction(offsets, consumerGroupId))
-      }
 
       def commitTransaction = fg(self.commitTransaction)
 

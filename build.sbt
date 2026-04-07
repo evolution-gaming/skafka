@@ -24,8 +24,8 @@ lazy val commonSettings = Seq(
   Compile / doc / scalacOptions += "-no-link-warnings",
   scalacOptions ++= crossSettings(
     scalaVersion.value,
-    if3 = List("-release:17", "-Ykind-projector", "-language:implicitConversions", "-explain", "-deprecation"),
-    if2 = List("-release:17", "-Xsource:3"),
+    if3 = List("-release:17", "-Ykind-projector", "-language:implicitConversions", "-unchecked", "-feature", "-explain", "-explain-types", "-deprecation", "-Wunused:all"),
+    if2 = List("-release:17", "-Xsource:3", "-deprecation"),
   ),
   libraryDependencies ++= crossSettings(
     scalaVersion.value,

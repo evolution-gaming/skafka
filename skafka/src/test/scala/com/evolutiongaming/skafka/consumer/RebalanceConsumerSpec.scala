@@ -7,14 +7,17 @@ import java.{lang, util}
 import java.lang.{Long => LongJ}
 import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec._
 import org.apache.kafka.clients.consumer.{
+  CloseOptions,
   ConsumerRebalanceListener,
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata,
   OffsetCommitCallback,
   OffsetAndTimestamp => OffsetAndTimestampJ,
   Consumer => ConsumerJ,
-  ConsumerRecords => ConsumerRecordsJ
+  ConsumerRecords => ConsumerRecordsJ,
+  SubscriptionPattern,
 }
+import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{TopicPartition, PartitionInfo, MetricName, Metric, Uuid}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
@@ -36,8 +39,9 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def assign(partitions: util.Collection[TopicPartition]): Unit                             = unsupported
       def subscribe(pattern: Pattern, callback: ConsumerRebalanceListener): Unit                = unsupported
       def subscribe(pattern: Pattern): Unit                                                     = unsupported
+      def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListener): Unit    = unsupported
+      def subscribe(pattern: SubscriptionPattern): Unit                                         = unsupported
       def unsubscribe(): Unit                                                                   = unsupported
-      def poll(timeout: Long): ConsumerRecordsJ[String, String]                                 = unsupported
       def poll(timeout: Duration): ConsumerRecordsJ[String, String]                             = unsupported
       def commitSync(): Unit                  = supported // rebalanceConsumer.commit()
       def commitSync(timeout: Duration): Unit = supported // rebalanceConsumer.commit(timeout)
@@ -49,6 +53,8 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def commitAsync(callback: OffsetCommitCallback): Unit = unsupported
       def commitAsync(offsets: util.Map[TopicPartition, OffsetAndMetadata], callback: OffsetCommitCallback): Unit =
         unsupported
+      def registerMetricForSubscription(metric: KafkaMetric): Unit    = unsupported
+      def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = unsupported
       def seek(partition: TopicPartition, offset: Long): Unit = supported // rebalanceConsumer.seek(partition, offset)
       def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): Unit =
         supported // rebalanceConsumer.seek(partition, offsetAndMetadata)
@@ -59,8 +65,6 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def position(partition: TopicPartition): Long = supported // rebalanceConsumer.position(partition)
       def position(partition: TopicPartition, timeout: Duration): Long =
         supported // rebalanceConsumer.position(partition, timeout)
-      def committed(partition: TopicPartition): OffsetAndMetadata                                      = unsupported
-      def committed(partition: TopicPartition, timeout: Duration): OffsetAndMetadata                   = unsupported
       def committed(partitions: util.Set[TopicPartition]): util.Map[TopicPartition, OffsetAndMetadata] =
         supported // rebalanceConsumer.committed(partitions)
       def committed(
@@ -68,6 +72,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
         timeout: Duration
       ): util.Map[TopicPartition, OffsetAndMetadata] =
         supported // rebalanceConsumer.committed(partitions, timeout)
+      def clientInstanceId(timeout: Duration): Uuid              = unsupported
       def metrics(): util.Map[MetricName, _ <: Metric]           = unsupported
       def partitionsFor(topic: String): util.List[PartitionInfo] = supported // rebalanceConsumer.partitionsFor(topic)
       def partitionsFor(topic: String, timeout: Duration): util.List[PartitionInfo] =
@@ -103,10 +108,10 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def close(): Unit                                            = unsupported
       def close(timeout: Long, unit: TimeUnit): Unit               = unsupported
       def close(timeout: Duration): Unit                           = unsupported
+      def close(option: CloseOptions): Unit                        = unsupported
       def wakeup(): Unit                                           = unsupported
-      def currentLag(topicPartition: TopicPartition): OptionalLong = unsupported
+      def currentLag(topicPartition: TopicPartition): OptionalLong = supported // rebalanceConsumer.currentLag()
       def enforceRebalance(reason: String): Unit                   = unsupported
-      def clientInstanceId(timeout: Duration): Uuid                = unsupported
     }
 
     // useless test to suppress unused consumerJ warning

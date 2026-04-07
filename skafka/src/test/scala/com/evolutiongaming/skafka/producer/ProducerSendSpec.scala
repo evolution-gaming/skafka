@@ -15,11 +15,11 @@ import org.apache.kafka.clients.producer.{
   ProducerRecord => ProducerRecordJ,
   RecordMetadata => RecordMetadataJ
 }
+import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import java.time.Duration
 import scala.compat.java8.FutureConverters._
 import scala.jdk.CollectionConverters._
 
@@ -51,11 +51,6 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
           groupMetadata: ConsumerGroupMetadata
         ) = {}
 
-        def sendOffsetsToTransaction(
-          offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ],
-          consumerGroupId: String
-        ) = {}
-
         def commitTransaction() = {}
 
         def flush() = {}
@@ -64,9 +59,15 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
         def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 
+        def clientInstanceId(timeout: java.time.Duration): Uuid = Uuid.ONE_UUID
+
         def close() = {}
 
         def close(timeout: java.time.Duration) = {}
+
+        def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
+
+        def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
 
         def send(record: ProducerRecordJ[Bytes, Bytes]): FutureJ[RecordMetadataJ] = {
           CompletableFuture.completedFuture(metadata.asJava)
@@ -91,8 +92,6 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
         }
 
         def abortTransaction() = {}
-
-        def clientInstanceId(timeout: Duration): Uuid = Uuid.ZERO_UUID
       }
 
       Producer.fromProducerJ2(producer.pure[F])

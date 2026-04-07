@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.{Long => LongJ}
 import java.time.Duration
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
 import cats.data.{NonEmptySet => Nes}
@@ -11,26 +10,28 @@ import cats.effect.implicits._
 import cats.effect.kernel.Deferred
 import cats.implicits._
 import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.catshelper.{Blocking, ToFuture, ToTry}
+import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka.consumer.ConsumerJHelper._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{
+  CloseOptions,
   ConsumerRebalanceListener,
   OffsetCommitCallback,
+  SubscriptionPattern,
   Consumer => ConsumerJ,
   ConsumerRecord => ConsumerRecordJ,
   ConsumerRecords => ConsumerRecordsJ,
   OffsetAndMetadata => OffsetAndMetadataJ,
   OffsetAndTimestamp => OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.metrics.KafkaMetric
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition => TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.annotation.nowarn
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
@@ -46,45 +47,45 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     `consumer.poll error`[IO].run()
   }
 
-  @nowarn("cat=deprecation")
-  private def `consumer.poll`[F[_]: Async: ToTry: ToFuture: Blocking] = {
+  private def `consumer.poll`[F[_]: Async: ToTry] = {
 
     val result = for {
       actions   <- Actions.of[F].toResource
       consumerJ <- consumerJ[F, Bytes, Bytes](actions).toResource
-      consumer  <- Consumer.fromConsumerJ(consumerJ.pure[F])
+      consumer  <- Consumer.fromConsumerJ1(consumerJ.pure[F])
       assigned0 <- Deferred[F, Unit].toResource
       assigned1 <- Deferred[F, Unit].toResource
       revoked0  <- Deferred[F, Unit].toResource
       revoked1  <- Deferred[F, Unit].toResource
       lost0     <- Deferred[F, Unit].toResource
       lost1     <- Deferred[F, Unit].toResource
-      listener   = new RebalanceListener[F] {
+      listener   = new RebalanceListener1WithConsumer[F] {
+        import RebalanceCallback.syntax.*
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsAssignedEnter)
-            _ <- assigned0.complete(())
-            _ <- assigned1.get
-            _ <- actions.add(Action.PartitionsAssignedExit)
+            _ <- actions.add(Action.PartitionsAssignedEnter).lift
+            _ <- assigned0.complete(()).lift
+            _ <- assigned1.get.lift
+            _ <- actions.add(Action.PartitionsAssignedExit).lift
           } yield {}
         }
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsRevokedEnter)
-            _ <- revoked0.complete(())
-            _ <- revoked1.get
-            _ <- actions.add(Action.PartitionsRevokedExit)
+            _ <- actions.add(Action.PartitionsRevokedEnter).lift
+            _ <- revoked0.complete(()).lift
+            _ <- revoked1.get.lift
+            _ <- actions.add(Action.PartitionsRevokedExit).lift
           } yield {}
         }
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsLostEnter)
-            _ <- lost0.complete(())
-            _ <- lost1.get
-            _ <- actions.add(Action.PartitionsLostExit)
+            _ <- actions.add(Action.PartitionsLostEnter).lift
+            _ <- lost0.complete(()).lift
+            _ <- lost1.get.lift
+            _ <- actions.add(Action.PartitionsLostExit).lift
           } yield {}
         }
       }
@@ -94,7 +95,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           a <- consumer.poll(1.millis)
           _ <- actions.add(Action.PollExit)
         } yield a
-      _     <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
+      _     <- consumer.subscribe(Nes.of("topic"), listener).toResource
       fiber <- poll.start.toResource
 
       _ <- assigned0.get.toResource
@@ -129,39 +130,39 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
     result.use { _.pure[F] }
   }
 
-  @nowarn("cat=deprecation")
-  private def `consumer.poll error`[F[_]: ToTry: ToFuture: Blocking: Async] = {
+  private def `consumer.poll error`[F[_]: ToTry: Async] = {
 
     val error: Throwable = new RuntimeException("error") with NoStackTrace
 
     val result = for {
       actions   <- Actions.of[F].toResource
       consumerJ <- consumerJ[F, Bytes, Bytes](actions).toResource
-      consumer  <- Consumer.fromConsumerJ(consumerJ.pure[F])
+      consumer  <- Consumer.fromConsumerJ1(consumerJ.pure[F])
       deferred0 <- Deferred[F, Unit].toResource
       deferred1 <- Deferred[F, Unit].toResource
-      listener   = new RebalanceListener[F] {
+      listener   = new RebalanceListener1WithConsumer[F] {
+        import RebalanceCallback.syntax.*
 
         def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsAssignedEnter)
-            _ <- deferred0.complete(())
-            _ <- deferred1.get
-            _ <- error.raiseError[F, Unit]
+            _ <- actions.add(Action.PartitionsAssignedEnter).lift
+            _ <- deferred0.complete(()).lift
+            _ <- deferred1.get.lift
+            _ <- error.raiseError[F, Unit].lift
           } yield {}
         }
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsRevokedEnter)
-            _ <- actions.add(Action.PartitionsRevokedExit)
+            _ <- actions.add(Action.PartitionsRevokedEnter).lift
+            _ <- actions.add(Action.PartitionsRevokedExit).lift
           } yield {}
         }
 
         def onPartitionsLost(partitions: Nes[TopicPartition]) = {
           for {
-            _ <- actions.add(Action.PartitionsLostEnter)
-            _ <- actions.add(Action.PartitionsLostExit)
+            _ <- actions.add(Action.PartitionsLostEnter).lift
+            _ <- actions.add(Action.PartitionsLostExit).lift
           } yield {}
         }
       }
@@ -171,7 +172,7 @@ class SerialListenersTest extends AsyncFunSuite with Matchers {
           a <- consumer.poll(1.millis)
           _ <- actions.add(Action.PollExit)
         } yield a
-      _       <- consumer.subscribe(Nes.of("topic"), listener.some).toResource
+      _       <- consumer.subscribe(Nes.of("topic"), listener).toResource
       fiber   <- poll.start.toResource
       _       <- deferred0.get.toResource
       _       <- consumer.topics.toResource
@@ -251,9 +252,11 @@ object SerialListenersTest {
 
         def subscribe(pattern: Pattern) = {}
 
-        def unsubscribe() = {}
+        def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListener) = {}
 
-        def poll(timeout: Long) = poll(Duration.ofMillis(timeout))
+        def subscribe(pattern: SubscriptionPattern) = {}
+
+        def unsubscribe() = {}
 
         def poll(timeout: Duration) = {
           val result = for {
@@ -291,6 +294,10 @@ object SerialListenersTest {
 
         def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback) = {}
 
+        def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
+
+        def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
+
         def seek(partition: TopicPartitionJ, offset: Long) = {}
 
         def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadataJ) = {}
@@ -303,14 +310,6 @@ object SerialListenersTest {
 
         def position(partition: TopicPartitionJ, timeout: Duration) = Offset.min.value
 
-        def committed(partition: TopicPartitionJ) = {
-          new OffsetAndMetadataJ(Offset.min.value, "metadata")
-        }
-
-        def committed(partition: TopicPartitionJ, timeout: Duration) = {
-          new OffsetAndMetadataJ(Offset.min.value, "metadata")
-        }
-
         def committed(partitions: SetJ[TopicPartitionJ]) = {
           Map.empty[TopicPartitionJ, OffsetAndMetadataJ].asJava
         }
@@ -318,6 +317,8 @@ object SerialListenersTest {
         def committed(partitions: SetJ[TopicPartitionJ], timeout: Duration) = {
           Map.empty[TopicPartitionJ, OffsetAndMetadataJ].asJava
         }
+
+        def clientInstanceId(timeout: Duration): Uuid = Uuid.ONE_UUID
 
         def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 
@@ -373,17 +374,15 @@ object SerialListenersTest {
 
         def close() = {}
 
-        def close(timeout: Long, unit: TimeUnit) = {}
-
         def close(timeout: Duration) = {}
+
+        def close(option: CloseOptions): Unit = {}
 
         def wakeup() = {}
 
         def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.empty()
 
         def enforceRebalance(reason: String): Unit = {}
-
-        def clientInstanceId(timeout: Duration): Uuid = Uuid.ZERO_UUID
       }
 
       consumer.errorOnConcurrentAccess

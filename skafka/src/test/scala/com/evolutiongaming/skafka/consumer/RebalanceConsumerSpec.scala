@@ -7,6 +7,7 @@ import java.{lang, util}
 import java.lang.{Long => LongJ}
 import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec._
 import org.apache.kafka.clients.consumer.{
+  CloseOptions,
   ConsumerRebalanceListener,
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   OffsetAndMetadata,
@@ -52,7 +53,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def commitAsync(callback: OffsetCommitCallback): Unit = unsupported
       def commitAsync(offsets: util.Map[TopicPartition, OffsetAndMetadata], callback: OffsetCommitCallback): Unit =
         unsupported
-      def registerMetricForSubscription(metric: KafkaMetric): Unit = unsupported
+      def registerMetricForSubscription(metric: KafkaMetric): Unit    = unsupported
       def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = unsupported
       def seek(partition: TopicPartition, offset: Long): Unit = supported // rebalanceConsumer.seek(partition, offset)
       def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): Unit =
@@ -107,6 +108,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def close(): Unit                                            = unsupported
       def close(timeout: Long, unit: TimeUnit): Unit               = unsupported
       def close(timeout: Duration): Unit                           = unsupported
+      def close(option: CloseOptions): Unit                        = unsupported
       def wakeup(): Unit                                           = unsupported
       def currentLag(topicPartition: TopicPartition): OptionalLong = supported // rebalanceConsumer.currentLag()
       def enforceRebalance(reason: String): Unit                   = unsupported

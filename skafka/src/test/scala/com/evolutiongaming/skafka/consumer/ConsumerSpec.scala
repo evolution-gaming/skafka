@@ -18,13 +18,14 @@ import com.evolutiongaming.skafka.IOSuite._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{
+  CloseOptions,
+  SubscriptionPattern,
   Consumer => ConsumerJ,
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
   ConsumerRecords => ConsumerRecordsJ,
   OffsetAndMetadata => OffsetAndMetadataJ,
   OffsetCommitCallback => OffsetCommitCallbackJ,
-  SubscriptionPattern
 }
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric, Uuid}
@@ -471,6 +472,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def close() = {}
 
       def close(timeout: DurationJ) = {}
+
+      def close(option: CloseOptions): Unit = {}
 
       def wakeup() = {
         Scope.this.wakeup = true

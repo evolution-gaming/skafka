@@ -20,7 +20,6 @@ import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicParti
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import java.time.Duration
 import scala.compat.java8.FutureConverters._
 import scala.jdk.CollectionConverters._
 

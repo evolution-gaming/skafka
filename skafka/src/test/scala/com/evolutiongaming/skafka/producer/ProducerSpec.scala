@@ -29,8 +29,6 @@ import scala.jdk.CollectionConverters._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import java.time.Duration
-
 class ProducerSpec extends AnyWordSpec with Matchers {
 
   val topic          = "topic"

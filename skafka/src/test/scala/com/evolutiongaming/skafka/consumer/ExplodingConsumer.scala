@@ -9,6 +9,7 @@ import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
   OffsetCommitCallback,
+  SubscriptionPattern,
   Consumer => ConsumerJ,
   ConsumerGroupMetadata => ConsumerGroupMetadataJ,
   ConsumerRecords => ConsumerRecordsJ,
@@ -16,7 +17,7 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndTimestamp => OffsetAndTimestampJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition => TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
 
@@ -124,8 +125,6 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def currentLag(topicPartition: TopicPartitionJ): OptionalLong = notImplemented
 
   def enforceRebalance(reason: String): Unit = notImplemented
-
-  def clientInstanceId(timeout: DurationJ): Uuid = notImplemented
 }
 
 object ExplodingConsumer {

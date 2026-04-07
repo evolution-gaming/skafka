@@ -479,8 +479,6 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
       def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.of(1L)
 
       def enforceRebalance(reason: Metadata): Unit = {}
-
-      def clientInstanceId(timeout: DurationJ): Uuid = Uuid.ZERO_UUID
     }
 
     val consumer: Consumer[IO, Bytes, Bytes] = {

@@ -16,7 +16,7 @@ import org.apache.kafka.clients.producer.{
   RecordMetadata => RecordMetadataJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, Uuid, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -93,8 +93,6 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
         }
 
         def abortTransaction() = {}
-
-        def clientInstanceId(timeout: Duration): Uuid = Uuid.ZERO_UUID
       }
 
       Producer.fromProducerJ2(producer.pure[F])

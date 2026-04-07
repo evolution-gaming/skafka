@@ -19,6 +19,7 @@ import com.evolutiongaming.skafka.{Bytes, Offset, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
   OffsetCommitCallback,
+  SubscriptionPattern,
   Consumer => ConsumerJ,
   ConsumerRecord => ConsumerRecordJ,
   ConsumerRecords => ConsumerRecordsJ,
@@ -367,8 +368,6 @@ object SerialListenersTest {
         def currentLag(topicPartition: TopicPartitionJ): OptionalLong = OptionalLong.empty()
 
         def enforceRebalance(reason: String): Unit = {}
-
-        def clientInstanceId(timeout: Duration): Uuid = Uuid.ZERO_UUID
       }
 
       consumer.errorOnConcurrentAccess

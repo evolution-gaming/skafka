@@ -245,25 +245,12 @@ object Consumer {
 
     def blocking[A](f: => A) = Sync[F].blocking { f }
 
-    trait Around {
-      def apply[A](f: => A): F[A]
-    }
-
     for {
-      serialListeners      <- SerialListeners.of[F].toResource
       semaphore            <- Semaphore(1).toResource
       consumer             <- consumer.toResource
       clientMetricsProvider = ClientMetricsProvider[F](consumer)
-      around                = new Around {
-        def apply[A](f: => A) = {
-          semaphore
-            .permit
-            .use(_ => serialListeners.around { blocking { f } })
-            .flatten
-            .uncancelable
-        }
-      }
-      close = around { consumer.close() }
+
+      close = semaphore.permit.use(_ => blocking { consumer.close() }).uncancelable
       _    <- Resource.release { close }
     } yield {
 
@@ -393,7 +380,7 @@ object Consumer {
 
         def poll(timeout: FiniteDuration) = {
           val timeoutJ = timeout.asJava
-          around { consumer.poll(timeoutJ) }.flatMap { _.asScala[F] }
+          serialBlocking { consumer.poll(timeoutJ) }.flatMap { _.asScala[F] }
         }
 
         def commit = {

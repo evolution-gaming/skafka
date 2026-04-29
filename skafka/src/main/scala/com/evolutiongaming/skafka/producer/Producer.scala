@@ -313,8 +313,8 @@ object Producer {
       ProducerLogging(self, log)
     }
 
-    /**
-      * @param charsToTrim a number of chars from record's value to log when producing fails because of a too large record
+    /** @param charsToTrim
+      *   a number of chars from record's value to log when producing fails because of a too large record
       */
     def withLogging(
       log: Log[F],

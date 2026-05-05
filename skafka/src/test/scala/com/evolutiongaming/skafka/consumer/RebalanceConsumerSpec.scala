@@ -106,7 +106,6 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       def groupMetadata(): ConsumerGroupMetadataJ                  = supported // rebalanceConsumer.groupMetadata()
       def enforceRebalance(): Unit                                 = unsupported
       def close(): Unit                                            = unsupported
-      def close(timeout: Long, unit: TimeUnit): Unit               = unsupported
       def close(timeout: Duration): Unit                           = unsupported
       def close(option: CloseOptions): Unit                        = unsupported
       def wakeup(): Unit                                           = unsupported

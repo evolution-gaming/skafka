@@ -117,7 +117,6 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
   def enforceRebalance(): Unit                               = notImplemented
   def close(): Unit                                          = notImplemented
-  def close(timeout: Long, unit: TimeUnit): Unit             = notImplemented
   def close(timeout: DurationJ): Unit                        = notImplemented
   def close(option: CloseOptions): Unit                      = notImplemented
   def wakeup(): Unit                                         = notImplemented

@@ -11,8 +11,16 @@ import com.evolutiongaming.skafka.IOMatchers.*
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite.*
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata as ConsumerGroupMetadataJ, OffsetAndMetadata as OffsetAndMetadataJ}
-import org.apache.kafka.clients.producer.{Callback, Producer as ProducerJ, ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
+import org.apache.kafka.clients.consumer.{
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  OffsetAndMetadata as OffsetAndMetadataJ
+}
+import org.apache.kafka.clients.producer.{
+  Callback,
+  Producer as ProducerJ,
+  ProducerRecord as ProducerRecordJ,
+  RecordMetadata as RecordMetadataJ
+}
 import org.apache.kafka.common
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Metric, MetricName, Uuid, TopicPartition as TopicPartitionJ}
@@ -123,15 +131,15 @@ class ProducerSpec extends AnyWordSpec with Matchers {
   }
 
   private trait Scope {
-    var flushCalled               = false
-    var commitTransaction         = false
-    var beginTransaction          = false
-    var initTransactions          = false
-    var abortTransaction          = false
-    var partitionsFor             = ""
-    var sendOffsetsToTransaction  = ""
+    var flushCalled                                               = false
+    var commitTransaction                                         = false
+    var beginTransaction                                          = false
+    var initTransactions                                          = false
+    var abortTransaction                                          = false
+    var partitionsFor                                             = ""
+    var sendOffsetsToTransaction                                  = ""
     var sendOffsetsToTransaction1: Option[ConsumerGroupMetadataJ] = none[ConsumerGroupMetadataJ]
-    val completableFuture: CompletableFuture[RecordMetadataJ] = CompletableFuture.completedFuture(metadata.asJava)
+    val completableFuture: CompletableFuture[RecordMetadataJ]     = CompletableFuture.completedFuture(metadata.asJava)
 
     val jProducer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 

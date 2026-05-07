@@ -72,6 +72,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "handleErrorWith" - {
+
         /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error
           */
         def testFailedInput[A](
@@ -412,7 +413,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         val input                  = partitions.s.head
         val inputOffset            = Offset.unsafe(423)
         val inputOffsetAndMetadata = OffsetAndMetadata(inputOffset)
-        val output: Unit = ()
+        val output: Unit           = ()
 
         val consumer = new ExplodingConsumer {
           override def seek(p: TopicPartitionJ, offset: Long): Unit = {
@@ -433,7 +434,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "seekToBeginning" in {
-        val input  = partitions
+        val input        = partitions
         val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
@@ -447,7 +448,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "seekToEnd" in {
-        val input  = partitions
+        val input        = partitions
         val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
@@ -472,8 +473,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "currentLag" in {
-        val input  = partition1
-        val output = Some(42L)
+        val input      = partition1
+        val output     = Some(42L)
         val outputJava = OptionalLong.of(output.value)
 
         val consumer = new ExplodingConsumer {

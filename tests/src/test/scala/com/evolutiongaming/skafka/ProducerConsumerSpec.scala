@@ -90,7 +90,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       _         <-
         listener match {
           case Some(listener) => consumer.subscribe(Nes.of(topic), listener).toResource
-          case None => consumer.subscribe(Nes.of(topic)).toResource
+          case None           => consumer.subscribe(Nes.of(topic)).toResource
         }
     } yield consumer
   }
@@ -119,9 +119,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.lift(assigned.complete(()).void)
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
+          RebalanceCallback.lift(assigned.complete(()).void)
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty[IO]
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
+          RebalanceCallback.empty[IO]
 
         def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty[IO]
       }

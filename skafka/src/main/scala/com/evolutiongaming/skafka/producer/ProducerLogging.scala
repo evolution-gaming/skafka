@@ -30,7 +30,9 @@ object ProducerLogging {
 
       def abortTransaction: F[Unit] = producer.abortTransaction
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
+      def send[K, V](
+        record: ProducerRecord[K, V]
+      )(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         val a = for {
           d <- MeasureDuration[F].start
           a <- producer.send(record)

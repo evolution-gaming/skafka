@@ -70,7 +70,9 @@ object Producer {
 
       def abortTransaction: F[Unit] = empty
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
+      def send[K, V](
+        record: ProducerRecord[K, V]
+      )(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         val partition      = record.partition getOrElse Partition.min
         val topicPartition = TopicPartition(record.topic, partition)
         val metadata       = RecordMetadata(topicPartition, record.timestamp)
@@ -119,7 +121,9 @@ object Producer {
           blocking { producer.abortTransaction() }
         }
 
-        def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
+        def send[K, V](
+          record: ProducerRecord[K, V]
+        )(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
 
           def executionException[A]: PartialFunction[Throwable, F[A]] = {
             case failure: ExecutionException => failure.getCause.raiseError[F, A]
@@ -246,7 +250,9 @@ object Producer {
         } yield r
       }
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
+      def send[K, V](
+        record: ProducerRecord[K, V]
+      )(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         val topic = record.topic
         for {
           d <- MeasureDuration[F].start
@@ -339,7 +345,9 @@ object Producer {
 
       def abortTransaction: G[Unit] = fg(self.abortTransaction)
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]): G[G[RecordMetadata]] = {
+      def send[K, V](
+        record: ProducerRecord[K, V]
+      )(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]): G[G[RecordMetadata]] = {
         for {
           a <- fg(self.send(record)(toBytesK.mapK(gf), toBytesV.mapK(gf)))
         } yield {
@@ -388,7 +396,9 @@ object Producer {
 
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {
 
-      def apply[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
+      def apply[K, V](
+        record: ProducerRecord[K, V]
+      )(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         producer.send(record)
       }
     }
@@ -397,7 +407,9 @@ object Producer {
 
       def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F): Send[G] = new Send[G] {
 
-        def apply[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]): G[G[RecordMetadata]] = {
+        def apply[K, V](
+          record: ProducerRecord[K, V]
+        )(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]): G[G[RecordMetadata]] = {
           for {
             a <- fg(self(record)(toBytesK.mapK(gf), toBytesV.mapK(gf)))
           } yield {

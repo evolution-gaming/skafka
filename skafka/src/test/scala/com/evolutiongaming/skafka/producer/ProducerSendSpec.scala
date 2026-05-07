@@ -9,7 +9,12 @@ import com.evolutiongaming.catshelper.{FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata as OffsetAndMetadataJ}
-import org.apache.kafka.clients.producer.{Callback, Producer as ProducerJ, ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
+import org.apache.kafka.clients.producer.{
+  Callback,
+  Producer as ProducerJ,
+  ProducerRecord as ProducerRecordJ,
+  RecordMetadata as RecordMetadataJ
+}
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition as TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite

@@ -9,20 +9,20 @@ import org.apache.kafka.common.config.SaslConfigs
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 final case class SaslSupportConfig(
-                                    kerberosServiceName: Option[String]          = None,
-                                    kerberosKinitCmd: String                     = SaslConfigs.DEFAULT_KERBEROS_KINIT_CMD,
-                                    kerberosTicketRenewWindowFactor: Double      = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_WINDOW_FACTOR,
-                                    kerberosTicketRenewJitter: Double            = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_JITTER,
-                                    kerberosMinTimeBeforeRelogin: FiniteDuration = SaslConfigs.DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN.millis,
-                                    loginRefreshWindowFactor: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_FACTOR,
-                                    loginRefreshWindowJitter: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_JITTER,
-                                    loginRefreshMinPeriod: FiniteDuration        = SaslConfigs.DEFAULT_LOGIN_REFRESH_MIN_PERIOD_SECONDS.seconds,
-                                    loginRefreshBuffer: FiniteDuration           = SaslConfigs.DEFAULT_LOGIN_REFRESH_BUFFER_SECONDS.seconds,
-                                    mechanism: String                            = SaslConfigs.DEFAULT_SASL_MECHANISM,
-                                    jaasConfig: Option[JaasConfig]               = None,
-                                    clientCallbackHandlerClass: Option[Class[?]] = None,
-                                    loginCallbackHandlerClass: Option[Class[?]]  = None,
-                                    loginClass: Option[Class[?]]                 = None,
+  kerberosServiceName: Option[String]          = None,
+  kerberosKinitCmd: String                     = SaslConfigs.DEFAULT_KERBEROS_KINIT_CMD,
+  kerberosTicketRenewWindowFactor: Double      = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_WINDOW_FACTOR,
+  kerberosTicketRenewJitter: Double            = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_JITTER,
+  kerberosMinTimeBeforeRelogin: FiniteDuration = SaslConfigs.DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN.millis,
+  loginRefreshWindowFactor: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_FACTOR,
+  loginRefreshWindowJitter: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_JITTER,
+  loginRefreshMinPeriod: FiniteDuration        = SaslConfigs.DEFAULT_LOGIN_REFRESH_MIN_PERIOD_SECONDS.seconds,
+  loginRefreshBuffer: FiniteDuration           = SaslConfigs.DEFAULT_LOGIN_REFRESH_BUFFER_SECONDS.seconds,
+  mechanism: String                            = SaslConfigs.DEFAULT_SASL_MECHANISM,
+  jaasConfig: Option[JaasConfig]               = None,
+  clientCallbackHandlerClass: Option[Class[?]] = None,
+  loginCallbackHandlerClass: Option[Class[?]]  = None,
+  loginClass: Option[Class[?]]                 = None,
 ) { self =>
   def bindings: Map[String, String] = {
     if (self == SaslSupportConfig.Default) {

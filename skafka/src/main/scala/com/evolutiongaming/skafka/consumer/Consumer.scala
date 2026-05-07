@@ -175,7 +175,10 @@ object Consumer {
         Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
       }
 
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]] = {
+      def committed(
+        partitions: Nes[TopicPartition],
+        timeout: FiniteDuration
+      ): F[Map[TopicPartition, OffsetAndMetadata]] = {
         Map.empty[TopicPartition, OffsetAndMetadata].pure[F]
       }
 
@@ -187,7 +190,8 @@ object Consumer {
 
       def topics: F[Map[Topic, List[PartitionInfo]]] = Map.empty[Topic, List[PartitionInfo]].pure[F]
 
-      def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = Map.empty[Topic, List[PartitionInfo]].pure[F]
+      def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] =
+        Map.empty[Topic, List[PartitionInfo]].pure[F]
 
       def pause(partitions: Nes[TopicPartition]): F[Unit] = empty
 
@@ -195,11 +199,16 @@ object Consumer {
 
       def resume(partitions: Nes[TopicPartition]): F[Unit] = empty
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+      def offsetsForTimes(
+        timestampsToSearch: Map[TopicPartition, Offset]
+      ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         Map.empty[TopicPartition, Option[OffsetAndTimestamp]].pure[F]
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+      def offsetsForTimes(
+        timestampsToSearch: Map[TopicPartition, Offset],
+        timeout: FiniteDuration
+      ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         Map.empty[TopicPartition, Option[OffsetAndTimestamp]].pure[F]
       }
 
@@ -448,7 +457,10 @@ object Consumer {
           committed1(partitions) { consumer.committed }
         }
 
-        def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]] = {
+        def committed(
+          partitions: Nes[TopicPartition],
+          timeout: FiniteDuration
+        ): F[Map[TopicPartition, OffsetAndMetadata]] = {
           committed1(partitions) { consumer.committed(_, timeout.asJava) }
         }
 
@@ -487,11 +499,16 @@ object Consumer {
           serialNonBlocking { consumer.resume(partitionsJ) }
         }
 
-        def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+        def offsetsForTimes(
+          timestampsToSearch: Map[TopicPartition, Offset]
+        ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
           offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes }
         }
 
-        def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+        def offsetsForTimes(
+          timestampsToSearch: Map[TopicPartition, Offset],
+          timeout: FiniteDuration
+        ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
           val timeoutJ = timeout.asJava
           offsetsForTimes1(timestampsToSearch) { consumer.offsetsForTimes(_, timeoutJ) }
         }
@@ -500,7 +517,10 @@ object Consumer {
           offsetsOf(partitions) { consumer.beginningOffsets }
         }
 
-        def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = {
+        def beginningOffsets(
+          partitions: Nes[TopicPartition],
+          timeout: FiniteDuration
+        ): F[Map[TopicPartition, Offset]] = {
           val timeoutJ = timeout.asJava
           offsetsOf(partitions) { consumer.beginningOffsets(_, timeoutJ) }
         }
@@ -793,7 +813,10 @@ object Consumer {
           } yield r
         }
 
-        def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]] = {
+        def committed(
+          partitions: Nes[TopicPartition],
+          timeout: FiniteDuration
+        ): F[Map[TopicPartition, OffsetAndMetadata]] = {
           def topics = partitions
             .toList
             .map { _.topic }
@@ -864,12 +887,17 @@ object Consumer {
           } yield r
         }
 
-        def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+        def offsetsForTimes(
+          timestampsToSearch: Map[TopicPartition, Offset]
+        ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
           val topics = timestampsToSearch.keySet.map(_.topic)
           call("offsets_for_times", topics) { self.offsetsForTimes(timestampsToSearch) }
         }
 
-        def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+        def offsetsForTimes(
+          timestampsToSearch: Map[TopicPartition, Offset],
+          timeout: FiniteDuration
+        ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
           val topics = timestampsToSearch.keySet.map(_.topic)
           call("offsets_for_times", topics) { self.offsetsForTimes(timestampsToSearch, timeout) }
         }
@@ -879,7 +907,10 @@ object Consumer {
           call("beginning_offsets", topics) { self.beginningOffsets(partitions) }
         }
 
-        def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = {
+        def beginningOffsets(
+          partitions: Nes[TopicPartition],
+          timeout: FiniteDuration
+        ): F[Map[TopicPartition, Offset]] = {
           val topics = partitions.map(_.topic).toList
           call("beginning_offsets", topics) { self.beginningOffsets(partitions, timeout) }
         }
@@ -983,17 +1014,26 @@ object Consumer {
 
       def position(partition: TopicPartition): G[Offset] = fg(self.position(partition))
 
-      def position(partition: TopicPartition, timeout: FiniteDuration): G[Offset] = fg(self.position(partition, timeout))
+      def position(partition: TopicPartition, timeout: FiniteDuration): G[Offset] = fg(
+        self.position(partition, timeout)
+      )
 
-      def committed(partitions: Nes[TopicPartition]): G[Map[TopicPartition, OffsetAndMetadata]] = fg(self.committed(partitions))
+      def committed(partitions: Nes[TopicPartition]): G[Map[TopicPartition, OffsetAndMetadata]] = fg(
+        self.committed(partitions)
+      )
 
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): G[Map[TopicPartition, OffsetAndMetadata]] = fg(self.committed(partitions, timeout))
+      def committed(
+        partitions: Nes[TopicPartition],
+        timeout: FiniteDuration
+      ): G[Map[TopicPartition, OffsetAndMetadata]] = fg(self.committed(partitions, timeout))
 
       def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
 
       def partitions(topic: Topic): G[List[PartitionInfo]] = fg(self.partitions(topic))
 
-      def partitions(topic: Topic, timeout: FiniteDuration): G[List[PartitionInfo]] = fg(self.partitions(topic, timeout))
+      def partitions(topic: Topic, timeout: FiniteDuration): G[List[PartitionInfo]] = fg(
+        self.partitions(topic, timeout)
+      )
 
       def topics: G[Map[Topic, List[PartitionInfo]]] = fg(self.topics)
 
@@ -1005,15 +1045,22 @@ object Consumer {
 
       def resume(partitions: Nes[TopicPartition]): G[Unit] = fg(self.resume(partitions))
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): G[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+      def offsetsForTimes(
+        timestampsToSearch: Map[TopicPartition, Offset]
+      ): G[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         fg(self.offsetsForTimes(timestampsToSearch))
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): G[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+      def offsetsForTimes(
+        timestampsToSearch: Map[TopicPartition, Offset],
+        timeout: FiniteDuration
+      ): G[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         fg(self.offsetsForTimes(timestampsToSearch, timeout))
       }
 
-      def beginningOffsets(partitions: Nes[TopicPartition]): G[Map[TopicPartition, Offset]] = fg(self.beginningOffsets(partitions))
+      def beginningOffsets(partitions: Nes[TopicPartition]): G[Map[TopicPartition, Offset]] = fg(
+        self.beginningOffsets(partitions)
+      )
 
       def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): G[Map[TopicPartition, Offset]] = {
         fg(self.beginningOffsets(partitions, timeout))

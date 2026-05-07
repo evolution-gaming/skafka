@@ -230,7 +230,10 @@ object ConsumerLogging {
         } yield a
       }
 
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]] = {
+      def committed(
+        partitions: Nes[TopicPartition],
+        timeout: FiniteDuration
+      ): F[Map[TopicPartition, OffsetAndMetadata]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.committed(partitions, timeout)
@@ -315,7 +318,9 @@ object ConsumerLogging {
         } yield a
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+      def offsetsForTimes(
+        timestampsToSearch: Map[TopicPartition, Offset]
+      ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.offsetsForTimes(timestampsToSearch)
@@ -326,7 +331,10 @@ object ConsumerLogging {
         } yield a
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
+      def offsetsForTimes(
+        timestampsToSearch: Map[TopicPartition, Offset],
+        timeout: FiniteDuration
+      ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.offsetsForTimes(timestampsToSearch, timeout)

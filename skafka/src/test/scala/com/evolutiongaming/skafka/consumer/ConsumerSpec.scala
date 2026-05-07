@@ -17,7 +17,17 @@ import com.evolutiongaming.skafka.IOMatchers.*
 import com.evolutiongaming.skafka.IOSuite.*
 import com.evolutiongaming.skafka.*
 import com.evolutiongaming.skafka.consumer.ConsumerConverters.*
-import org.apache.kafka.clients.consumer.{CloseOptions, SubscriptionPattern, Consumer as ConsumerJ, ConsumerGroupMetadata as ConsumerGroupMetadataJ, ConsumerRebalanceListener as ConsumerRebalanceListenerJ, ConsumerRecords as ConsumerRecordsJ, OffsetAndMetadata as OffsetAndMetadataJ, OffsetCommitCallback as OffsetCommitCallbackJ, OffsetAndTimestamp as OffsetAndTimestampJ}
+import org.apache.kafka.clients.consumer.{
+  CloseOptions,
+  SubscriptionPattern,
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener as ConsumerRebalanceListenerJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetCommitCallback as OffsetCommitCallbackJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
+}
 import org.apache.kafka.common
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Metric, MetricName, Node, Uuid, TopicPartition as TopicPartitionJ}
@@ -394,7 +404,10 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         else
           Map(new TopicPartitionJ(topic, partition.value) -> null).asJavaMap(identity, identity)
 
-      def committed(partitions: util.Set[TopicPartitionJ], timeout: DurationJ): MapJ[TopicPartitionJ, OffsetAndMetadataJ] =
+      def committed(
+        partitions: util.Set[TopicPartitionJ],
+        timeout: DurationJ
+      ): MapJ[TopicPartitionJ, OffsetAndMetadataJ] =
         if (!committedNull)
           offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
         else
@@ -430,7 +443,9 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         Scope.this.resume = partitions.asScala.toList
       }
 
-      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ]): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
+      def offsetsForTimes(
+        timestampsToSearch: MapJ[TopicPartitionJ, LongJ]
+      ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
         val mapJ = Map((topicPartition, offsetAndTimestamp)).asJavaMap(_.asJava, _.asJava)
         // By contract/implementation KafkaConsumer always return map with the same number of keys as timestampsToSearch
         // if offset cannot be found for given TopicPartitionJ and timestamp, it's reflected as `null` value
@@ -439,7 +454,10 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         mapJ
       }
 
-      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ], timeout: DurationJ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
+      def offsetsForTimes(
+        timestampsToSearch: MapJ[TopicPartitionJ, LongJ],
+        timeout: DurationJ
+      ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
         offsetsForTimes(timestampsToSearch)
       }
 
@@ -447,7 +465,10 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         Map((topicPartition, offset)).asJavaMap(_.asJava, _.value)
       }
 
-      def beginningOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ): MapJ[TopicPartitionJ, LongJ] = {
+      def beginningOffsets(
+        partitions: CollectionJ[TopicPartitionJ],
+        timeout: DurationJ
+      ): MapJ[TopicPartitionJ, LongJ] = {
         beginningOffsets(partitions)
       }
 

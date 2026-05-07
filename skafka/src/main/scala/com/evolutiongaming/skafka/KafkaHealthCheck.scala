@@ -76,7 +76,7 @@ object KafkaHealthCheck {
     } yield {
       val result = new KafkaHealthCheck[F] {
         def error: F[Option[Throwable]] = ref.get
-        def done: F[Unit] = fiber.join.flatMap {
+        def done: F[Unit]               = fiber.join.flatMap {
           case Outcome.Succeeded(_) => Temporal[F].unit
           case Outcome.Errored(e)   => Temporal[F].raiseError(e)
           case Outcome.Canceled()   => Temporal[F].raiseError(new CancellationException("HealthCheck cancelled"))

@@ -7,7 +7,14 @@ import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection as CollectionJ, Map as MapJ, Set as SetJ}
 import cats.implicits.*
 import org.apache.kafka.clients.consumer
-import org.apache.kafka.clients.consumer.{CloseOptions, ConsumerRebalanceListener, OffsetCommitCallback, SubscriptionPattern, Consumer as ConsumerJ, OffsetAndMetadata as OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{
+  CloseOptions,
+  ConsumerRebalanceListener,
+  OffsetCommitCallback,
+  SubscriptionPattern,
+  Consumer as ConsumerJ,
+  OffsetAndMetadata as OffsetAndMetadataJ
+}
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition as TopicPartitionJ}
 
@@ -132,7 +139,9 @@ object ConsumerJHelper {
 
       def partitionsFor(topic: String): util.List[PartitionInfo] = f { self.partitionsFor(topic) }
 
-      def partitionsFor(topic: String, timeout: Duration): util.List[PartitionInfo] = f { self.partitionsFor(topic, timeout) }
+      def partitionsFor(topic: String, timeout: Duration): util.List[PartitionInfo] = f {
+        self.partitionsFor(topic, timeout)
+      }
 
       def listTopics(): MapJ[String, util.List[PartitionInfo]] = f { self.listTopics() }
 
@@ -144,11 +153,16 @@ object ConsumerJHelper {
 
       def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = f { self.resume(partitions) }
 
-      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ]): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = {
+      def offsetsForTimes(
+        timestampsToSearch: MapJ[TopicPartitionJ, LongJ]
+      ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = {
         f { self.offsetsForTimes(timestampsToSearch) }
       }
 
-      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ], timeout: Duration): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = {
+      def offsetsForTimes(
+        timestampsToSearch: MapJ[TopicPartitionJ, LongJ],
+        timeout: Duration
+      ): MapJ[TopicPartitionJ, consumer.OffsetAndTimestamp] = {
         f { self.offsetsForTimes(timestampsToSearch, timeout) }
       }
 
@@ -156,7 +170,10 @@ object ConsumerJHelper {
         f { self.beginningOffsets(partitions) }
       }
 
-      def beginningOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: Duration): MapJ[TopicPartitionJ, LongJ] = {
+      def beginningOffsets(
+        partitions: CollectionJ[TopicPartitionJ],
+        timeout: Duration
+      ): MapJ[TopicPartitionJ, LongJ] = {
         f { self.beginningOffsets(partitions, timeout) }
       }
 

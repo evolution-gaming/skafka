@@ -186,7 +186,10 @@ object RebalanceConsumer {
       def committed(partitions: Nes[TopicPartition]): Try[Map[TopicPartition, OffsetAndMetadata]] =
         committed1(_.committed(partitions.asJava))
 
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): Try[Map[TopicPartition, OffsetAndMetadata]] =
+      def committed(
+        partitions: Nes[TopicPartition],
+        timeout: FiniteDuration
+      ): Try[Map[TopicPartition, OffsetAndMetadata]] =
         committed1(_.committed(partitions.asJava, timeout.asJava))
 
       def endOffsets(partitions: Nes[TopicPartition]): Try[Map[TopicPartition, Offset]] =
@@ -209,7 +212,9 @@ object RebalanceConsumer {
           a <- partitionsInfoMapF[Try](a)
         } yield a
 
-      def offsetsForTimes(timestampsToSearch: Nem[TopicPartition, Instant]): Try[Map[TopicPartition, Option[OffsetAndTimestamp]]] =
+      def offsetsForTimes(
+        timestampsToSearch: Nem[TopicPartition, Instant]
+      ): Try[Map[TopicPartition, Option[OffsetAndTimestamp]]] =
         for {
           a <- Try { c.offsetsForTimes(timestampsToSearchJ(timestampsToSearch)) }
           a <- offsetsAndTimestampsMapF[Try](a)

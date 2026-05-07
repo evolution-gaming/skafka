@@ -98,7 +98,7 @@ object ConsumerConfig {
   def apply(config: Config, default: => ConsumerConfig): ConsumerConfig = {
 
     def get[T: FromConf](path: String, paths: String*) = {
-      config.getOpt[T](path, paths: _*)
+      config.getOpt[T](path, paths*)
     }
 
     def getDuration(path: String, pathMs: => String) = {

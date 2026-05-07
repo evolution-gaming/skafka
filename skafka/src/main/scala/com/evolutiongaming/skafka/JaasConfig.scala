@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import com.evolutiongaming.config.ConfigHelper.ConfigOps
-import com.evolutiongaming.skafka.ConfigHelpers._
+import com.evolutiongaming.skafka.ConfigHelpers.*
 import com.typesafe.config.{ConfigException, ConfigObject, ConfigValue}
 
 import scala.util.{Failure, Success, Try}

@@ -1,20 +1,20 @@
 package com.evolutiongaming.skafka
 
-import cats.effect._
-import cats.syntax.all._
+import cats.effect.*
+import cats.syntax.all.*
 import cats.effect.testkit.TestControl
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 import com.evolutiongaming.skafka.KafkaHealthCheck.Record
 import com.evolutiongaming.skafka.Topic
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.control.NoStackTrace
 
 class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
-  import KafkaHealthCheckSpec._
+  import KafkaHealthCheckSpec.*
 
   test("error") {
     implicit val log: Log[IO] = Log.empty[IO]

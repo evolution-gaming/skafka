@@ -2,14 +2,14 @@ package com.evolutiongaming.skafka
 
 import cats.Id
 import cats.data.{NonEmptySet as Nes}
-import cats.implicits._
-import com.evolutiongaming.skafka.Converters._
+import cats.implicits.*
+import com.evolutiongaming.skafka.Converters.*
 import org.apache.kafka.common.{Node, TopicPartition as TopicPartitionJ}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata as OffsetAndMetadataJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Try}
 
 class ConvertersSpec extends AnyWordSpec with Matchers {

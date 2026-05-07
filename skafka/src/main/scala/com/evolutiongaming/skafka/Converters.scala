@@ -7,7 +7,7 @@ import java.util.{Optional, Collection as CollectionJ, Map as MapJ, Set as SetJ,
 import cats.Monad
 import cats.data.{NonEmptyList as Nel, NonEmptySet as Nes, NonEmptyMap as Nem}
 import cats.syntax.all.*
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
 import org.apache.kafka.clients.consumer.{OffsetAndMetadata as OffsetAndMetadataJ}
 import org.apache.kafka.common.header.{Header as HeaderJ}
@@ -16,7 +16,7 @@ import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition 
 
 import scala.compat.java8.DurationConverters
 import scala.concurrent.duration.FiniteDuration
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object Converters {
 

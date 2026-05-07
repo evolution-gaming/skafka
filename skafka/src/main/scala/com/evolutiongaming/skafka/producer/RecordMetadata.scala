@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.producer
 
 import java.time.Instant
 
-import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.*
 
 final case class RecordMetadata(
   topicPartition: TopicPartition,

@@ -5,11 +5,11 @@ import java.time.Instant
 import java.util.{Collection as CollectionJ, Map as MapJ}
 
 import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
-import cats.implicits._
-import com.evolutiongaming.catshelper.DataHelper._
-import com.evolutiongaming.catshelper._
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka._
+import cats.implicits.*
+import com.evolutiongaming.catshelper.DataHelper.*
+import com.evolutiongaming.catshelper.*
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.*
 import org.apache.kafka.clients.consumer.{
   Consumer as ConsumerJ,
   ConsumerGroupMetadata as ConsumerGroupMetadataJ,
@@ -23,7 +23,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.{TimestampType as TimestampTypeJ}
 import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 object ConsumerConverters {

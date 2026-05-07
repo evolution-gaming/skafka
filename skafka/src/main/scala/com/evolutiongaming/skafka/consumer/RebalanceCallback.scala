@@ -3,12 +3,12 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 
 import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
-import cats.implicits._
+import cats.implicits.*
 import cats.{Functor, Monad, StackSafeMonad, ~>}
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
-import com.evolutiongaming.skafka._
-import com.evolutiongaming.skafka.consumer.DataModel._
+import com.evolutiongaming.skafka.*
+import com.evolutiongaming.skafka.consumer.DataModel.*
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.RebalanceCallbackOps
 
 import scala.annotation.tailrec

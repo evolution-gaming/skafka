@@ -7,26 +7,26 @@ import java.util.UUID
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList, NonEmptySet as Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
-import cats.implicits._
+import cats.implicits.*
 import com.dimafeng.testcontainers.KafkaContainer
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.skafka.FiberWithBlockingCancel._
-import com.evolutiongaming.skafka.IOSuite._
-import com.evolutiongaming.skafka.consumer._
-import com.evolutiongaming.skafka.producer._
+import com.evolutiongaming.skafka.FiberWithBlockingCancel.*
+import com.evolutiongaming.skafka.IOSuite.*
+import com.evolutiongaming.skafka.consumer.*
+import com.evolutiongaming.skafka.producer.*
 import com.evolutiongaming.smetrics.CollectorRegistry
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import RebalanceCallback.syntax._
+import RebalanceCallback.syntax.*
 
 import scala.annotation.tailrec
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
-  import ProducerConsumerSpec._
+  import ProducerConsumerSpec.*
 
   private val kafkaContainer = KafkaContainer()
 

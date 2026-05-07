@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 

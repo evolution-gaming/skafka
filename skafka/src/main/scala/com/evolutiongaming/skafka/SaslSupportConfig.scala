@@ -1,8 +1,8 @@
 package com.evolutiongaming.skafka
 
-import cats.implicits._
-import com.evolutiongaming.config.ConfigHelper._
-import com.evolutiongaming.skafka.ConfigHelpers._
+import cats.implicits.*
+import com.evolutiongaming.config.ConfigHelper.*
+import com.evolutiongaming.skafka.ConfigHelpers.*
 import com.typesafe.config.{Config, ConfigValue}
 import org.apache.kafka.common.config.SaslConfigs
 

@@ -1,16 +1,16 @@
 package com.evolutiongaming.skafka
 
-import cats.effect._
+import cats.effect.*
 import cats.data.{NonEmptySet as Nes}
-import cats.effect.syntax.all._
-import cats.syntax.all._
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
 import cats.{Applicative, Functor, Monad}
 import com.evolutiongaming.catshelper.{FromTry, Log, LogOf, RandomIdOf}
 import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerOf, Consumer as SKafkaConsumer}
 import com.evolutiongaming.skafka.producer.{ProducerConfig, ProducerRecord, ProducerOf, Producer as SKafkaProducer}
 
 import scala.concurrent.CancellationException
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /** Provides a health check mechanism that repeatedly sends and consumes messages to/from Kafka.
   */

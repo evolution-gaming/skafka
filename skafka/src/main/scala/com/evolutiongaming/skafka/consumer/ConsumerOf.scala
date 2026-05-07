@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect._
+import cats.effect.*
 import cats.~>
 import com.evolutiongaming.catshelper.{MeasureDuration, ToTry}
 import com.evolutiongaming.skafka.FromBytes

@@ -2,8 +2,8 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.{Functor, Show}
 import cats.data.{NonEmptyList as Nel}
-import cats.implicits._
-import com.evolutiongaming.skafka._
+import cats.implicits.*
+import com.evolutiongaming.skafka.*
 
 final case class ConsumerRecords[K, +V](values: Map[TopicPartition, Nel[ConsumerRecord[K, V]]])
 

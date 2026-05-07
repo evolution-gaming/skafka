@@ -2,13 +2,13 @@ package com.evolutiongaming.skafka
 package producer
 
 import cats.effect.{Async, Deferred, Resource, Sync}
-import cats.effect.implicits._
-import cats.implicits._
+import cats.effect.implicits.*
+import cats.implicits.*
 import cats.{Applicative, Functor, Monad, MonadError, MonadThrow, ~>}
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{Log, MeasureDuration, ToTry}
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.producer.ProducerConverters._
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import org.apache.kafka.clients.producer.{
   Callback,
   Producer as ProducerJ,
@@ -19,7 +19,7 @@ import org.apache.kafka.common.Uuid
 
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.ExecutionException
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** See [[org.apache.kafka.clients.producer.Producer]]
   */

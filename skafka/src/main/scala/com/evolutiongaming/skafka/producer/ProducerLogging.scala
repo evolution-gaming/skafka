@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.implicits._
+import cats.implicits.*
 import cats.MonadThrow
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
 import com.evolutiongaming.skafka.{ToBytes, Topic}

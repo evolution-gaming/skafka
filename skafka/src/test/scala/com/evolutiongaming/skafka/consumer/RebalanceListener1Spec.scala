@@ -5,16 +5,16 @@ import java.util.concurrent.atomic.AtomicReference
 import cats.Applicative
 import cats.data.{NonEmptySet as Nes}
 import cats.effect.IO
-import cats.implicits._
-import com.evolutiongaming.skafka.consumer.DataPoints._
-import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec._
+import cats.implicits.*
+import com.evolutiongaming.skafka.consumer.DataPoints.*
+import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec.*
 import com.evolutiongaming.skafka.{Offset, TopicPartition}
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
@@ -78,7 +78,7 @@ object RebalanceListener1Spec {
     // import is needed to use `fa.lift` syntax where
     // `fa: F[A]`
     // `fa.lift: RebalanceCallback[F, A]`
-    import RebalanceCallback.syntax._
+    import RebalanceCallback.syntax.*
 
     def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
       for {

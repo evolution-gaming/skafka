@@ -9,14 +9,14 @@ import java.util.{Optional, OptionalLong, Collection as CollectionJ, Map as MapJ
 import cats.arrow.FunctionK
 import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.IOMatchers._
-import com.evolutiongaming.skafka.IOSuite._
-import com.evolutiongaming.skafka._
-import com.evolutiongaming.skafka.consumer.ConsumerConverters._
+import com.evolutiongaming.catshelper.CatsHelper.*
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.IOMatchers.*
+import com.evolutiongaming.skafka.IOSuite.*
+import com.evolutiongaming.skafka.*
+import com.evolutiongaming.skafka.consumer.ConsumerConverters.*
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   SubscriptionPattern,
@@ -32,8 +32,8 @@ import org.apache.kafka.common.{Node, TopicPartition as TopicPartitionJ, MetricN
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 class ConsumerSpec extends AnyWordSpec with Matchers {

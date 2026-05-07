@@ -1,11 +1,11 @@
 package com.evolutiongaming.skafka.producer
 
-import com.evolutiongaming.config.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper.*
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig as C}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Try
 
 /** Check [[http://kafka.apache.org/documentation/#producerconfigs]]

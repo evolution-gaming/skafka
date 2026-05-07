@@ -2,8 +2,8 @@ package com.evolutiongaming.skafka
 
 import cats.Applicative
 import cats.effect.kernel.{Deferred, Temporal}
-import cats.implicits._
-import cats.effect.syntax.all._
+import cats.implicits.*
+import cats.effect.syntax.all.*
 import cats.effect.{Concurrent, Fiber, Resource}
 
 import scala.concurrent.duration.FiniteDuration

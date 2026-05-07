@@ -6,8 +6,8 @@ import java.time.{Instant, Duration as DurationJ}
 import java.util.{Optional, List as ListJ, Map as MapJ, Set as SetJ}
 
 import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.*
 import com.evolutiongaming.skafka.consumer.ConsumerConverters.OffsetAndTimestampOps
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata as ConsumerGroupMetadataJ,
@@ -15,8 +15,8 @@ import org.apache.kafka.clients.consumer.{
 }
 import org.apache.kafka.common.{Node, PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 object DataPoints {
 

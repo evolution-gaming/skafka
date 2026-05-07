@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.implicits._
+import cats.implicits.*
 import cats.{Applicative, Functor, ~>}
 import com.evolutiongaming.catshelper.FromTry
 

@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import cats.data.{NonEmptyList as Nel}
-import cats.implicits._
+import cats.implicits.*
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

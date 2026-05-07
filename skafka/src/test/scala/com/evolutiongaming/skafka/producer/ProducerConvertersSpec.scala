@@ -3,8 +3,8 @@ package com.evolutiongaming.skafka.producer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-import cats.implicits._
-import com.evolutiongaming.skafka.producer.ProducerConverters._
+import cats.implicits.*
+import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Header, Offset, Partition, TopicPartition}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec

@@ -5,7 +5,7 @@ import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
 import java.util.{ConcurrentModificationException, OptionalLong, Collection as CollectionJ, Map as MapJ, Set as SetJ}
-import cats.implicits._
+import cats.implicits.*
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
   CloseOptions,

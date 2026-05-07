@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka
 
-import com.evolutiongaming.config.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper.*
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.{CommonClientConfigs as C}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 final case class MetricsConfig(
   sampleWindow: FiniteDuration = 30.seconds,

@@ -3,10 +3,10 @@ package com.evolutiongaming.skafka.producer
 import java.util.concurrent.{CompletableFuture, Future as FutureJ}
 import java.util.{Map as MapJ}
 import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
-import cats.implicits._
-import cats.effect.implicits._
+import cats.implicits.*
+import cats.effect.implicits.*
 import com.evolutiongaming.catshelper.{FromTry, ToFuture, ToTry}
-import com.evolutiongaming.skafka.producer.ProducerConverters._
+import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata as OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{
@@ -20,13 +20,13 @@ import org.apache.kafka.common.{Metric, MetricName, TopicPartition as TopicParti
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.compat.java8.FutureConverters._
-import scala.jdk.CollectionConverters._
+import scala.compat.java8.FutureConverters.*
+import scala.jdk.CollectionConverters.*
 
 class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
   test("block & send") {
-    import com.evolutiongaming.skafka.IOSuite._
+    import com.evolutiongaming.skafka.IOSuite.*
     blockAndSend[IO].run()
   }
 

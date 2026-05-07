@@ -5,7 +5,7 @@ import cats.effect.unsafe.IORuntime
 import com.evolutiongaming.catshelper.Blocking
 import org.scalatest.Succeeded
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 object IOSuite {

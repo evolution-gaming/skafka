@@ -5,13 +5,13 @@ import java.util.concurrent.{CompletableFuture, Future as FutureJ}
 
 import cats.arrow.FunctionK
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import com.evolutiongaming.catshelper.MeasureDuration
-import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.skafka.IOMatchers._
-import com.evolutiongaming.skafka.producer.ProducerConverters._
+import com.evolutiongaming.catshelper.CatsHelper.*
+import com.evolutiongaming.skafka.IOMatchers.*
+import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata as ConsumerGroupMetadataJ,
   OffsetAndMetadata as OffsetAndMetadataJ
@@ -25,7 +25,7 @@ import org.apache.kafka.clients.producer.{
 import org.apache.kafka.common.metrics.KafkaMetric
 import org.apache.kafka.common.{Metric, MetricName, TopicPartition as TopicPartitionJ, Uuid}
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

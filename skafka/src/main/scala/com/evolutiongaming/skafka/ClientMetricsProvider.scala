@@ -6,7 +6,7 @@ import org.apache.kafka.clients.producer.Producer
 import org.apache.kafka.common.{Metric, MetricName}
 
 import java.util
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 private[skafka] trait ClientMetricsProvider[F[_]] {
   def get: F[Seq[ClientMetric[F]]]

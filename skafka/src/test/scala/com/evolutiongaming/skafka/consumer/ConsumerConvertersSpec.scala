@@ -3,10 +3,10 @@ package com.evolutiongaming.skafka.consumer
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-import cats.implicits._
-import com.evolutiongaming.skafka._
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.consumer.ConsumerConverters._
+import cats.implicits.*
+import com.evolutiongaming.skafka.*
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.consumer.ConsumerConverters.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

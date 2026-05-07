@@ -7,14 +7,14 @@ import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as
 
 import cats.arrow.FunctionK
 import cats.effect.IO
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters.{SkafkaOffsetAndMetadataOpsConverters, TopicPartitionOps}
-import com.evolutiongaming.skafka._
-import com.evolutiongaming.skafka.consumer.DataPoints._
+import com.evolutiongaming.skafka.*
+import com.evolutiongaming.skafka.consumer.DataPoints.*
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer.NotImplementedOnPurpose
-import com.evolutiongaming.skafka.consumer.RebalanceCallback._
-import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
+import com.evolutiongaming.skafka.consumer.RebalanceCallback.*
+import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec.*
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata as ConsumerGroupMetadataJ,
   OffsetAndMetadata as OffsetAndMetadataJ,
@@ -26,10 +26,10 @@ import org.scalatest.matchers.must.Matchers
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Random, Success, Try}
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
@@ -764,7 +764,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           }
         }.asRebalanceConsumer
 
-        import cats.implicits._
+        import cats.implicits.*
         val topics                          = List(1, 2, 3)
         val rc: RebalanceCallback[IO, Unit] = for {
           a <- topics.foldMapM(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))

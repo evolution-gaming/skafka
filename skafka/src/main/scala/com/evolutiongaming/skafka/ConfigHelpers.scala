@@ -4,7 +4,7 @@ import com.evolutiongaming.config.ConfigHelper.{ConfigOps, FromConf}
 import com.typesafe.config.{Config, ConfigException, ConfigRenderOptions, ConfigValue}
 
 import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS, SECONDS, TimeUnit}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 object ConfigHelpers {

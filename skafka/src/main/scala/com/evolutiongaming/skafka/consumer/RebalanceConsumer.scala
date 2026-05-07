@@ -6,14 +6,14 @@ import java.util.{Map as MapJ}
 
 import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.implicits.toTraverseOps
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.consumer.ConsumerConverters._
-import com.evolutiongaming.skafka._
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.consumer.ConsumerConverters.*
+import com.evolutiongaming.skafka.*
 import org.apache.kafka.clients.consumer.{Consumer as ConsumerJ, OffsetAndMetadata as OffsetAndMetadataJ}
 import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
 
 import scala.concurrent.duration.FiniteDuration
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 /** Internal wrapper for [[org.apache.kafka.clients.consumer.Consumer]] with a smaller scope of methods making sense

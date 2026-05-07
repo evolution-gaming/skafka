@@ -1,11 +1,11 @@
 package com.evolutiongaming.skafka
 
 import cats.data.{NonEmptyList as Nel}
-import com.evolutiongaming.config.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper.*
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.{CommonClientConfigs as C}
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{FiniteDuration, *}
 
 /** @param bootstrapServers
   *   should be in the form of "host1:port1","host2:port2,..."

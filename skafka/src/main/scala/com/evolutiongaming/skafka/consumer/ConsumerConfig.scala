@@ -1,12 +1,12 @@
 package com.evolutiongaming.skafka.consumer
 
-import com.evolutiongaming.config.ConfigHelper.{FromConf, _}
+import com.evolutiongaming.config.ConfigHelper.{FromConf, *}
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.{ConsumerConfig as C}
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{FiniteDuration, *}
 
 /** Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
   */

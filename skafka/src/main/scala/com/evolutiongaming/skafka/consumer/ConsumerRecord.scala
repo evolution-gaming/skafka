@@ -1,8 +1,8 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.{Functor, Order}
-import cats.implicits._
-import com.evolutiongaming.skafka._
+import cats.implicits.*
+import com.evolutiongaming.skafka.*
 
 final case class ConsumerRecord[K, +V](
   topicPartition: TopicPartition,

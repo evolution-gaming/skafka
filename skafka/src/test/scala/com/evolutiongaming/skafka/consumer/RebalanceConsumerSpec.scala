@@ -4,17 +4,17 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.{lang, util}
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec._
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   ConsumerRebalanceListener,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
   OffsetAndMetadata,
   OffsetCommitCallback,
-  OffsetAndTimestamp => OffsetAndTimestampJ,
-  Consumer => ConsumerJ,
-  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ,
+  Consumer as ConsumerJ,
+  ConsumerRecords as ConsumerRecordsJ,
   SubscriptionPattern,
 }
 import org.apache.kafka.common.metrics.KafkaMetric

@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.producer
 import com.evolutiongaming.config.ConfigHelper._
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
+import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig as C}
 
 import scala.concurrent.duration._
 import scala.util.Try

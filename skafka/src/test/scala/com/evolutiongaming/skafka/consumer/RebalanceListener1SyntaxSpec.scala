@@ -1,14 +1,14 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.Applicative
-import cats.data.{NonEmptyList, NonEmptySet => Nes}
+import cats.data.{NonEmptyList, NonEmptySet as Nes}
 import cats.effect.IO
 import cats.syntax.all._
 import com.evolutiongaming.skafka.consumer.DataPoints._
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.syntax._
 import com.evolutiongaming.skafka.consumer.RebalanceListener1SyntaxSpec._
 import com.evolutiongaming.skafka.{Topic, TopicPartition}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import com.evolutiongaming.skafka.IOSuite._

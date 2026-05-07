@@ -1,9 +1,9 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
+import java.lang.{Long as LongJ}
+import java.time.{Duration as DurationJ}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
-import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 
 import cats.arrow.FunctionK
 import cats.effect.IO
@@ -16,11 +16,11 @@ import com.evolutiongaming.skafka.consumer.ExplodingConsumer.NotImplementedOnPur
 import com.evolutiongaming.skafka.consumer.RebalanceCallback._
 import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
 import org.apache.kafka.clients.consumer.{
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 

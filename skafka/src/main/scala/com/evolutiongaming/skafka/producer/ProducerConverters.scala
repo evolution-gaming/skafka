@@ -6,7 +6,7 @@ import cats.implicits._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.producer.{ProducerRecord => ProducerRecordJ, RecordMetadata => RecordMetadataJ}
+import org.apache.kafka.clients.producer.{ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
 import org.apache.kafka.common.record.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
 

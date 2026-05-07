@@ -1,21 +1,21 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern
-import java.util.{ConcurrentModificationException, OptionalLong, Collection => CollectionJ, Map => MapJ, Set => SetJ}
+import java.util.{ConcurrentModificationException, OptionalLong, Collection as CollectionJ, Map as MapJ, Set as SetJ}
 import cats.implicits._
 import org.apache.kafka.clients.consumer.{
   ConsumerRebalanceListener,
   CloseOptions,
   OffsetCommitCallback,
   SubscriptionPattern,
-  Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
+  Consumer as ConsumerJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{TopicPartition as TopicPartitionJ, Uuid}
 
 object ConsumerJHelper {
 

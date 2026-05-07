@@ -1,22 +1,22 @@
 package com.evolutiongaming.skafka.producer
 
-import java.util.concurrent.{CompletableFuture, Future => FutureJ}
-import java.util.{Map => MapJ}
+import java.util.concurrent.{CompletableFuture, Future as FutureJ}
+import java.util.{Map as MapJ}
 import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
 import cats.implicits._
 import cats.effect.implicits._
 import com.evolutiongaming.catshelper.{FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata as OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{
   Callback,
-  Producer => ProducerJ,
-  ProducerRecord => ProducerRecordJ,
-  RecordMetadata => RecordMetadataJ
+  Producer as ProducerJ,
+  ProducerRecord as ProducerRecordJ,
+  RecordMetadata as RecordMetadataJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, TopicPartition as TopicPartitionJ, Uuid}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 

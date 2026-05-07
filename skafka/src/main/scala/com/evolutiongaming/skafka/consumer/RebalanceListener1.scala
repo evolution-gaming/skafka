@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.data.{NonEmptySet => Nes}
+import cats.data.{NonEmptySet as Nes}
 import cats.~>
 import com.evolutiongaming.skafka.TopicPartition
 

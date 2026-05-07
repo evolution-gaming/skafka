@@ -5,7 +5,7 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList, NonEmptySet => Nes}
+import cats.data.{NonEmptyList, NonEmptySet as Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
 import cats.implicits._
 import com.dimafeng.testcontainers.KafkaContainer

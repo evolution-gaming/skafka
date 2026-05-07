@@ -11,9 +11,9 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.producer.ProducerConverters._
 import org.apache.kafka.clients.producer.{
   Callback,
-  Producer => ProducerJ,
-  ProducerRecord => ProducerRecordJ,
-  RecordMetadata => RecordMetadataJ
+  Producer as ProducerJ,
+  ProducerRecord as ProducerRecordJ,
+  RecordMetadata as RecordMetadataJ
 }
 import org.apache.kafka.common.Uuid
 

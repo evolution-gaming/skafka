@@ -1,16 +1,16 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import java.time.Instant
-import java.util.{Map => MapJ}
+import java.util.{Map as MapJ}
 
-import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.implicits.toTraverseOps
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import com.evolutiongaming.skafka._
-import org.apache.kafka.clients.consumer.{Consumer => ConsumerJ, OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.clients.consumer.{Consumer as ConsumerJ, OffsetAndMetadata as OffsetAndMetadataJ}
+import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
 
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters._

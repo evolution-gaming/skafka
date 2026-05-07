@@ -1,13 +1,13 @@
 package com.evolutiongaming.skafka
 
 import cats.effect._
-import cats.data.{NonEmptySet => Nes}
+import cats.data.{NonEmptySet as Nes}
 import cats.effect.syntax.all._
 import cats.syntax.all._
 import cats.{Applicative, Functor, Monad}
 import com.evolutiongaming.catshelper.{FromTry, Log, LogOf, RandomIdOf}
-import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerOf, Consumer => SKafkaConsumer}
-import com.evolutiongaming.skafka.producer.{ProducerConfig, ProducerRecord, ProducerOf, Producer => SKafkaProducer}
+import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerOf, Consumer as SKafkaConsumer}
+import com.evolutiongaming.skafka.producer.{ProducerConfig, ProducerRecord, ProducerOf, Producer as SKafkaProducer}
 
 import scala.concurrent.CancellationException
 import scala.concurrent.duration._

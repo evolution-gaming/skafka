@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 package consumer
 
-import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.effect._
 import cats.effect.implicits._
 import cats.effect.std.Semaphore
@@ -13,15 +13,15 @@ import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{
   OffsetCommitCallback,
-  Consumer => ConsumerJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  Consumer as ConsumerJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ, Uuid}
 
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import java.util.regex.Pattern
-import java.util.{Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import java.util.{Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._
 

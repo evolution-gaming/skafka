@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList as Nel}
 
 sealed trait Acks extends Product {
   def names: Nel[String]

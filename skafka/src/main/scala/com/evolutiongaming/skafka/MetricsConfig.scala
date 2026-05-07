@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 import com.evolutiongaming.config.ConfigHelper._
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.{CommonClientConfigs => C}
+import org.apache.kafka.clients.{CommonClientConfigs as C}
 
 import scala.concurrent.duration._
 

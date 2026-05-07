@@ -1,24 +1,24 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
+import java.lang.{Long as LongJ}
+import java.time.{Duration as DurationJ}
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
-import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
+import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   ConsumerRebalanceListener,
   OffsetCommitCallback,
   SubscriptionPattern,
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition as TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
 

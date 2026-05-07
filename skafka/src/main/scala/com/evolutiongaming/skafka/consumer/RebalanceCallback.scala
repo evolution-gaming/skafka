@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import java.time.Instant
 
-import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.implicits._
 import cats.{Functor, Monad, StackSafeMonad, ~>}
 import com.evolutiongaming.catshelper.CatsHelper._

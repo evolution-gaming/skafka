@@ -1,18 +1,18 @@
 package com.evolutiongaming.skafka
 
-import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
-import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ, List => ListJ}
+import java.lang.{Long as LongJ}
+import java.time.{Duration as DurationJ}
+import java.util.{Optional, Collection as CollectionJ, Map as MapJ, Set as SetJ, List as ListJ}
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes, NonEmptyMap => Nem}
+import cats.data.{NonEmptyList as Nel, NonEmptySet as Nes, NonEmptyMap as Nem}
 import cats.syntax.all.*
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.header.{Header => HeaderJ}
+import org.apache.kafka.clients.consumer.{OffsetAndMetadata as OffsetAndMetadataJ}
+import org.apache.kafka.common.header.{Header as HeaderJ}
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 
 import scala.compat.java8.DurationConverters
 import scala.concurrent.duration.FiniteDuration

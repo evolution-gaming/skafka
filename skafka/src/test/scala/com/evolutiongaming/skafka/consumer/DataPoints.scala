@@ -1,19 +1,19 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, Duration => DurationJ}
-import java.util.{Optional, List => ListJ, Map => MapJ, Set => SetJ}
+import java.time.{Instant, Duration as DurationJ}
+import java.util.{Optional, List as ListJ, Map as MapJ, Set as SetJ}
 
-import cats.data.{NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import com.evolutiongaming.skafka.consumer.ConsumerConverters.OffsetAndTimestampOps
 import org.apache.kafka.clients.consumer.{
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  OffsetAndMetadata => OffsetAndMetadataJ
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  OffsetAndMetadata as OffsetAndMetadataJ
 }
-import org.apache.kafka.common.{Node, PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{Node, PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 
 import scala.concurrent.duration._
 import scala.jdk.CollectionConverters._

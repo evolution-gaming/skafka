@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.producer
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.{NonEmptyList as Nel}
 import com.evolutiongaming.skafka.CommonConfig
 import com.typesafe.config.ConfigFactory
 

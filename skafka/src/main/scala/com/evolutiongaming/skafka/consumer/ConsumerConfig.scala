@@ -4,7 +4,7 @@ import com.evolutiongaming.config.ConfigHelper.{FromConf, _}
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.consumer.{ConsumerConfig => C}
+import org.apache.kafka.clients.consumer.{ConsumerConfig as C}
 
 import scala.concurrent.duration.{FiniteDuration, _}
 

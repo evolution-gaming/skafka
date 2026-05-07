@@ -1,11 +1,11 @@
 package com.evolutiongaming.skafka
 
 import cats.Id
-import cats.data.{NonEmptySet => Nes}
+import cats.data.{NonEmptySet as Nes}
 import cats.implicits._
 import com.evolutiongaming.skafka.Converters._
-import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ}
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.common.{Node, TopicPartition as TopicPartitionJ}
+import org.apache.kafka.clients.consumer.{OffsetAndMetadata as OffsetAndMetadataJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

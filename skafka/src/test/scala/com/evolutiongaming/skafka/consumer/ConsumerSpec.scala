@@ -1,13 +1,13 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, Duration => DurationJ}
+import java.time.{Instant, Duration as DurationJ}
 import java.util
 import java.util.regex.Pattern
-import java.util.{Optional, OptionalLong, Collection => CollectionJ, Map => MapJ}
+import java.util.{Optional, OptionalLong, Collection as CollectionJ, Map as MapJ}
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.effect.IO
 import cats.implicits._
 import com.evolutiongaming.catshelper.Log
@@ -20,15 +20,15 @@ import com.evolutiongaming.skafka.consumer.ConsumerConverters._
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   SubscriptionPattern,
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetCommitCallback => OffsetCommitCallbackJ,
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener as ConsumerRebalanceListenerJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetCommitCallback as OffsetCommitCallbackJ,
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric, Uuid}
+import org.apache.kafka.common.{Node, TopicPartition as TopicPartitionJ, MetricName, Metric, Uuid}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 

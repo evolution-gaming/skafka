@@ -1,27 +1,27 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.{Long as LongJ}
 import java.time.Instant
-import java.util.{Collection => CollectionJ, Map => MapJ}
+import java.util.{Collection as CollectionJ, Map as MapJ}
 
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.implicits._
 import com.evolutiongaming.catshelper.DataHelper._
 import com.evolutiongaming.catshelper._
 import com.evolutiongaming.skafka.Converters._
 import com.evolutiongaming.skafka._
 import org.apache.kafka.clients.consumer.{
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRebalanceListener => RebalanceListenerJ,
-  ConsumerRecord => ConsumerRecordJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener as RebalanceListenerJ,
+  ConsumerRecord as ConsumerRecordJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
 import org.apache.kafka.common.header.internals.RecordHeaders
-import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.record.{TimestampType as TimestampTypeJ}
+import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
 
 import scala.jdk.CollectionConverters._
 import scala.util.Try

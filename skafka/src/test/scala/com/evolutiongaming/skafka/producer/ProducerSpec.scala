@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import java.util
-import java.util.concurrent.{CompletableFuture, Future => FutureJ}
+import java.util.concurrent.{CompletableFuture, Future as FutureJ}
 
 import cats.arrow.FunctionK
 import cats.effect.IO
@@ -13,17 +13,17 @@ import com.evolutiongaming.skafka.producer.ProducerConverters._
 import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite._
 import org.apache.kafka.clients.consumer.{
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  OffsetAndMetadata => OffsetAndMetadataJ
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  OffsetAndMetadata as OffsetAndMetadataJ
 }
 import org.apache.kafka.clients.producer.{
   Callback,
-  Producer => ProducerJ,
-  ProducerRecord => ProducerRecordJ,
-  RecordMetadata => RecordMetadataJ
+  Producer as ProducerJ,
+  ProducerRecord as ProducerRecordJ,
+  RecordMetadata as RecordMetadataJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, TopicPartition as TopicPartitionJ, Uuid}
 
 import scala.jdk.CollectionConverters._
 import org.scalatest.matchers.should.Matchers

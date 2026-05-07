@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka
 
-import com.evolutiongaming.config.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper.*
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.{CommonClientConfigs => C}
+import org.apache.kafka.clients.CommonClientConfigs as C
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 final case class MetricsConfig(
   sampleWindow: FiniteDuration = 30.seconds,
@@ -27,11 +27,11 @@ object MetricsConfig {
 
   def apply(config: Config): MetricsConfig = {
 
-    def get[T: FromConf](path: String, paths: String*) = {
-      config.getOpt[T](path, paths: _*)
+    def get[T: FromConf](path: String, paths: String*): Option[T] = {
+      config.getOpt[T](path, paths*)
     }
 
-    def getDuration(path: String, pathMs: => String) = {
+    def getDuration(path: String, pathMs: => String): Option[FiniteDuration] = {
       val value =
         try get[FiniteDuration](path)
         catch { case _: ConfigException => None }

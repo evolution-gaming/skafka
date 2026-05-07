@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import cats.{Eq, Show}
-import cats.implicits._
+import cats.implicits.*
 import cats.kernel.Order
 import com.evolutiongaming.catshelper.ApplicativeThrowable
 

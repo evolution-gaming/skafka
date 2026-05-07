@@ -1,29 +1,29 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.Long as LongJ
 import java.time.Instant
-import java.util.{Collection => CollectionJ, Map => MapJ}
+import java.util.{Collection as CollectionJ, Map as MapJ}
 
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
-import cats.implicits._
-import com.evolutiongaming.catshelper.DataHelper._
-import com.evolutiongaming.catshelper._
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka._
+import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
+import cats.implicits.*
+import com.evolutiongaming.catshelper.DataHelper.*
+import com.evolutiongaming.catshelper.*
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.*
 import org.apache.kafka.clients.consumer.{
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRebalanceListener => RebalanceListenerJ,
-  ConsumerRecord => ConsumerRecordJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener as RebalanceListenerJ,
+  ConsumerRecord as ConsumerRecordJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
 import org.apache.kafka.common.header.internals.RecordHeaders
-import org.apache.kafka.common.record.{TimestampType => TimestampTypeJ}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.record.TimestampType as TimestampTypeJ
+import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 object ConsumerConverters {
@@ -46,7 +46,7 @@ object ConsumerConverters {
 
   implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
 
-    def asJava(consumer: ConsumerJ[_, _])(implicit toTry: ToTry[F]): RebalanceListenerJ = {
+    def asJava(consumer: ConsumerJ[?, ?])(implicit toTry: ToTry[F]): RebalanceListenerJ = {
 
       val rebalanceConsumer = RebalanceConsumer(consumer)
 
@@ -96,7 +96,7 @@ object ConsumerConverters {
       val headers = self.headers().asScala.map(_.asScala).toList
 
       val timestampAndType = {
-        def some(timestampType: TimestampType) = {
+        def some(timestampType: TimestampType): Some[TimestampAndType] = {
           Some(TimestampAndType(Instant.ofEpochMilli(self.timestamp()), timestampType))
         }
 
@@ -107,7 +107,7 @@ object ConsumerConverters {
         }
       }
 
-      def withSize[A](value: A, size: Int) = {
+      def withSize[A](value: A, size: Int): Option[WithSize[A]] = {
         for {
           value <- Option(value)
         } yield WithSize(value, size)

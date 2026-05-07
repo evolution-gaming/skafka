@@ -1,9 +1,9 @@
 package com.evolutiongaming.skafka
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.NonEmptyList as Nel
 import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 

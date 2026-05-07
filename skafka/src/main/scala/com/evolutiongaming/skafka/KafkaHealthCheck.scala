@@ -1,16 +1,16 @@
 package com.evolutiongaming.skafka
 
-import cats.effect._
-import cats.data.{NonEmptySet => Nes}
-import cats.effect.syntax.all._
-import cats.syntax.all._
+import cats.effect.*
+import cats.data.NonEmptySet as Nes
+import cats.effect.syntax.all.*
+import cats.syntax.all.*
 import cats.{Applicative, Functor, Monad}
 import com.evolutiongaming.catshelper.{FromTry, Log, LogOf, RandomIdOf}
-import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerOf, Consumer => SKafkaConsumer}
-import com.evolutiongaming.skafka.producer.{ProducerConfig, ProducerRecord, ProducerOf, Producer => SKafkaProducer}
+import com.evolutiongaming.skafka.consumer.{AutoOffsetReset, ConsumerConfig, ConsumerOf, Consumer as SKafkaConsumer}
+import com.evolutiongaming.skafka.producer.{ProducerConfig, ProducerRecord, ProducerOf, Producer as SKafkaProducer}
 
 import scala.concurrent.CancellationException
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /** Provides a health check mechanism that repeatedly sends and consumes messages to/from Kafka.
   */
@@ -29,9 +29,9 @@ object KafkaHealthCheck {
 
   def empty[F[_]: Applicative]: KafkaHealthCheck[F] = new KafkaHealthCheck[F] {
 
-    def error = none[Throwable].pure[F]
+    def error: F[Option[Throwable]] = none[Throwable].pure[F]
 
-    def done = ().pure[F]
+    def done: F[Unit] = ().pure[F]
   }
 
   def of[F[_]: Temporal: LogOf: ConsumerOf: ProducerOf: RandomIdOf: FromTry](
@@ -75,8 +75,8 @@ object KafkaHealthCheck {
         .start
     } yield {
       val result = new KafkaHealthCheck[F] {
-        def error = ref.get
-        def done  = fiber.join.flatMap {
+        def error: F[Option[Throwable]] = ref.get
+        def done: F[Unit]               = fiber.join.flatMap {
           case Outcome.Succeeded(_) => Temporal[F].unit
           case Outcome.Errored(e)   => Temporal[F].raiseError(e)
           case Outcome.Canceled()   => Temporal[F].raiseError(new CancellationException("HealthCheck cancelled"))
@@ -100,7 +100,7 @@ object KafkaHealthCheck {
 
     val sleep = Temporal[F].sleep(config.interval)
 
-    def produce(value: String) = {
+    def produce(value: String): F[Unit] = {
       val record = Record(key = key.some, value = value.some)
       for {
         _ <- log.debug(s"$key send $value")
@@ -108,10 +108,10 @@ object KafkaHealthCheck {
       } yield {}
     }
 
-    def produceConsume(n: Long) = {
+    def produceConsume(n: Long): F[Option[Throwable]] = {
       val value = n.toString
 
-      def consume(retry: Long) = {
+      def consume(retry: Long): F[Either[Long, Unit]] = {
         for {
           records <- consumer.poll(config.pollTimeout)
           found    = records.find { record => record.key.contains_(key) && record.value.contains_(value) }
@@ -138,7 +138,7 @@ object KafkaHealthCheck {
         .redeem(_.some, _ => none[Throwable])
     }
 
-    def check(n: Long) = {
+    def check(n: Long): F[Either[Long, Unit]] = {
       for {
         error <- produceConsume(n)
         _     <- error.fold(().pure[F]) { error => log.error(s"$n failed with $error") }
@@ -170,7 +170,7 @@ object KafkaHealthCheck {
 
     def apply[F[_]: Monad: FromTry](topic: Topic, producer: SKafkaProducer[F]): Producer[F] = {
       new Producer[F] {
-        def send(record: Record) = {
+        def send(record: Record): F[Unit] = {
           val record1 = ProducerRecord[String, String](topic = topic, key = record.key, value = record.value)
           producer.send(record1).void
         }
@@ -201,11 +201,11 @@ object KafkaHealthCheck {
 
       new Consumer[F] {
 
-        def subscribe(topic: Topic) = {
+        def subscribe(topic: Topic): F[Unit] = {
           consumer.subscribe(Nes.of(topic))
         }
 
-        def poll(timeout: FiniteDuration) = {
+        def poll(timeout: FiniteDuration): F[Iterable[Record]] = {
           for {
             records <- consumer.poll(timeout)
           } yield

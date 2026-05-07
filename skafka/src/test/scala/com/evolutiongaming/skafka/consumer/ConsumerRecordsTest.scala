@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.data.{NonEmptyList => Nel}
-import cats.implicits._
+import cats.data.NonEmptyList as Nel
+import cats.implicits.*
 import com.evolutiongaming.skafka.{Offset, Partition, Topic, TopicPartition}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -9,7 +9,7 @@ import org.scalatest.matchers.should.Matchers
 class ConsumerRecordsTest extends AnyFunSuite with Matchers {
 
   test("summaryShow") {
-    def consumerRecord(topic: Topic, partition: Int, offset: Long, key: Int) = {
+    def consumerRecord(topic: Topic, partition: Int, offset: Long, key: Int): ConsumerRecord[Int, Nothing] = {
       ConsumerRecord(
         topicPartition   = TopicPartition(topic, Partition.unsafe(partition)),
         offset           = Offset.unsafe(offset),

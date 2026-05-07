@@ -1,10 +1,10 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.{util => ju}
+import java.util as ju
 
 import cats.effect.IO
-import cats.instances.either._
-import cats.instances.try_._
+import cats.instances.either.*
+import cats.instances.try_.*
 import cats.kernel.Eq
 import cats.laws.discipline.MonadErrorTests
 import com.evolutiongaming.catshelper.{MonadThrowable, ToTry}
@@ -16,12 +16,12 @@ import org.typelevel.discipline.scalatest.FunSuiteDiscipline
 
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Try}
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 
 class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike with Configuration {
 
-  import RebalanceCallback._
-  import RebalanceCallbackLawsSpec._
+  import RebalanceCallback.*
+  import RebalanceCallbackLawsSpec.*
 
   // Generate each of ADT members. Where possible, generate a successful outcome as well as an unsuccessful one.
   // Since ADT members are private, we can't create them directly and in some cases that makes us generate
@@ -74,13 +74,13 @@ class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike 
 }
 
 object RebalanceCallbackLawsSpec {
-  val consumerMock = new ExplodingConsumer {
+  val consumerMock: ExplodingConsumer = new ExplodingConsumer {
     override def commitSync(): Unit = ()
 
     override def listTopics(): ju.Map[String, ju.List[PartitionInfo]] = ExplodingConsumer.notImplemented
   }
 
-  def toFWithMock[F[_]: MonadThrowable, A](rc: RebalanceCallback[F, A]) = rc.toF(RebalanceConsumer(consumerMock))
+  def toFWithMock[F[_]: MonadThrowable, A](rc: RebalanceCallback[F, A]): F[A] = rc.toF(RebalanceConsumer(consumerMock))
 
-  def runWithMock[F[_]: ToTry, A](rc: RebalanceCallback[F, A]) = rc.run(RebalanceConsumer(consumerMock))
+  def runWithMock[F[_]: ToTry, A](rc: RebalanceCallback[F, A]): Try[A] = rc.run(RebalanceConsumer(consumerMock))
 }

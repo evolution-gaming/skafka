@@ -1,17 +1,17 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.Applicative
-import cats.data.{NonEmptyList, NonEmptySet => Nes}
+import cats.data.{NonEmptyList, NonEmptySet as Nes}
 import cats.effect.IO
-import cats.syntax.all._
-import com.evolutiongaming.skafka.consumer.DataPoints._
-import com.evolutiongaming.skafka.consumer.RebalanceCallback.syntax._
-import com.evolutiongaming.skafka.consumer.RebalanceListener1SyntaxSpec._
+import cats.syntax.all.*
+import com.evolutiongaming.skafka.consumer.DataPoints.*
+import com.evolutiongaming.skafka.consumer.RebalanceCallback.syntax.*
+import com.evolutiongaming.skafka.consumer.RebalanceListener1SyntaxSpec.*
 import com.evolutiongaming.skafka.{Topic, TopicPartition}
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 
 import scala.util.Try
 class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {
@@ -34,13 +34,13 @@ class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {
 object RebalanceListener1SyntaxSpec {
   class TfRebalanceListener1[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
 
-    def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
       for {
         _ <- someF.lift
         _ <- someFO.lift
       } yield ()
 
-    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = {
       groupByTopic(partitions) traverse_ {
         case (_, partitions) =>
           for {
@@ -56,7 +56,7 @@ object RebalanceListener1SyntaxSpec {
       }
     }
 
-    def onPartitionsLost(partitions: Nes[TopicPartition]) = consumer.empty
+    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = consumer.empty
 
     def groupByTopic(
       topicPartitions: Nes[TopicPartition]

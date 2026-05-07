@@ -1,24 +1,23 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
-import java.util.concurrent.TimeUnit
+import java.lang.Long as LongJ
+import java.time.Duration as DurationJ
 import java.util.regex.Pattern
-import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
-import com.evolutiongaming.skafka.consumer.ExplodingConsumer._
+import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
+import com.evolutiongaming.skafka.consumer.ExplodingConsumer.*
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   ConsumerRebalanceListener,
   OffsetCommitCallback,
   SubscriptionPattern,
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition as TopicPartitionJ}
 
 import scala.util.control.NoStackTrace
 
@@ -112,7 +111,7 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback): Unit =
     notImplemented
   def clientInstanceId(timeout: DurationJ): Uuid             = notImplemented
-  def metrics(): MapJ[MetricName, _ <: Metric]               = notImplemented
+  def metrics(): MapJ[MetricName, ? <: Metric]               = notImplemented
   def pause(partitions: CollectionJ[TopicPartitionJ]): Unit  = notImplemented
   def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
   def enforceRebalance(): Unit                               = notImplemented

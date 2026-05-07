@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 import cats.effect.IO
 import org.scalatest.matchers.{MatchResult, Matcher}
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 
 trait IOMatchers {
   class IOResultMatcher[-T](expected: T) extends Matcher[IO[T]] {

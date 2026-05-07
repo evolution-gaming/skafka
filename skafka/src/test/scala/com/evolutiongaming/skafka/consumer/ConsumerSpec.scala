@@ -1,39 +1,41 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
+import java.lang.Long as LongJ
 import java.time.temporal.ChronoUnit
-import java.time.{Instant, Duration => DurationJ}
+import java.time.{Instant, Duration as DurationJ}
 import java.util
 import java.util.regex.Pattern
-import java.util.{Optional, OptionalLong, Collection => CollectionJ, Map => MapJ}
+import java.util.{Optional, OptionalLong, Collection as CollectionJ, Map as MapJ}
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList => Nel, NonEmptyMap => Nem, NonEmptySet => Nes}
+import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.effect.IO
-import cats.implicits._
+import cats.implicits.*
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.catshelper.CatsHelper._
-import com.evolutiongaming.skafka.Converters._
-import com.evolutiongaming.skafka.IOMatchers._
-import com.evolutiongaming.skafka.IOSuite._
-import com.evolutiongaming.skafka._
-import com.evolutiongaming.skafka.consumer.ConsumerConverters._
+import com.evolutiongaming.catshelper.CatsHelper.*
+import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.IOMatchers.*
+import com.evolutiongaming.skafka.IOSuite.*
+import com.evolutiongaming.skafka.*
+import com.evolutiongaming.skafka.consumer.ConsumerConverters.*
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   SubscriptionPattern,
-  Consumer => ConsumerJ,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  ConsumerRebalanceListener => ConsumerRebalanceListenerJ,
-  ConsumerRecords => ConsumerRecordsJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetCommitCallback => OffsetCommitCallbackJ,
+  Consumer as ConsumerJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  ConsumerRebalanceListener as ConsumerRebalanceListenerJ,
+  ConsumerRecords as ConsumerRecordsJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetCommitCallback as OffsetCommitCallbackJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
+import org.apache.kafka.common
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Node, TopicPartition => TopicPartitionJ, MetricName, Metric, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, Node, Uuid, TopicPartition as TopicPartitionJ}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 class ConsumerSpec extends AnyWordSpec with Matchers {
@@ -89,7 +91,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "subscribe pattern" in new Scope {
-      val pattern = Pattern.compile(".")
+      val pattern: Pattern = Pattern.compile(".")
       verify(consumer.subscribe(pattern, rebalanceListener)) { _ =>
         subscribePattern shouldEqual Some(pattern)
       }
@@ -220,8 +222,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "offsetsForTimes" in new Scope {
-      val timestampsToSearch = Map((topicPartition, offset), (topicPartition2, offset))
-      val expected           = Map(
+      val timestampsToSearch: Map[TopicPartition, Offset] = Map((topicPartition, offset), (topicPartition2, offset))
+      val expected: Map[TopicPartition, Option[OffsetAndTimestamp]] = Map(
         (topicPartition, Option(offsetAndTimestamp)),
         (topicPartition2, Option.empty)
       )
@@ -230,8 +232,8 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
     }
 
     "offsetsForTimes with timeout" in new Scope {
-      val timestampsToSearch = Map((topicPartition, offset), (topicPartition2, offset))
-      val expected           = Map(
+      val timestampsToSearch: Map[TopicPartition, Offset] = Map((topicPartition, offset), (topicPartition2, offset))
+      val expected: Map[TopicPartition, Option[OffsetAndTimestamp]] = Map(
         (topicPartition, Option(offsetAndTimestamp)),
         (topicPartition2, Option.empty)
       )
@@ -304,72 +306,72 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
     var seekToEnd = List.empty[TopicPartitionJ]
 
-    val rebalanceListener = RebalanceListener1.empty[IO]
+    val rebalanceListener: RebalanceListener1[IO] = RebalanceListener1.empty[IO]
 
     protected def committedNull = false
 
     val consumerJ: ConsumerJ[Bytes, Bytes] = new ConsumerJ[Bytes, Bytes] {
 
-      def groupMetadata() = {
+      def groupMetadata(): ConsumerGroupMetadataJ = {
         new ConsumerGroupMetadataJ("groupId", 123, "memberId", Optional.of("groupInstanceId"))
       }
 
-      def assignment() = Set(topicPartition.asJava).asJava
+      def assignment(): util.Set[TopicPartitionJ] = Set(topicPartition.asJava).asJava
 
-      def subscription() = Set(topic).asJava
+      def subscription(): util.Set[Metadata] = Set(topic).asJava
 
-      def subscribe(topics: CollectionJ[String]) = {}
+      def subscribe(topics: CollectionJ[String]): Unit = {}
 
-      def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListenerJ) = {
+      def subscribe(topics: CollectionJ[String], callback: ConsumerRebalanceListenerJ): Unit = {
         subscribeTopics = topics.asScala.toList
       }
 
-      def assign(partitions: CollectionJ[TopicPartitionJ]) = {
+      def assign(partitions: CollectionJ[TopicPartitionJ]): Unit = {
         Scope.this.assign = partitions.asScala.toList
       }
 
-      def subscribe(pattern: Pattern, callback: ConsumerRebalanceListenerJ) = {
+      def subscribe(pattern: Pattern, callback: ConsumerRebalanceListenerJ): Unit = {
         subscribePattern = Some(pattern)
       }
 
-      def subscribe(pattern: Pattern) = {}
+      def subscribe(pattern: Pattern): Unit = {}
 
       def subscribe(pattern: SubscriptionPattern, callback: ConsumerRebalanceListenerJ): Unit = {}
 
       def subscribe(pattern: SubscriptionPattern): Unit = {}
 
-      def unsubscribe() = {
+      def unsubscribe(): Unit = {
         Scope.this.unsubscribe = true
       }
 
-      def poll(timeout: DurationJ) = {
+      def poll(timeout: DurationJ): ConsumerRecordsJ[Bytes, Bytes] = {
         val records = Map((topicPartition, List(consumerRecord.asJava))).asJavaMap(_.asJava, _.asJava)
         new ConsumerRecordsJ[Bytes, Bytes](records)
       }
 
-      def commitSync() = {
+      def commitSync(): Unit = {
         Scope.this.commit = None
       }
 
-      def commitSync(timeout: DurationJ) = {
+      def commitSync(timeout: DurationJ): Unit = {
         Scope.this.commit = Some(timeout.asScala)
       }
 
-      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]) = {
+      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ]): Unit = {
         Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala[Try]).get, None).some
       }
 
-      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ) = {
+      def commitSync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], timeout: DurationJ): Unit = {
         Scope.this.commitSync = (offsets.asScalaMap(_.asScala[Try], _.asScala[Try]).get, Some(timeout.asScala)).some
       }
 
-      def commitAsync() = {}
+      def commitAsync(): Unit = {}
 
-      def commitAsync(callback: OffsetCommitCallbackJ) = {
+      def commitAsync(callback: OffsetCommitCallbackJ): Unit = {
         callback.onComplete(offsets.toSortedMap.asJavaMap(_.asJava, _.asJava), null)
       }
 
-      def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallbackJ) = {
+      def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallbackJ): Unit = {
         commitLater = offsets.asScalaMap(_.asScala[Try], _.asScala[Try]).get
         callback.onComplete(offsets, null)
       }
@@ -378,31 +380,34 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def unregisterMetricFromSubscription(metric: KafkaMetric): Unit = {}
 
-      def seek(partition: TopicPartitionJ, offset: Long) = {
+      def seek(partition: TopicPartitionJ, offset: Long): Unit = {
         Scope.this.seek = Some((partition, offset))
       }
 
-      def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadataJ) = {}
+      def seek(partition: TopicPartitionJ, offsetAndMetadata: OffsetAndMetadataJ): Unit = {}
 
-      def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]) = {
+      def seekToBeginning(partitions: CollectionJ[TopicPartitionJ]): Unit = {
         Scope.this.seekToBeginning = partitions.asScala.toList
       }
 
-      def seekToEnd(partitions: CollectionJ[TopicPartitionJ]) = {
+      def seekToEnd(partitions: CollectionJ[TopicPartitionJ]): Unit = {
         Scope.this.seekToEnd = partitions.asScala.toList
       }
 
-      def position(partition: TopicPartitionJ) = offset.value
+      def position(partition: TopicPartitionJ): Long = offset.value
 
-      def position(partition: TopicPartitionJ, timeout: DurationJ) = position(partition)
+      def position(partition: TopicPartitionJ, timeout: DurationJ): Long = position(partition)
 
-      def committed(partitions: util.Set[TopicPartitionJ]) =
+      def committed(partitions: util.Set[TopicPartitionJ]): MapJ[TopicPartitionJ, OffsetAndMetadataJ] =
         if (!committedNull)
           offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
         else
           Map(new TopicPartitionJ(topic, partition.value) -> null).asJavaMap(identity, identity)
 
-      def committed(partitions: util.Set[TopicPartitionJ], timeout: DurationJ) =
+      def committed(
+        partitions: util.Set[TopicPartitionJ],
+        timeout: DurationJ
+      ): MapJ[TopicPartitionJ, OffsetAndMetadataJ] =
         if (!committedNull)
           offsets.toSortedMap.asJavaMap(_.asJava, _.asJava)
         else
@@ -410,35 +415,37 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def clientInstanceId(timeout: DurationJ): Uuid = clientId
 
-      def metrics(): MapJ[MetricName, _ <: Metric] = new java.util.HashMap()
+      def metrics(): MapJ[MetricName, ? <: Metric] = new java.util.HashMap()
 
-      def partitionsFor(topic: Topic) = {
+      def partitionsFor(topic: Topic): util.List[common.PartitionInfo] = {
         List(partitionInfo.asJava).asJava
       }
 
-      def partitionsFor(topic: Topic, timeout: DurationJ) = {
+      def partitionsFor(topic: Topic, timeout: DurationJ): util.List[common.PartitionInfo] = {
         partitionsFor(topic)
       }
 
-      def listTopics() = {
+      def listTopics(): MapJ[Metadata, util.List[common.PartitionInfo]] = {
         Map((topic, List(partitionInfo.asJava).asJava)).asJavaMap(x => x, x => x)
       }
 
-      def listTopics(timeout: DurationJ) = {
+      def listTopics(timeout: DurationJ): MapJ[Metadata, util.List[common.PartitionInfo]] = {
         listTopics()
       }
 
-      def paused() = Set(topicPartition.asJava).asJava
+      def paused(): util.Set[TopicPartitionJ] = Set(topicPartition.asJava).asJava
 
-      def pause(partitions: CollectionJ[TopicPartitionJ]) = {
+      def pause(partitions: CollectionJ[TopicPartitionJ]): Unit = {
         Scope.this.pause = partitions.asScala.toList
       }
 
-      def resume(partitions: CollectionJ[TopicPartitionJ]) = {
+      def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = {
         Scope.this.resume = partitions.asScala.toList
       }
 
-      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ]) = {
+      def offsetsForTimes(
+        timestampsToSearch: MapJ[TopicPartitionJ, LongJ]
+      ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
         val mapJ = Map((topicPartition, offsetAndTimestamp)).asJavaMap(_.asJava, _.asJava)
         // By contract/implementation KafkaConsumer always return map with the same number of keys as timestampsToSearch
         // if offset cannot be found for given TopicPartitionJ and timestamp, it's reflected as `null` value
@@ -447,35 +454,41 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
         mapJ
       }
 
-      def offsetsForTimes(timestampsToSearch: MapJ[TopicPartitionJ, LongJ], timeout: DurationJ) = {
+      def offsetsForTimes(
+        timestampsToSearch: MapJ[TopicPartitionJ, LongJ],
+        timeout: DurationJ
+      ): MapJ[TopicPartitionJ, OffsetAndTimestampJ] = {
         offsetsForTimes(timestampsToSearch)
       }
 
-      def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]) = {
+      def beginningOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
         Map((topicPartition, offset)).asJavaMap(_.asJava, _.value)
       }
 
-      def beginningOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ) = {
+      def beginningOffsets(
+        partitions: CollectionJ[TopicPartitionJ],
+        timeout: DurationJ
+      ): MapJ[TopicPartitionJ, LongJ] = {
         beginningOffsets(partitions)
       }
 
-      def endOffsets(partitions: CollectionJ[TopicPartitionJ]) = {
+      def endOffsets(partitions: CollectionJ[TopicPartitionJ]): MapJ[TopicPartitionJ, LongJ] = {
         Map((topicPartition, offset)).asJavaMap(_.asJava, _.value)
       }
 
-      def endOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ) = {
+      def endOffsets(partitions: CollectionJ[TopicPartitionJ], timeout: DurationJ): MapJ[TopicPartitionJ, LongJ] = {
         endOffsets(partitions)
       }
 
-      def enforceRebalance() = {}
+      def enforceRebalance(): Unit = {}
 
-      def close() = {}
+      def close(): Unit = {}
 
-      def close(timeout: DurationJ) = {}
+      def close(timeout: DurationJ): Unit = {}
 
       def close(option: CloseOptions): Unit = {}
 
-      def wakeup() = {
+      def wakeup(): Unit = {
         Scope.this.wakeup = true
       }
 

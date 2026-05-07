@@ -5,28 +5,28 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import cats.arrow.FunctionK
-import cats.data.{NonEmptyList, NonEmptySet => Nes}
+import cats.data.{NonEmptyList, NonEmptySet as Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
-import cats.implicits._
+import cats.implicits.*
 import com.dimafeng.testcontainers.KafkaContainer
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.skafka.FiberWithBlockingCancel._
-import com.evolutiongaming.skafka.IOSuite._
-import com.evolutiongaming.skafka.consumer._
-import com.evolutiongaming.skafka.producer._
+import com.evolutiongaming.skafka.FiberWithBlockingCancel.*
+import com.evolutiongaming.skafka.IOSuite.*
+import com.evolutiongaming.skafka.consumer.*
+import com.evolutiongaming.skafka.producer.*
 import com.evolutiongaming.smetrics.CollectorRegistry
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
-import RebalanceCallback.syntax._
+import RebalanceCallback.syntax.*
 
 import scala.annotation.tailrec
-import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.*
 
 class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
-  import ProducerConsumerSpec._
+  import ProducerConsumerSpec.*
 
   private val kafkaContainer = KafkaContainer()
 
@@ -38,12 +38,12 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   private val timeout = 1.minute
 
-  override def beforeAll() = {
+  override def beforeAll(): Unit = {
     super.beforeAll()
     ()
   }
 
-  override def afterAll() = {
+  override def afterAll(): Unit = {
 
     val producers = for {
       (_, producers) <- combinations.toList
@@ -64,7 +64,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     super.afterAll()
   }
 
-  val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
+  val headers: List[Header] = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
   def consumerOf(
     topic: Topic,
@@ -90,7 +90,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       _         <-
         listener match {
           case Some(listener) => consumer.subscribe(Nes.of(topic), listener).toResource
-          case None => consumer.subscribe(Nes.of(topic)).toResource
+          case None           => consumer.subscribe(Nes.of(topic)).toResource
         }
     } yield consumer
   }
@@ -119,11 +119,13 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = RebalanceCallback.lift(assigned.complete(()).void)
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
+          RebalanceCallback.lift(assigned.complete(()).void)
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty[IO]
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
+          RebalanceCallback.empty[IO]
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty[IO]
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty[IO]
       }
     }
 
@@ -183,7 +185,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       assigned: Deferred[IO, Unit]
     ): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = {
           for {
             _ <- IO.cede.lift
             _ <- (
@@ -297,14 +299,14 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     ): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = {
           for {
             _ <- rebalanceCounter.update(_ + 1).lift
             _ <- assigned.complete(()).lift
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
           for {
             committed <- consumer.committed(partitions)
             offset     = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
@@ -389,7 +391,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val listener: RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
           partitions.foldMapM(this.consumer.seek(_, Offset.unsafe(1)))
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
@@ -438,7 +440,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val topic = s"${instant.toEpochMilli}-$idx-$acks"
     val name  = s"[topic:$topic,acks:$acks]"
 
-    def produce(record: ProducerRecord[String, String]) = producer.send(record).flatten.unsafeRunSync()
+    def produce(record: ProducerRecord[String, String]): RecordMetadata = producer.send(record).flatten.unsafeRunSync()
 
     lazy val (consumer, consumerRelease) = consumerOf(topic, none)
       .allocated
@@ -606,7 +608,7 @@ object ProducerConsumerSpec {
       consume(100)
     }
 
-    def commit() = self.commit.unsafeToFuture()
+    def commit(): Future[Unit] = self.commit.unsafeToFuture()
   }
 
 }

@@ -1,35 +1,35 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
+import java.lang.Long as LongJ
+import java.time.Duration as DurationJ
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
-import java.util.{OptionalLong, Collection => CollectionJ, List => ListJ, Map => MapJ, Set => SetJ}
-
+import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 import cats.arrow.FunctionK
 import cats.effect.IO
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{ToFuture, ToTry}
 import com.evolutiongaming.skafka.Converters.{SkafkaOffsetAndMetadataOpsConverters, TopicPartitionOps}
-import com.evolutiongaming.skafka._
-import com.evolutiongaming.skafka.consumer.DataPoints._
+import com.evolutiongaming.skafka.*
+import com.evolutiongaming.skafka.consumer.DataPoints.*
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer.NotImplementedOnPurpose
-import com.evolutiongaming.skafka.consumer.RebalanceCallback._
-import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec._
+import com.evolutiongaming.skafka.consumer.RebalanceCallback.*
+import com.evolutiongaming.skafka.consumer.RebalanceCallbackSpec.*
 import org.apache.kafka.clients.consumer.{
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
-  OffsetAndMetadata => OffsetAndMetadataJ,
-  OffsetAndTimestamp => OffsetAndTimestampJ
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
+  OffsetAndMetadata as OffsetAndMetadataJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.concurrent.{Await, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Random, Success, Try}
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
+import org.scalatest.Assertion
 
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
@@ -72,13 +72,14 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "handleErrorWith" - {
+
         /** Failed input should be recovered with `assertedValue` or failed for error handler that raises another error
           */
         def testFailedInput[A](
           input: RebalanceCallback[Try, A],
           recoverValue: A,
           c: ExplodingConsumer = new ExplodingConsumer
-        ) = {
+        ): Assertion = {
           tryRun(input.handleErrorWith(_ => pure(recoverValue)), c) mustBe Success(recoverValue)
           tryRun(input.handleErrorWith(_ => lift(Try(throw TestError2))), c) mustBe Failure(TestError2)
           tryRun(input.handleErrorWith(_ => lift(Try(recoverValue))), c) mustBe Success(recoverValue)
@@ -100,7 +101,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           input: RebalanceCallback[Try, Int],
           inputValue: Int,
           c: ExplodingConsumer = new ExplodingConsumer
-        ) = {
+        ): Assertion = {
           tryRun(input.handleErrorWith(_ => pure(Random.nextInt())), c) mustBe Success(inputValue)
           tryRun(input.handleErrorWith(_ => lift(Failure(TestError2))), c) mustBe Success(inputValue)
           tryRun(input.handleErrorWith(_ => lift(Success(Random.nextInt()))), c) mustBe Success(inputValue)
@@ -412,7 +413,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         val input                  = partitions.s.head
         val inputOffset            = Offset.unsafe(423)
         val inputOffsetAndMetadata = OffsetAndMetadata(inputOffset)
-        val output                 = ()
+        val output: Unit           = ()
 
         val consumer = new ExplodingConsumer {
           override def seek(p: TopicPartitionJ, offset: Long): Unit = {
@@ -433,8 +434,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "seekToBeginning" in {
-        val input  = partitions
-        val output = ()
+        val input        = partitions
+        val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
           override def seekToBeginning(p: CollectionJ[TopicPartitionJ]): Unit = {
@@ -447,8 +448,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "seekToEnd" in {
-        val input  = partitions
-        val output = ()
+        val input        = partitions
+        val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
           override def seekToEnd(p: CollectionJ[TopicPartitionJ]): Unit = {
@@ -472,8 +473,8 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
       }
 
       "currentLag" in {
-        val input  = partition1
-        val output = Some(42L)
+        val input      = partition1
+        val output     = Some(42L)
         val outputJava = OptionalLong.of(output.value)
 
         val consumer = new ExplodingConsumer {
@@ -722,7 +723,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
             def futureToTry(timeout: FiniteDuration): ToTry[Future] = new ToTry[Future] {
-              def apply[A](fa: Future[A]) = {
+              def apply[A](fa: Future[A]): Try[A] = {
                 Try { Await.result(fa, timeout) }
               }
             }
@@ -764,7 +765,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           }
         }.asRebalanceConsumer
 
-        import cats.implicits._
+        import cats.implicits.*
         val topics                          = List(1, 2, 3)
         val rc: RebalanceCallback[IO, Unit] = for {
           a <- topics.foldMapM(i => seek(TopicPartition(s"$i", Partition.min), Offset.min))

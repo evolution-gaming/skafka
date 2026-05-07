@@ -4,12 +4,12 @@ import com.evolutiongaming.config.ConfigHelper.{ConfigOps, FromConf}
 import com.typesafe.config.{Config, ConfigException, ConfigRenderOptions, ConfigValue}
 
 import scala.concurrent.duration.{Duration, FiniteDuration, MILLISECONDS, SECONDS, TimeUnit}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 object ConfigHelpers {
 
-  implicit val ClassFromConf: FromConf[Class[_]] = FromConf[Class[_]] { (conf, path) =>
+  implicit val ClassFromConf: FromConf[Class[?]] = FromConf[Class[?]] { (conf, path) =>
     val className = conf.getString(path)
     Try(Class.forName(className)) match {
       case Failure(_) => throw new ConfigException.BadValue(conf.origin(), path, s"Class '$className' doesn't exist")
@@ -19,7 +19,7 @@ object ConfigHelpers {
 
   implicit val JaasOptionsFromConf: FromConf[Map[String, String]] = FromConf[Map[String, String]] {
 
-    def asString(value: ConfigValue) = {
+    def asString(value: ConfigValue): String = {
       value
         .render(ConfigRenderOptions.concise().setJson(false))
         .stripPrefix("\"") // sometimes pure config wrap value with quotes
@@ -44,7 +44,7 @@ object ConfigHelpers {
     def getSeconds(path: String, pathWithUnit: => String): Option[FiniteDuration] =
       getDuration(path, SECONDS, pathWithUnit)
 
-    private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String) = {
+    private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String): Option[FiniteDuration] = {
       val value = Try(config.getOpt[FiniteDuration](path)) match {
         case Failure(_: ConfigException) => None
         case Failure(e)                  => throw e

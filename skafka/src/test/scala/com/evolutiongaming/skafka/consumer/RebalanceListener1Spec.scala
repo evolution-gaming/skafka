@@ -3,18 +3,18 @@ package com.evolutiongaming.skafka.consumer
 import java.util.concurrent.atomic.AtomicReference
 
 import cats.Applicative
-import cats.data.{NonEmptySet => Nes}
+import cats.data.NonEmptySet as Nes
 import cats.effect.IO
-import cats.implicits._
-import com.evolutiongaming.skafka.consumer.DataPoints._
-import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec._
+import cats.implicits.*
+import com.evolutiongaming.skafka.consumer.DataPoints.*
+import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec.*
 import com.evolutiongaming.skafka.{Offset, TopicPartition}
-import com.evolutiongaming.skafka.IOSuite._
-import org.apache.kafka.common.{TopicPartition => TopicPartitionJ}
+import com.evolutiongaming.skafka.IOSuite.*
+import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
 class RebalanceListener1Spec extends AnyFreeSpec with Matchers {
@@ -78,16 +78,16 @@ object RebalanceListener1Spec {
     // import is needed to use `fa.lift` syntax where
     // `fa: F[A]`
     // `fa.lift: RebalanceCallback[F, A]`
-    import RebalanceCallback.syntax._
+    import RebalanceCallback.syntax.*
 
-    def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
       for {
         // read the offsets from an external store using some custom code not described here
         offsets <- readOffsetsFromExternalStore[F](partitions).lift
         a       <- offsets.toList.foldMapM { case (partition, offset) => consumer.seek(partition, offset) }
       } yield a
 
-    def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
       for {
         positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
           case (offsets, partition) =>

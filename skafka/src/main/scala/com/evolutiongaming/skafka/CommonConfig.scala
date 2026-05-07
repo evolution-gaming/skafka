@@ -1,11 +1,11 @@
 package com.evolutiongaming.skafka
 
-import cats.data.{NonEmptyList => Nel}
-import com.evolutiongaming.config.ConfigHelper._
+import cats.data.NonEmptyList as Nel
+import com.evolutiongaming.config.ConfigHelper.*
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.{CommonClientConfigs => C}
+import org.apache.kafka.clients.CommonClientConfigs as C
 
-import scala.concurrent.duration.{FiniteDuration, _}
+import scala.concurrent.duration.{FiniteDuration, *}
 
 /** @param bootstrapServers
   *   should be in the form of "host1:port1","host2:port2,..."
@@ -77,11 +77,11 @@ object CommonConfig {
 
   def apply(config: Config, default: => CommonConfig): CommonConfig = {
 
-    def get[T: FromConf](path: String, paths: String*) = {
-      config.getOpt[T](path, paths: _*)
+    def get[T: FromConf](path: String, paths: String*): Option[T] = {
+      config.getOpt[T](path, paths*)
     }
 
-    def getDuration(path: String, pathMs: => String) = {
+    def getDuration(path: String, pathMs: => String): Option[FiniteDuration] = {
       val value =
         try get[FiniteDuration](path)
         catch { case _: ConfigException => None }

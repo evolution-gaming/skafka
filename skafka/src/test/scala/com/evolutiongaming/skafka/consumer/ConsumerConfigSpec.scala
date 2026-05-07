@@ -1,13 +1,13 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.data.{NonEmptyList => Nel}
+import cats.data.NonEmptyList as Nel
 import com.evolutiongaming.skafka.JaasConfig.Plain
 import com.evolutiongaming.skafka.{CommonConfig, KeystoreType, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.ConfigFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 

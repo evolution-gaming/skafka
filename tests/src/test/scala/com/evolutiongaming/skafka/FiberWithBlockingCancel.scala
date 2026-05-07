@@ -1,9 +1,9 @@
 package com.evolutiongaming.skafka
 
 import cats.Applicative
-import cats.effect.kernel.{Deferred, Temporal}
-import cats.implicits._
-import cats.effect.syntax.all._
+import cats.effect.kernel.{Deferred, Outcome, Temporal}
+import cats.implicits.*
+import cats.effect.syntax.all.*
 import cats.effect.{Concurrent, Fiber, Resource}
 
 import scala.concurrent.duration.FiniteDuration
@@ -18,14 +18,14 @@ object FiberWithBlockingCancel {
         }.start
       } yield {
         new Fiber[F, Throwable, A] {
-          def cancel = {
+          def cancel: F[Unit] = {
             for {
               _ <- fiber.cancel
               _ <- deferred.get
             } yield {}
           }
 
-          def join = fiber.join
+          def join: F[Outcome[F, Throwable, A]] = fiber.join
         }
       }
     }

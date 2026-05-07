@@ -7,9 +7,9 @@ ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]): List[T] =
   CrossVersion.partialVersion(scalaVersion) match {
-    case Some((3, _))       => if3
-    case Some((2, 12 | 13)) => if2
-    case _                  => Nil
+    case Some((3, _))  => if3
+    case Some((2, 13)) => if2
+    case _             => Nil
   }
 
 lazy val commonSettings = Seq(
@@ -24,8 +24,22 @@ lazy val commonSettings = Seq(
   Compile / doc / scalacOptions += "-no-link-warnings",
   scalacOptions ++= crossSettings(
     scalaVersion.value,
-    if3 = List("-release:17", "-Ykind-projector", "-language:implicitConversions", "-unchecked", "-feature", "-explain", "-explain-types", "-deprecation", "-Wunused:all"),
-    if2 = List("-release:17", "-Xsource:3", "-deprecation"),
+    if3 = List(
+      "-release:17",
+      "-Ykind-projector",
+      "-language:implicitConversions",
+      "-unchecked",
+      "-feature",
+      "-explain",
+      "-explain-types",
+      "-deprecation",
+      "-Wunused:all",
+    ),
+    if2 = List(
+      "-release:17",
+      "-Xsource:3",
+      "-deprecation",
+    ),
   ),
   libraryDependencies ++= crossSettings(
     scalaVersion.value,
@@ -48,12 +62,8 @@ ThisBuild / versionPolicyIgnored ++= Seq(
 )
 
 val alias: Seq[sbt.Def.Setting[?]] =
-//  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt; scalafixEnable; scalafixAll") ++
-//    addCommandAlias(
-//      "check",
-//      "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck; scalafixEnable; scalafixAll --check",
-//    ) ++
-  addCommandAlias("check", "all versionPolicyCheck Compile/doc") ++
+  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt") ++
+    addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck") ++
     addCommandAlias("build", "+all compile test")
 
 lazy val root = project

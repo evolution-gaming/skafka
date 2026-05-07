@@ -1,31 +1,31 @@
 package com.evolutiongaming.skafka
 
-import java.lang.{Long => LongJ}
-import java.time.{Duration => DurationJ}
-import java.util.{Optional, Collection => CollectionJ, Map => MapJ, Set => SetJ, List => ListJ}
+import java.lang.Long as LongJ
+import java.time.Duration as DurationJ
+import java.util.{Optional, Collection as CollectionJ, Map as MapJ, Set as SetJ, List as ListJ}
 
 import cats.Monad
-import cats.data.{NonEmptyList => Nel, NonEmptySet => Nes, NonEmptyMap => Nem}
+import cats.data.{NonEmptyList as Nel, NonEmptySet as Nes, NonEmptyMap as Nem}
 import cats.syntax.all.*
-import com.evolutiongaming.catshelper.CatsHelper._
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
-import org.apache.kafka.clients.consumer.{OffsetAndMetadata => OffsetAndMetadataJ}
-import org.apache.kafka.common.header.{Header => HeaderJ}
+import org.apache.kafka.clients.consumer.OffsetAndMetadata as OffsetAndMetadataJ
+import org.apache.kafka.common.header.Header as HeaderJ
 import org.apache.kafka.common.serialization.{Deserializer, Serializer}
-import org.apache.kafka.common.{PartitionInfo => PartitionInfoJ, TopicPartition => TopicPartitionJ}
+import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 
 import scala.compat.java8.DurationConverters
 import scala.concurrent.duration.FiniteDuration
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 object Converters {
 
   implicit class HeaderOps(val self: Header) extends AnyVal {
 
     def asJava: HeaderJ = new HeaderJ {
-      def value = self.value
+      def value: Array[Byte] = self.value
 
-      def key = self.key
+      def key: Metadata = self.key
     }
   }
 
@@ -144,22 +144,22 @@ object Converters {
   implicit class ToBytesOps[F[_], A](val self: ToBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Serializer[A] = new Serializer[A] {
-      override def configure(configs: MapJ[String, _], isKey: Boolean): Unit = {}
+      override def configure(configs: MapJ[String, ?], isKey: Boolean): Unit = {}
 
       def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic).toTry.get
 
-      override def close() = {}
+      override def close(): Unit = {}
     }
   }
 
   implicit class SkafkaFromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Deserializer[A] = new Deserializer[A] {
-      override def configure(configs: MapJ[String, _], isKey: Boolean) = {}
+      override def configure(configs: MapJ[String, ?], isKey: Boolean): Unit = {}
 
       def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic).toTry.get
 
-      override def close() = {}
+      override def close(): Unit = {}
     }
   }
 

@@ -4,17 +4,17 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.{lang, util}
-import java.lang.{Long => LongJ}
-import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec._
+import java.lang.Long as LongJ
+import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec.*
 import org.apache.kafka.clients.consumer.{
   CloseOptions,
   ConsumerRebalanceListener,
-  ConsumerGroupMetadata => ConsumerGroupMetadataJ,
+  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
   OffsetAndMetadata,
   OffsetCommitCallback,
-  OffsetAndTimestamp => OffsetAndTimestampJ,
-  Consumer => ConsumerJ,
-  ConsumerRecords => ConsumerRecordsJ,
+  OffsetAndTimestamp as OffsetAndTimestampJ,
+  Consumer as ConsumerJ,
+  ConsumerRecords as ConsumerRecordsJ,
   SubscriptionPattern,
 }
 import org.apache.kafka.common.metrics.KafkaMetric
@@ -73,7 +73,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       ): util.Map[TopicPartition, OffsetAndMetadata] =
         supported // rebalanceConsumer.committed(partitions, timeout)
       def clientInstanceId(timeout: Duration): Uuid              = unsupported
-      def metrics(): util.Map[MetricName, _ <: Metric]           = unsupported
+      def metrics(): util.Map[MetricName, ? <: Metric]           = unsupported
       def partitionsFor(topic: String): util.List[PartitionInfo] = supported // rebalanceConsumer.partitionsFor(topic)
       def partitionsFor(topic: String, timeout: Duration): util.List[PartitionInfo] =
         supported // rebalanceConsumer.partitionsFor(topic, timeout)

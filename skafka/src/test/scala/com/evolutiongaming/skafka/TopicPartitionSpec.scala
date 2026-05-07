@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
-import cats.data.{NonEmptyList => Nel}
-import cats.implicits._
+import cats.data.NonEmptyList as Nel
+import cats.implicits.*
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -14,7 +14,7 @@ class TopicPartitionSpec extends AnyFunSuite with Matchers {
 
   test("order") {
 
-    def topicPartition(topic: Topic, partition: Int) = {
+    def topicPartition(topic: Topic, partition: Int): TopicPartition = {
       TopicPartition(topic = topic, partition = Partition.unsafe(partition))
     }
 

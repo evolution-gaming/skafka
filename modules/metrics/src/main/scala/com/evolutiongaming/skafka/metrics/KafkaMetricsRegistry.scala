@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.metrics
 
-import cats.syntax.all._
-import cats.effect.syntax.resource._
+import cats.syntax.all.*
+import cats.effect.syntax.resource.*
 import cats.effect.{Resource, Ref, Sync}
 import cats.effect.std.UUIDGen
 import com.evolutiongaming.catshelper.ToTry

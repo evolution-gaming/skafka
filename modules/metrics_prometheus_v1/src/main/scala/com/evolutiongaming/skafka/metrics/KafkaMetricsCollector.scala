@@ -1,16 +1,16 @@
 package com.evolution.skafka.metrics
 
 import cats.Monad
-import cats.syntax.all._
-import com.evolutiongaming.catshelper.CatsHelper._
+import cats.syntax.all.*
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.ClientMetric
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import io.prometheus.metrics.model.registry.MultiCollector
-import io.prometheus.metrics.model.snapshots._
+import io.prometheus.metrics.model.snapshots.*
 
-import KafkaMetricsCollector._
+import KafkaMetricsCollector.*
 import scala.util.Try
 
 /** Prometheus collector for Kafka client metrics.
@@ -54,7 +54,7 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
               case Some(name) =>
                 metricsGroup
                   .toVector
-                  .traverse(buildSample(_))
+                  .traverse(buildSample)
                   .map(_.flatten)
                   .map {
                     case samples if samples.nonEmpty =>

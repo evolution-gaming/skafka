@@ -1,8 +1,8 @@
 package com.evolutiongaming.skafka.metrics
 
 import cats.Monad
-import cats.syntax.all._
-import com.evolutiongaming.catshelper.CatsHelper._
+import cats.syntax.all.*
+import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.ToTry
 import com.evolutiongaming.skafka.ClientMetric
 import io.prometheus.client.Collector
@@ -10,7 +10,7 @@ import io.prometheus.client.Collector.MetricFamilySamples
 import io.prometheus.client.Collector.MetricFamilySamples.Sample
 
 import java.util
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.matching.Regex
 
 /** Prometheus collector for Kafka client metrics.

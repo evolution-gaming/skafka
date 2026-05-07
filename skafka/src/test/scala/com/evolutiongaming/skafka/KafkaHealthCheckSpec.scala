@@ -1,33 +1,33 @@
 package com.evolutiongaming.skafka
 
-import cats.effect._
-import cats.syntax.all._
+import cats.effect.*
+import cats.syntax.all.*
 import cats.effect.testkit.TestControl
 import com.evolutiongaming.catshelper.Log
-import com.evolutiongaming.skafka.IOSuite._
+import com.evolutiongaming.skafka.IOSuite.*
 import com.evolutiongaming.skafka.KafkaHealthCheck.Record
 import com.evolutiongaming.skafka.Topic
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.control.NoStackTrace
 
 class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
-  import KafkaHealthCheckSpec._
+  import KafkaHealthCheckSpec.*
 
   test("error") {
     implicit val log: Log[IO] = Log.empty[IO]
 
     val producer = new KafkaHealthCheck.Producer[IO] {
-      def send(record: Record) = ().pure[IO]
+      def send(record: Record): IO[Unit] = ().pure[IO]
     }
 
-    val consumer = new KafkaHealthCheck.Consumer[IO] {
+    val consumer: KafkaHealthCheck.Consumer[IO] = new KafkaHealthCheck.Consumer[IO] {
 
-      def subscribe(topic: Topic) = ().pure[IO]
+      def subscribe(topic: Topic): IO[Unit] = ().pure[IO]
 
-      def poll(timeout: FiniteDuration) = {
+      def poll(timeout: FiniteDuration): IO[Iterable[Record]] = {
         if (timeout == 1.second) List.empty[Record].pure[IO]
         else Error.raiseError[IO, List[Record]]
       }
@@ -62,23 +62,23 @@ class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
         ref.update(state => state.copy(logs = log :: state.logs))
 
       new Log[IO] {
-        def trace(msg: => String, mdc: Log.Mdc) = add(s"trace $msg")
+        def trace(msg: => String, mdc: Log.Mdc): IO[Unit] = add(s"trace $msg")
 
-        def debug(msg: => String, mdc: Log.Mdc) = add(s"debug $msg")
+        def debug(msg: => String, mdc: Log.Mdc): IO[Unit] = add(s"debug $msg")
 
-        def info(msg: => String, mdc: Log.Mdc) = add(s"info $msg")
+        def info(msg: => String, mdc: Log.Mdc): IO[Unit] = add(s"info $msg")
 
-        def warn(msg: => String, mdc: Log.Mdc) = add(s"warn $msg")
+        def warn(msg: => String, mdc: Log.Mdc): IO[Unit] = add(s"warn $msg")
 
-        def warn(msg: => String, cause: Throwable, mdc: Log.Mdc) = add(s"warn $msg $cause")
+        def warn(msg: => String, cause: Throwable, mdc: Log.Mdc): IO[Unit] = add(s"warn $msg $cause")
 
-        def error(msg: => String, mdc: Log.Mdc) = add(s"error $msg")
+        def error(msg: => String, mdc: Log.Mdc): IO[Unit] = add(s"error $msg")
 
-        def error(msg: => String, cause: Throwable, mdc: Log.Mdc) = add(s"error $msg $cause")
+        def error(msg: => String, cause: Throwable, mdc: Log.Mdc): IO[Unit] = add(s"error $msg $cause")
       }
     }
 
-    def consumerOf(ref: Ref[IO, State]) = new KafkaHealthCheck.Consumer[IO] {
+    def consumerOf(ref: Ref[IO, State]): KafkaHealthCheck.Consumer[IO] = new KafkaHealthCheck.Consumer[IO] {
       def subscribe(topic: Topic): IO[Unit] =
         ref.update(_.copy(subscribed = topic.some))
 

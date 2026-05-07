@@ -1,13 +1,13 @@
 package com.evolutiongaming.skafka
 
-import cats.implicits._
-import com.evolutiongaming.skafka.ConfigHelpers._
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import cats.implicits.*
+import com.evolutiongaming.skafka.ConfigHelpers.*
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-import scala.concurrent.duration._
-import scala.jdk.CollectionConverters._
+import scala.concurrent.duration.*
+import scala.jdk.CollectionConverters.*
 
 class ConfigHelpersTest extends AnyWordSpec with Matchers {
 
@@ -42,5 +42,5 @@ class ConfigHelpersTest extends AnyWordSpec with Matchers {
     }
   }
 
-  private def makeConfig(data: java.util.Map[String, _ <: Any]) = ConfigFactory.parseMap(data)
+  private def makeConfig(data: java.util.Map[String, ? <: Any]): Config = ConfigFactory.parseMap(data)
 }

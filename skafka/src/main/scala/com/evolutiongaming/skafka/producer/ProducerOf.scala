@@ -15,7 +15,7 @@ object ProducerOf {
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
 
-    def apply(config: ProducerConfig) = {
+    def apply(config: ProducerConfig): Resource[F, Producer[F]] = {
       for {
         producer <- Producer.of[F](config = config)
         producer <- metrics match {
@@ -40,7 +40,7 @@ object ProducerOf {
     def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    )(implicit G: MonadCancel[G, _], F: MonadCancel[F, _]): ProducerOf[G] = { (config: ProducerConfig) =>
+    )(implicit G: MonadCancel[G, ?], F: MonadCancel[F, ?]): ProducerOf[G] = { (config: ProducerConfig) =>
       {
         for {
           a <- self(config).mapK(fg)

@@ -1,8 +1,8 @@
 package com.evolutiongaming.skafka
 
-import cats.implicits._
-import com.evolutiongaming.config.ConfigHelper._
-import com.evolutiongaming.skafka.ConfigHelpers._
+import cats.implicits.*
+import com.evolutiongaming.config.ConfigHelper.*
+import com.evolutiongaming.skafka.ConfigHelpers.*
 import com.typesafe.config.{Config, ConfigValue}
 import org.apache.kafka.common.config.SaslConfigs
 
@@ -20,9 +20,9 @@ final case class SaslSupportConfig(
   loginRefreshBuffer: FiniteDuration           = SaslConfigs.DEFAULT_LOGIN_REFRESH_BUFFER_SECONDS.seconds,
   mechanism: String                            = SaslConfigs.DEFAULT_SASL_MECHANISM,
   jaasConfig: Option[JaasConfig]               = None,
-  clientCallbackHandlerClass: Option[Class[_]] = None,
-  loginCallbackHandlerClass: Option[Class[_]]  = None,
-  loginClass: Option[Class[_]]                 = None,
+  clientCallbackHandlerClass: Option[Class[?]] = None,
+  loginCallbackHandlerClass: Option[Class[?]]  = None,
+  loginClass: Option[Class[?]]                 = None,
 ) { self =>
   def bindings: Map[String, String] = {
     if (self == SaslSupportConfig.Default) {
@@ -87,12 +87,12 @@ object SaslSupportConfig {
       mechanism = config.getOpt[String]("sasl-mechanism", "sasl.mechanism") getOrElse
         default.mechanism,
       clientCallbackHandlerClass =
-        config.getOpt[Class[_]]("sasl-client-callback-handler-class", "sasl.client.callback.handler.class") orElse
+        config.getOpt[Class[?]]("sasl-client-callback-handler-class", "sasl.client.callback.handler.class") orElse
           default.clientCallbackHandlerClass,
       loginCallbackHandlerClass =
-        config.getOpt[Class[_]]("sasl-login-callback-handler-class", "sasl.login.callback.handler.class") orElse
+        config.getOpt[Class[?]]("sasl-login-callback-handler-class", "sasl.login.callback.handler.class") orElse
           default.loginCallbackHandlerClass,
-      loginClass = config.getOpt[Class[_]]("sasl-login-class", "sasl.login.class") orElse
+      loginClass = config.getOpt[Class[?]]("sasl-login-class", "sasl.login.class") orElse
         default.loginClass,
       jaasConfig = config
         .getOpt[ConfigValue]("sasl-jaas-config", "sasl.jaas.config")

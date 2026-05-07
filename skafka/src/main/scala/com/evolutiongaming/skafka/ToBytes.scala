@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 import java.nio.charset.StandardCharsets.UTF_8
 
-import cats.implicits._
+import cats.implicits.*
 import cats.{Applicative, Contravariant, ~>}
 import com.evolutiongaming.catshelper.FromTry
 
@@ -23,7 +23,7 @@ object ToBytes {
 
   implicit def contravariantToBytes[F[_]]: Contravariant[ToBytes[F, *]] = new Contravariant[ToBytes[F, *]] {
 
-    def contramap[A, B](fa: ToBytes[F, A])(f: B => A) = (a: B, topic: Topic) => fa(f(a), topic)
+    def contramap[A, B](fa: ToBytes[F, A])(f: B => A): ToBytes[F, B] = (a: B, topic: Topic) => fa(f(a), topic)
   }
 
   implicit def stringToBytes[F[_]: FromTry]: ToBytes[F, String] = { (a: String, _: Topic) =>

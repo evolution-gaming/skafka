@@ -22,9 +22,9 @@ package object skafka {
 
     implicit val monoidBytes: Monoid[Bytes] = new Monoid[Bytes] {
 
-      def empty = Bytes.empty
+      def empty: Bytes = Bytes.empty
 
-      def combine(x: Bytes, y: Bytes) = x ++ y
+      def combine(x: Bytes, y: Bytes): Bytes = x ++ y
     }
   }
 }

@@ -1,11 +1,11 @@
 package com.evolutiongaming.skafka.producer
 
-import com.evolutiongaming.config.ConfigHelper._
+import com.evolutiongaming.config.ConfigHelper.*
 import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
-import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig => C}
+import org.apache.kafka.clients.producer.{Partitioner, ProducerConfig as C}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Try
 
 /** Check [[http://kafka.apache.org/documentation/#producerconfigs]]
@@ -22,7 +22,7 @@ final case class ProducerConfig(
   compressionType: CompressionType                  = CompressionType.None,
   retries: Int                                      = Int.MaxValue,
   maxInFlightRequestsPerConnection: Int             = 5,
-  partitionerClass: Option[Class[_ <: Partitioner]] = None,
+  partitionerClass: Option[Class[? <: Partitioner]] = None,
   interceptorClasses: List[String]                  = Nil,
   idempotence: Boolean                              = true,
   transactionTimeout: FiniteDuration                = 1.minute,
@@ -50,7 +50,7 @@ final case class ProducerConfig(
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
       (C.PARTITIONER_IGNORE_KEYS_CONFIG, partitionerIgnoreKeys.toString),
-      (C.PARTITIONER_ADPATIVE_PARTITIONING_ENABLE_CONFIG, partitionerAdaptivePartitioningEnable.toString),
+      (C.PARTITIONER_ADAPTIVE_PARTITIONING_ENABLE_CONFIG, partitionerAdaptivePartitioningEnable.toString),
       (C.PARTITIONER_AVAILABILITY_TIMEOUT_MS_CONFIG, partitionerAvailabilityTimeout.toMillis.toString),
       (C.METADATA_MAX_IDLE_CONFIG, metadataMaxIdle.toMillis.toString),
     )
@@ -102,11 +102,11 @@ object ProducerConfig {
 
   def apply(config: Config, default: => ProducerConfig): ProducerConfig = {
 
-    def get[T: FromConf](path: String, paths: String*) = {
-      config.getOpt[T](path, paths: _*)
+    def get[T: FromConf](path: String, paths: String*): Option[T] = {
+      config.getOpt[T](path, paths*)
     }
 
-    def getDuration(path: String, pathMs: => String) = {
+    def getDuration(path: String, pathMs: => String): Option[FiniteDuration] = {
       val value =
         try get[FiniteDuration](path)
         catch { case _: ConfigException => None }
@@ -115,15 +115,15 @@ object ProducerConfig {
 
     val partitionerClass = {
 
-      def classOf(name: String) = {
+      def classOf(name: String): Try[Class[Partitioner]] = {
 
-        def classOfClassLoader = {
+        def classOfClassLoader: Try[Class[?]] = {
           val thread      = Thread.currentThread()
           val classLoader = thread.getContextClassLoader
           Try { classLoader.loadClass(name) }
         }
 
-        def classOf = {
+        def classOf: Try[Class[?]] = {
           Try { Class.forName(name) }
         }
 
@@ -190,7 +190,7 @@ object ProducerConfig {
     compressionType: CompressionType,
     retries: Int,
     maxInFlightRequestsPerConnection: Int,
-    partitionerClass: Option[Class[_ <: Partitioner]],
+    partitionerClass: Option[Class[? <: Partitioner]],
     interceptorClasses: List[String],
     idempotence: Boolean,
     transactionTimeout: FiniteDuration,
@@ -229,7 +229,7 @@ object ProducerConfig {
     compressionType: CompressionType,
     retries: Int,
     maxInFlightRequestsPerConnection: Int,
-    partitionerClass: Option[Class[_ <: Partitioner]],
+    partitionerClass: Option[Class[? <: Partitioner]],
     interceptorClasses: List[String],
     idempotence: Boolean,
     transactionTimeout: FiniteDuration,

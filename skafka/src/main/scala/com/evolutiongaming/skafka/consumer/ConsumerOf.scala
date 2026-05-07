@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.effect._
+import cats.effect.*
 import cats.~>
 import com.evolutiongaming.catshelper.{MeasureDuration, ToTry}
 import com.evolutiongaming.skafka.FromBytes
@@ -20,7 +20,9 @@ object ConsumerOf {
     class Main
     new Main with ConsumerOf[F] {
 
-      def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]) = {
+      def apply[K, V](
+        config: ConsumerConfig
+      )(implicit fromBytesK: FromBytes[F, K], fromBytesV: FromBytes[F, V]): Resource[F, Consumer[F, K, V]] = {
         Consumer
           .of[F, K, V](config)
           .flatMap { consumer =>
@@ -46,9 +48,11 @@ object ConsumerOf {
     def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    )(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): ConsumerOf[G] = new ConsumerOf[G] {
+    )(implicit F: MonadCancel[F, ?], G: MonadCancel[G, ?]): ConsumerOf[G] = new ConsumerOf[G] {
 
-      def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[G, K], fromBytesV: FromBytes[G, V]) = {
+      def apply[K, V](
+        config: ConsumerConfig
+      )(implicit fromBytesK: FromBytes[G, K], fromBytesV: FromBytes[G, V]): Resource[G, Consumer[G, K, V]] = {
         for {
           a <- self[K, V](config)(fromBytesK.mapK(gf), fromBytesV.mapK(gf)).mapK(fg)
         } yield {

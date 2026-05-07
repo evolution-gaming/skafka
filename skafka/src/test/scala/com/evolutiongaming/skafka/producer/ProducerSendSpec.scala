@@ -1,69 +1,71 @@
 package com.evolutiongaming.skafka.producer
 
-import java.util.concurrent.{CompletableFuture, Future => FutureJ}
-import java.util.{Map => MapJ}
-import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
-import cats.implicits._
-import cats.effect.implicits._
+import java.util.concurrent.{CompletableFuture, Future as FutureJ}
+import java.util.Map as MapJ
+import cats.effect.{Async, Concurrent, Deferred, IO, Resource, Sync}
+import cats.implicits.*
+import cats.effect.implicits.*
 import com.evolutiongaming.catshelper.{FromTry, ToFuture, ToTry}
-import com.evolutiongaming.skafka.producer.ProducerConverters._
+import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata => OffsetAndMetadataJ}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata as OffsetAndMetadataJ}
 import org.apache.kafka.clients.producer.{
   Callback,
-  Producer => ProducerJ,
-  ProducerRecord => ProducerRecordJ,
-  RecordMetadata => RecordMetadataJ
+  Producer as ProducerJ,
+  ProducerRecord as ProducerRecordJ,
+  RecordMetadata as RecordMetadataJ
 }
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition => TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition as TopicPartitionJ}
+import org.scalatest.Assertion
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
-import scala.compat.java8.FutureConverters._
-import scala.jdk.CollectionConverters._
+import java.util
+import scala.compat.java8.FutureConverters.*
+import scala.jdk.CollectionConverters.*
 
 class ProducerSendSpec extends AsyncFunSuite with Matchers {
 
   test("block & send") {
-    import com.evolutiongaming.skafka.IOSuite._
+    import com.evolutiongaming.skafka.IOSuite.*
     blockAndSend[IO].run()
   }
 
   private def blockAndSend[
     F[_]: ToTry: FromTry: ToFuture: Async
-  ] = {
+  ]: F[Assertion] = {
 
     val topic          = "topic"
     val topicPartition = TopicPartition(topic = topic, partition = Partition.min)
     val metadata       = RecordMetadata(topicPartition)
     val record         = ProducerRecord(topic = topic, value = "val", key = "key")
 
-    def producerOf(block: F[ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]) = {
+    def producerOf(block: F[ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]): Resource[F, Producer[F]] = {
       val producer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
-        def initTransactions() = {}
+        def initTransactions(): Unit = {}
 
-        def beginTransaction() = {}
+        def beginTransaction(): Unit = {}
 
         def sendOffsetsToTransaction(
           offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ],
           groupMetadata: ConsumerGroupMetadata
-        ) = {}
+        ): Unit = {}
 
-        def commitTransaction() = {}
+        def commitTransaction(): Unit = {}
 
-        def flush() = {}
+        def flush(): Unit = {}
 
-        def partitionsFor(topic: String) = Nil.asJava
+        def partitionsFor(topic: String): util.List[PartitionInfo] = Nil.asJava
 
         def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 
         def clientInstanceId(timeout: java.time.Duration): Uuid = Uuid.ONE_UUID
 
-        def close() = {}
+        def close(): Unit = {}
 
-        def close(timeout: java.time.Duration) = {}
+        def close(timeout: java.time.Duration): Unit = {}
 
         def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
 
@@ -91,13 +93,13 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
           ToTry[F].apply(a).get
         }
 
-        def abortTransaction() = {}
+        def abortTransaction(): Unit = {}
       }
 
       Producer.fromProducerJ2(producer.pure[F])
     }
 
-    def start[A](fa: F[A]) = {
+    def start[A](fa: F[A]): F[F[A]] = {
       Sync[F].uncancelable { _ =>
         for {
           started <- Deferred[F, Unit]

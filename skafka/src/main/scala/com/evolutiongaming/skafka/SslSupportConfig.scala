@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.implicits._
+import cats.implicits.*
 import com.evolutiongaming.config.ConfigHelper.ConfigOps
 import com.evolutiongaming.skafka.ConfigHelpers.KeystoreTypeFromConfig
 import com.typesafe.config.Config

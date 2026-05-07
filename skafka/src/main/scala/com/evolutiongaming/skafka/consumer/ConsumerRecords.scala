@@ -1,9 +1,9 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.{Functor, Show}
-import cats.data.{NonEmptyList => Nel}
-import cats.implicits._
-import com.evolutiongaming.skafka._
+import cats.data.NonEmptyList as Nel
+import cats.implicits.*
+import com.evolutiongaming.skafka.*
 
 final case class ConsumerRecords[K, +V](values: Map[TopicPartition, Nel[ConsumerRecord[K, V]]])
 
@@ -12,7 +12,7 @@ object ConsumerRecords {
 
   def empty[K, V]: ConsumerRecords[K, V] = _empty.asInstanceOf[ConsumerRecords[K, V]]
 
-  val summaryShow: Show[ConsumerRecords[_, _]] = (records: ConsumerRecords[_, _]) => {
+  val summaryShow: Show[ConsumerRecords[?, ?]] = (records: ConsumerRecords[?, ?]) => {
     val result = for {
       (topicPartition, records) <- records.values
     } yield {
@@ -26,7 +26,7 @@ object ConsumerRecords {
   }
 
   implicit def functorConsumerRecords[K]: Functor[ConsumerRecords[K, *]] = new Functor[ConsumerRecords[K, *]] {
-    def map[A, B](fa: ConsumerRecords[K, A])(f: A => B) = {
+    def map[A, B](fa: ConsumerRecords[K, A])(f: A => B): ConsumerRecords[K, B] = {
       fa.copy(values = fa.values.map { case (key, value) => (key, value.map { _.map(f) }) })
     }
   }

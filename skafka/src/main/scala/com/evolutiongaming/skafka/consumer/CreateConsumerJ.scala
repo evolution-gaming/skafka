@@ -2,9 +2,9 @@ package com.evolutiongaming.skafka.consumer
 
 import cats.effect.Sync
 import com.evolutiongaming.catshelper.ToTry
-import com.evolutiongaming.skafka.Converters._
+import com.evolutiongaming.skafka.Converters.*
 import com.evolutiongaming.skafka.FromBytes
-import org.apache.kafka.clients.consumer.{KafkaConsumer, Consumer => ConsumerJ}
+import org.apache.kafka.clients.consumer.{KafkaConsumer, Consumer as ConsumerJ}
 
 object CreateConsumerJ {
 

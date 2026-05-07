@@ -8,7 +8,6 @@ import cats.arrow.FunctionK
 import cats.data.{NonEmptyList, NonEmptySet => Nes}
 import cats.effect.{Deferred, IO, Ref, Resource}
 import cats.implicits._
-import cats.effect.implicits._
 import com.dimafeng.testcontainers.KafkaContainer
 import com.evolutiongaming.catshelper.CatsHelper._
 import com.evolutiongaming.catshelper.Log
@@ -22,7 +21,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import RebalanceCallback.syntax._
 
-import scala.annotation.{nowarn, tailrec}
+import scala.annotation.tailrec
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
@@ -67,10 +66,9 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
-  @nowarn("cat=deprecation")
   def consumerOf(
     topic: Topic,
-    listener: Option[RebalanceListener[IO]]
+    listener: Option[RebalanceListener1[IO]]
   ): Resource[IO, Consumer[IO, String, String]] = {
 
     val config = ConsumerConfig
@@ -87,9 +85,13 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
     for {
       metrics   <- ConsumerMetrics.of(CollectorRegistry.empty[IO])
-      consumerOf = ConsumerOf[IO](executor, metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
+      consumerOf = ConsumerOf.apply1[IO](metrics("clientId").some).mapK(FunctionK.id, FunctionK.id)
       consumer  <- consumerOf[String, String](config)
-      _         <- consumer.subscribe(Nes.of(topic), listener).toResource
+      _         <-
+        listener match {
+          case Some(listener) => consumer.subscribe(Nes.of(topic), listener).toResource
+          case None => consumer.subscribe(Nes.of(topic)).toResource
+        }
     } yield consumer
   }
 
@@ -114,14 +116,14 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
   test("rebalance") {
     val topic = s"${instant.toEpochMilli}-rebalance"
 
-    def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener[IO] = {
-      new RebalanceListener[IO] {
+    def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener1[IO] = {
+      new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = assigned.complete(()).void
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = RebalanceCallback.lift(assigned.complete(()).void)
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = ().pure[IO]
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty[IO]
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = ().pure[IO]
+        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty[IO]
       }
     }
 
@@ -190,7 +192,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
                 IO.cede *>
                 IO.delay(())
             ).lift
-            // with IO.shift attempts we make sure that
+            // with IO.cede attempts we make sure that
             // kafka java consumer.position method would be called from the same thread as consumer.poll
             // otherwise kafka java consumer throws
             // ConcurrentModificationException("KafkaConsumer is not safe for multi-threaded access")

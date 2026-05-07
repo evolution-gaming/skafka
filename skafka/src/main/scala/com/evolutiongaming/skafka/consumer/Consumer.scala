@@ -1,12 +1,13 @@
 package com.evolutiongaming.skafka
 package consumer
 
+import cats.data.NonEmptySetImpl.catsDataInstancesForNonEmptySet
 import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.effect.*
 import cats.effect.implicits.*
 import cats.effect.std.Semaphore
 import cats.implicits.*
-import cats.{Applicative, Monad, Monoid, MonadError, ~>}
+import cats.{Applicative, Monad, MonadError, Monoid, ~>}
 import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.*
 import com.evolutiongaming.skafka.Converters.*
@@ -17,7 +18,7 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndMetadata as OffsetAndMetadataJ,
   OffsetAndTimestamp as OffsetAndTimestampJ
 }
-import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Uuid, PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ}
 
 import java.lang.Long as LongJ
 import java.util.regex.Pattern
@@ -252,7 +253,7 @@ object Consumer {
     consumer: F[ConsumerJ[K, V]]
   ): Resource[F, Consumer[F, K, V]] = {
 
-    def blocking[A](f: => A) = Sync[F].blocking { f }
+    def blocking[A](f: => A): F[A] = Sync[F].blocking { f }
 
     for {
       semaphore            <- Semaphore(1).toResource
@@ -263,13 +264,13 @@ object Consumer {
       _    <- Resource.release { close }
     } yield {
 
-      def serial[A](fa: F[A]) = semaphore.permit.use(_ => fa).uncancelable
+      def serial[A](fa: F[A]): F[A] = semaphore.permit.use(_ => fa).uncancelable
 
-      def serialNonBlocking[A](f: => A) = serial { Sync[F].delay { f } }
+      def serialNonBlocking[A](f: => A): F[A] = serial { Sync[F].delay { f } }
 
-      def serialBlocking[A](f: => A) = serial { blocking { f } }
+      def serialBlocking[A](f: => A): F[A] = serial { blocking { f } }
 
-      def commitLater1(f: OffsetCommitCallback => Unit) = {
+      def commitLater1(f: OffsetCommitCallback => Unit): F[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] = {
         Async[F]
           .async[MapJ[TopicPartitionJ, OffsetAndMetadataJ]] { callback =>
             val offsetCommitCallback = new OffsetCommitCallback {
@@ -289,7 +290,7 @@ object Consumer {
           }
       }
 
-      def position1(partition: TopicPartition)(f: TopicPartitionJ => Long) = {
+      def position1(partition: TopicPartition)(f: TopicPartitionJ => Long): F[Offset] = {
         val partitionJ = partition.asJava
         for {
           offset <- serialBlocking { f(partitionJ) }
@@ -299,7 +300,7 @@ object Consumer {
 
       def committed1(partitions: Nes[TopicPartition])(
         f: (SetJ[TopicPartitionJ]) => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
-      ) = {
+      ): F[Map[TopicPartition, OffsetAndMetadata]] = {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
@@ -307,14 +308,14 @@ object Consumer {
         } yield result
       }
 
-      def partitions1(f: => Option[ListJ[PartitionInfoJ]]) = {
+      def partitions1(f: => Option[ListJ[PartitionInfoJ]]): F[List[PartitionInfo]] = {
         for {
           result <- serialBlocking { f }
           result <- result.traverse(partitionsInfoListF[F])
         } yield result.getOrElse(List.empty)
       }
 
-      def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]) = {
+      def topics1(f: => MapJ[Topic, ListJ[PartitionInfoJ]]): F[Map[Topic, List[PartitionInfo]]] = {
         for {
           result <- serialBlocking { f }
           result <- partitionsInfoMapF[F](result)
@@ -323,7 +324,7 @@ object Consumer {
 
       def offsetsForTimes1(timestamps: Map[TopicPartition, Offset])(
         f: MapJ[TopicPartitionJ, LongJ] => MapJ[TopicPartitionJ, OffsetAndTimestampJ]
-      ) = {
+      ): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         val timestampsJ = timestamps.asJavaMap(_.asJava, a => LongJ.valueOf(a.value))
         for {
           result <- serialBlocking { f(timestampsJ) }
@@ -333,7 +334,7 @@ object Consumer {
 
       def offsetsOf(partitions: Nes[TopicPartition])(
         f: CollectionJ[TopicPartitionJ] => MapJ[TopicPartitionJ, LongJ]
-      ) = {
+      ): F[Map[TopicPartition, Offset]] = {
         val partitionsJ = partitions.asJava
         for {
           result <- serialBlocking { f(partitionsJ) }
@@ -595,7 +596,7 @@ object Consumer {
         } yield result
       }
 
-      def count(name: String, topics: Iterable[Topic]) = {
+      def count(name: String, topics: Iterable[Topic]): F[Unit] = {
         topics.toList.foldMapM { topic => metrics.count(name, topic) }
       }
 
@@ -802,7 +803,7 @@ object Consumer {
         }
 
         def committed(partitions: Nes[TopicPartition]): F[Map[TopicPartition, OffsetAndMetadata]] = {
-          def topics = partitions
+          def topics: List[Topic] = partitions
             .toList
             .map { _.topic }
             .distinct
@@ -817,7 +818,7 @@ object Consumer {
           partitions: Nes[TopicPartition],
           timeout: FiniteDuration
         ): F[Map[TopicPartition, OffsetAndMetadata]] = {
-          def topics = partitions
+          def topics: List[Topic] = partitions
             .toList
             .map { _.topic }
             .distinct

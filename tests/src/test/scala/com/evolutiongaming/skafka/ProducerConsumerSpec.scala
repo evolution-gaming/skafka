@@ -440,7 +440,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val topic = s"${instant.toEpochMilli}-$idx-$acks"
     val name  = s"[topic:$topic,acks:$acks]"
 
-    def produce(record: ProducerRecord[String, String]) = producer.send(record).flatten.unsafeRunSync()
+    def produce(record: ProducerRecord[String, String]): RecordMetadata = producer.send(record).flatten.unsafeRunSync()
 
     lazy val (consumer, consumerRelease) = consumerOf(topic, none)
       .allocated

@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka
 
 import cats.implicits.*
 import com.evolutiongaming.skafka.ConfigHelpers.*
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -42,5 +42,5 @@ class ConfigHelpersTest extends AnyWordSpec with Matchers {
     }
   }
 
-  private def makeConfig(data: java.util.Map[String, ? <: Any]) = ConfigFactory.parseMap(data)
+  private def makeConfig(data: java.util.Map[String, ? <: Any]): Config = ConfigFactory.parseMap(data)
 }

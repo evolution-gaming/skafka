@@ -101,7 +101,7 @@ object ConsumerLogging {
 
       def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]] = {
 
-        def show(records: ConsumerRecords[K, V]) = {
+        def show(records: ConsumerRecords[K, V]): String = {
           ConsumerRecords.summaryShow.show(records)
         }
 

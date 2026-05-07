@@ -23,7 +23,7 @@ object JaasConfig {
 
     override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${optionsAsString()}"
 
-    private def optionsAsString() =
+    private def optionsAsString(): String =
       options
         .map { case (key, value) => s"$key='$value'" }
         .mkString("", " ", ";")
@@ -44,13 +44,13 @@ object JaasConfig {
 
     val value = config.atPath(emptyPath)
 
-    def getPlain = Try(value.getString(emptyPath)) match {
+    def getPlain: Option[Plain] = Try(value.getString(emptyPath)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(string)                       => Some(Plain(string))
     }
 
-    def getStructured = Try(value.getObject(emptyPath)) match {
+    def getStructured: Option[Structured] = Try(value.getObject(emptyPath)) match {
       case Failure(_: ConfigException.WrongType) => None
       case Failure(exception)                    => throw exception
       case Success(obj)                          => Structured.fromConfig(obj)

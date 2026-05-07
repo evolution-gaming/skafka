@@ -97,11 +97,11 @@ object ConsumerConfig {
 
   def apply(config: Config, default: => ConsumerConfig): ConsumerConfig = {
 
-    def get[T: FromConf](path: String, paths: String*) = {
+    def get[T: FromConf](path: String, paths: String*): Option[T] = {
       config.getOpt[T](path, paths*)
     }
 
-    def getDuration(path: String, pathMs: => String) = {
+    def getDuration(path: String, pathMs: => String): Option[FiniteDuration] = {
       val value =
         try get[FiniteDuration](path)
         catch { case _: ConfigException => None }

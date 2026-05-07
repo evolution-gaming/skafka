@@ -4,7 +4,6 @@ import java.lang.Long as LongJ
 import java.time.Duration as DurationJ
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
-
 import cats.arrow.FunctionK
 import cats.effect.IO
 import com.evolutiongaming.catshelper.CatsHelper.*
@@ -30,6 +29,7 @@ import scala.jdk.CollectionConverters.*
 import scala.util.control.NoStackTrace
 import scala.util.{Failure, Random, Success, Try}
 import com.evolutiongaming.skafka.IOSuite.*
+import org.scalatest.Assertion
 
 class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
@@ -79,7 +79,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           input: RebalanceCallback[Try, A],
           recoverValue: A,
           c: ExplodingConsumer = new ExplodingConsumer
-        ) = {
+        ): Assertion = {
           tryRun(input.handleErrorWith(_ => pure(recoverValue)), c) mustBe Success(recoverValue)
           tryRun(input.handleErrorWith(_ => lift(Try(throw TestError2))), c) mustBe Failure(TestError2)
           tryRun(input.handleErrorWith(_ => lift(Try(recoverValue))), c) mustBe Success(recoverValue)
@@ -101,7 +101,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
           input: RebalanceCallback[Try, Int],
           inputValue: Int,
           c: ExplodingConsumer = new ExplodingConsumer
-        ) = {
+        ): Assertion = {
           tryRun(input.handleErrorWith(_ => pure(Random.nextInt())), c) mustBe Success(inputValue)
           tryRun(input.handleErrorWith(_ => lift(Failure(TestError2))), c) mustBe Success(inputValue)
           tryRun(input.handleErrorWith(_ => lift(Success(Random.nextInt()))), c) mustBe Success(inputValue)

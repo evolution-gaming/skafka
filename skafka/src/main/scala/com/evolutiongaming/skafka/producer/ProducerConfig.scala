@@ -102,11 +102,11 @@ object ProducerConfig {
 
   def apply(config: Config, default: => ProducerConfig): ProducerConfig = {
 
-    def get[T: FromConf](path: String, paths: String*) = {
+    def get[T: FromConf](path: String, paths: String*): Option[T] = {
       config.getOpt[T](path, paths*)
     }
 
-    def getDuration(path: String, pathMs: => String) = {
+    def getDuration(path: String, pathMs: => String): Option[FiniteDuration] = {
       val value =
         try get[FiniteDuration](path)
         catch { case _: ConfigException => None }
@@ -115,15 +115,15 @@ object ProducerConfig {
 
     val partitionerClass = {
 
-      def classOf(name: String) = {
+      def classOf(name: String): Try[Class[Partitioner]] = {
 
-        def classOfClassLoader = {
+        def classOfClassLoader: Try[Class[?]] = {
           val thread      = Thread.currentThread()
           val classLoader = thread.getContextClassLoader
           Try { classLoader.loadClass(name) }
         }
 
-        def classOf = {
+        def classOf: Try[Class[?]] = {
           Try { Class.forName(name) }
         }
 

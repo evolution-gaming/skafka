@@ -100,7 +100,7 @@ object KafkaHealthCheck {
 
     val sleep = Temporal[F].sleep(config.interval)
 
-    def produce(value: String) = {
+    def produce(value: String): F[Unit] = {
       val record = Record(key = key.some, value = value.some)
       for {
         _ <- log.debug(s"$key send $value")
@@ -108,10 +108,10 @@ object KafkaHealthCheck {
       } yield {}
     }
 
-    def produceConsume(n: Long) = {
+    def produceConsume(n: Long): F[Option[Throwable]] = {
       val value = n.toString
 
-      def consume(retry: Long) = {
+      def consume(retry: Long): F[Either[Long, Unit]] = {
         for {
           records <- consumer.poll(config.pollTimeout)
           found    = records.find { record => record.key.contains_(key) && record.value.contains_(value) }
@@ -138,7 +138,7 @@ object KafkaHealthCheck {
         .redeem(_.some, _ => none[Throwable])
     }
 
-    def check(n: Long) = {
+    def check(n: Long): F[Either[Long, Unit]] = {
       for {
         error <- produceConsume(n)
         _     <- error.fold(().pure[F]) { error => log.error(s"$n failed with $error") }

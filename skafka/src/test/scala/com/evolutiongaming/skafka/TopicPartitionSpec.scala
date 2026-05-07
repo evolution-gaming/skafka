@@ -14,7 +14,7 @@ class TopicPartitionSpec extends AnyFunSuite with Matchers {
 
   test("order") {
 
-    def topicPartition(topic: Topic, partition: Int) = {
+    def topicPartition(topic: Topic, partition: Int): TopicPartition = {
       TopicPartition(topic = topic, partition = Partition.unsafe(partition))
     }
 

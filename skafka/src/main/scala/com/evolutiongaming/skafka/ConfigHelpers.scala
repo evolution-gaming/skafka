@@ -19,7 +19,7 @@ object ConfigHelpers {
 
   implicit val JaasOptionsFromConf: FromConf[Map[String, String]] = FromConf[Map[String, String]] {
 
-    def asString(value: ConfigValue) = {
+    def asString(value: ConfigValue): String = {
       value
         .render(ConfigRenderOptions.concise().setJson(false))
         .stripPrefix("\"") // sometimes pure config wrap value with quotes
@@ -44,7 +44,7 @@ object ConfigHelpers {
     def getSeconds(path: String, pathWithUnit: => String): Option[FiniteDuration] =
       getDuration(path, SECONDS, pathWithUnit)
 
-    private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String) = {
+    private def getDuration(path: String, timeUnit: TimeUnit, pathWithUnit: => String): Option[FiniteDuration] = {
       val value = Try(config.getOpt[FiniteDuration](path)) match {
         case Failure(_: ConfigException) => None
         case Failure(e)                  => throw e

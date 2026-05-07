@@ -78,7 +78,7 @@ class KafkaHealthCheckSpec extends AsyncFunSuite with Matchers {
       }
     }
 
-    def consumerOf(ref: Ref[IO, State]) = new KafkaHealthCheck.Consumer[IO] {
+    def consumerOf(ref: Ref[IO, State]): KafkaHealthCheck.Consumer[IO] = new KafkaHealthCheck.Consumer[IO] {
       def subscribe(topic: Topic): IO[Unit] =
         ref.update(_.copy(subscribed = topic.some))
 

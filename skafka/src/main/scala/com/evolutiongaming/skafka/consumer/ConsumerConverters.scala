@@ -96,7 +96,7 @@ object ConsumerConverters {
       val headers = self.headers().asScala.map(_.asScala).toList
 
       val timestampAndType = {
-        def some(timestampType: TimestampType) = {
+        def some(timestampType: TimestampType): Some[TimestampAndType] = {
           Some(TimestampAndType(Instant.ofEpochMilli(self.timestamp()), timestampType))
         }
 
@@ -107,7 +107,7 @@ object ConsumerConverters {
         }
       }
 
-      def withSize[A](value: A, size: Int) = {
+      def withSize[A](value: A, size: Int): Option[WithSize[A]] = {
         for {
           value <- Option(value)
         } yield WithSize(value, size)

@@ -58,7 +58,7 @@ object Producer {
 
   def empty[F[_]: Applicative]: Producer[F] = {
 
-    def empty = ().pure[F]
+    def empty: F[Unit] = ().pure[F]
 
     new Empty with Producer[F] {
 
@@ -100,9 +100,9 @@ object Producer {
 
   def fromProducerJ2[F[_]: ToTry: Async](producer: F[ProducerJ[Bytes, Bytes]]): Resource[F, Producer[F]] = {
 
-    def blocking[A](f: => A) = Sync[F].blocking(f)
+    def blocking[A](f: => A): F[A] = Sync[F].blocking(f)
 
-    def apply(producer: ProducerJ[Bytes, Bytes]) = {
+    def apply(producer: ProducerJ[Bytes, Bytes]): Producer[F] = {
       new Main with Producer[F] {
 
         def initTransactions: F[Unit] = {
@@ -129,7 +129,7 @@ object Producer {
             case failure: ExecutionException => failure.getCause.raiseError[F, A]
           }
 
-          def block(record: ProducerRecordJ[Bytes, Bytes]) = {
+          def block(record: ProducerRecordJ[Bytes, Bytes]): F[F[RecordMetadataJ]] = {
 
             def callbackOf(deferred: Deferred[F, Either[Throwable, RecordMetadataJ]]): Callback = {
               (metadata: RecordMetadataJ, exception: Exception) =>
@@ -160,7 +160,7 @@ object Producer {
             result.recoverWith(executionException)
           }
 
-          def toBytesError(error: Throwable) = {
+          def toBytesError(error: Throwable): F[ProducerRecord[Bytes, Bytes]] = {
             SkafkaError(s"toBytes failed for $record", error).raiseError[F, ProducerRecord[Bytes, Bytes]]
           }
 

@@ -13,13 +13,13 @@ private[skafka] trait ClientMetricsProvider[F[_]] {
 }
 private[skafka] object ClientMetricsProvider {
 
-  def apply[F[_]: Sync](consumer: Consumer[_, _]): ClientMetricsProvider[F] =
+  def apply[F[_]: Sync](consumer: Consumer[?, ?]): ClientMetricsProvider[F] =
     new ClientMetricsProviderImpl(consumer.metrics())
 
-  def apply[F[_]: Sync](producer: Producer[_, _]): ClientMetricsProvider[F] =
+  def apply[F[_]: Sync](producer: Producer[?, ?]): ClientMetricsProvider[F] =
     new ClientMetricsProviderImpl[F](producer.metrics())
 
-  private class ClientMetricsProviderImpl[F[_]: Sync](source: => util.Map[MetricName, _ <: Metric])
+  private class ClientMetricsProviderImpl[F[_]: Sync](source: => util.Map[MetricName, ? <: Metric])
       extends ClientMetricsProvider[F] {
 
     def get: F[Seq[ClientMetric[F]]] = Sync[F].delay {

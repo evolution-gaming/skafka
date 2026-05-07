@@ -410,7 +410,7 @@ class ConsumerSpec extends AnyWordSpec with Matchers {
 
       def clientInstanceId(timeout: DurationJ): Uuid = clientId
 
-      def metrics(): MapJ[MetricName, _ <: Metric] = new java.util.HashMap()
+      def metrics(): MapJ[MetricName, ? <: Metric] = new java.util.HashMap()
 
       def partitionsFor(topic: Topic) = {
         List(partitionInfo.asJava).asJava

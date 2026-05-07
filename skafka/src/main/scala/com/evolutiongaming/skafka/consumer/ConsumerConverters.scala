@@ -46,7 +46,7 @@ object ConsumerConverters {
 
   implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {
 
-    def asJava(consumer: ConsumerJ[_, _])(implicit toTry: ToTry[F]): RebalanceListenerJ = {
+    def asJava(consumer: ConsumerJ[?, ?])(implicit toTry: ToTry[F]): RebalanceListenerJ = {
 
       val rebalanceConsumer = RebalanceConsumer(consumer)
 

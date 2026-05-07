@@ -9,20 +9,20 @@ import org.apache.kafka.common.config.SaslConfigs
 import scala.concurrent.duration.{DurationLong, FiniteDuration}
 
 final case class SaslSupportConfig(
-  kerberosServiceName: Option[String]          = None,
-  kerberosKinitCmd: String                     = SaslConfigs.DEFAULT_KERBEROS_KINIT_CMD,
-  kerberosTicketRenewWindowFactor: Double      = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_WINDOW_FACTOR,
-  kerberosTicketRenewJitter: Double            = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_JITTER,
-  kerberosMinTimeBeforeRelogin: FiniteDuration = SaslConfigs.DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN.millis,
-  loginRefreshWindowFactor: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_FACTOR,
-  loginRefreshWindowJitter: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_JITTER,
-  loginRefreshMinPeriod: FiniteDuration        = SaslConfigs.DEFAULT_LOGIN_REFRESH_MIN_PERIOD_SECONDS.seconds,
-  loginRefreshBuffer: FiniteDuration           = SaslConfigs.DEFAULT_LOGIN_REFRESH_BUFFER_SECONDS.seconds,
-  mechanism: String                            = SaslConfigs.DEFAULT_SASL_MECHANISM,
-  jaasConfig: Option[JaasConfig]               = None,
-  clientCallbackHandlerClass: Option[Class[_]] = None,
-  loginCallbackHandlerClass: Option[Class[_]]  = None,
-  loginClass: Option[Class[_]]                 = None,
+                                    kerberosServiceName: Option[String]          = None,
+                                    kerberosKinitCmd: String                     = SaslConfigs.DEFAULT_KERBEROS_KINIT_CMD,
+                                    kerberosTicketRenewWindowFactor: Double      = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_WINDOW_FACTOR,
+                                    kerberosTicketRenewJitter: Double            = SaslConfigs.DEFAULT_KERBEROS_TICKET_RENEW_JITTER,
+                                    kerberosMinTimeBeforeRelogin: FiniteDuration = SaslConfigs.DEFAULT_KERBEROS_MIN_TIME_BEFORE_RELOGIN.millis,
+                                    loginRefreshWindowFactor: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_FACTOR,
+                                    loginRefreshWindowJitter: Double             = SaslConfigs.DEFAULT_LOGIN_REFRESH_WINDOW_JITTER,
+                                    loginRefreshMinPeriod: FiniteDuration        = SaslConfigs.DEFAULT_LOGIN_REFRESH_MIN_PERIOD_SECONDS.seconds,
+                                    loginRefreshBuffer: FiniteDuration           = SaslConfigs.DEFAULT_LOGIN_REFRESH_BUFFER_SECONDS.seconds,
+                                    mechanism: String                            = SaslConfigs.DEFAULT_SASL_MECHANISM,
+                                    jaasConfig: Option[JaasConfig]               = None,
+                                    clientCallbackHandlerClass: Option[Class[?]] = None,
+                                    loginCallbackHandlerClass: Option[Class[?]]  = None,
+                                    loginClass: Option[Class[?]]                 = None,
 ) { self =>
   def bindings: Map[String, String] = {
     if (self == SaslSupportConfig.Default) {
@@ -87,12 +87,12 @@ object SaslSupportConfig {
       mechanism = config.getOpt[String]("sasl-mechanism", "sasl.mechanism") getOrElse
         default.mechanism,
       clientCallbackHandlerClass =
-        config.getOpt[Class[_]]("sasl-client-callback-handler-class", "sasl.client.callback.handler.class") orElse
+        config.getOpt[Class[?]]("sasl-client-callback-handler-class", "sasl.client.callback.handler.class") orElse
           default.clientCallbackHandlerClass,
       loginCallbackHandlerClass =
-        config.getOpt[Class[_]]("sasl-login-callback-handler-class", "sasl.login.callback.handler.class") orElse
+        config.getOpt[Class[?]]("sasl-login-callback-handler-class", "sasl.login.callback.handler.class") orElse
           default.loginCallbackHandlerClass,
-      loginClass = config.getOpt[Class[_]]("sasl-login-class", "sasl.login.class") orElse
+      loginClass = config.getOpt[Class[?]]("sasl-login-class", "sasl.login.class") orElse
         default.loginClass,
       jaasConfig = config
         .getOpt[ConfigValue]("sasl-jaas-config", "sasl.jaas.config")

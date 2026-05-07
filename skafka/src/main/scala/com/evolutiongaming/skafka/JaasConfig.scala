@@ -18,7 +18,7 @@ object JaasConfig {
     override def asString(): String = entry
   }
 
-  final case class Structured(loginModuleClass: Class[_], controlFlag: String, options: Map[String, String])
+  final case class Structured(loginModuleClass: Class[?], controlFlag: String, options: Map[String, String])
       extends JaasConfig {
 
     override def asString(): String = s"${loginModuleClass.getName} $controlFlag ${optionsAsString()}"
@@ -33,7 +33,7 @@ object JaasConfig {
     def fromConfig(obj: ConfigObject): Option[Structured] = {
       val config = obj.toConfig
       for {
-        loginModuleClass <- config.getOpt[Class[_]]("login-module-class")
+        loginModuleClass <- config.getOpt[Class[?]]("login-module-class")
         controlFlag      <- config.getOpt[String]("control-flag")
         options          <- config.getOpt[Map[String, String]]("options")
       } yield new Structured(loginModuleClass, controlFlag, options)

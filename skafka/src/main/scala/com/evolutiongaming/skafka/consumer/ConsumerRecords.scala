@@ -12,7 +12,7 @@ object ConsumerRecords {
 
   def empty[K, V]: ConsumerRecords[K, V] = _empty.asInstanceOf[ConsumerRecords[K, V]]
 
-  val summaryShow: Show[ConsumerRecords[_, _]] = (records: ConsumerRecords[_, _]) => {
+  val summaryShow: Show[ConsumerRecords[?, ?]] = (records: ConsumerRecords[?, ?]) => {
     val result = for {
       (topicPartition, records) <- records.values
     } yield {

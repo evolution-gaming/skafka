@@ -112,7 +112,7 @@ class ExplodingConsumer extends ConsumerJ[String, String] {
   def commitAsync(offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ], callback: OffsetCommitCallback): Unit =
     notImplemented
   def clientInstanceId(timeout: DurationJ): Uuid             = notImplemented
-  def metrics(): MapJ[MetricName, _ <: Metric]               = notImplemented
+  def metrics(): MapJ[MetricName, ? <: Metric]               = notImplemented
   def pause(partitions: CollectionJ[TopicPartitionJ]): Unit  = notImplemented
   def resume(partitions: CollectionJ[TopicPartitionJ]): Unit = notImplemented
   def enforceRebalance(): Unit                               = notImplemented

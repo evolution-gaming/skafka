@@ -73,7 +73,7 @@ class RebalanceConsumerSpec extends AnyFreeSpec with Matchers {
       ): util.Map[TopicPartition, OffsetAndMetadata] =
         supported // rebalanceConsumer.committed(partitions, timeout)
       def clientInstanceId(timeout: Duration): Uuid              = unsupported
-      def metrics(): util.Map[MetricName, _ <: Metric]           = unsupported
+      def metrics(): util.Map[MetricName, ? <: Metric]           = unsupported
       def partitionsFor(topic: String): util.List[PartitionInfo] = supported // rebalanceConsumer.partitionsFor(topic)
       def partitionsFor(topic: String, timeout: Duration): util.List[PartitionInfo] =
         supported // rebalanceConsumer.partitionsFor(topic, timeout)

@@ -42,5 +42,5 @@ class ConfigHelpersTest extends AnyWordSpec with Matchers {
     }
   }
 
-  private def makeConfig(data: java.util.Map[String, _ <: Any]) = ConfigFactory.parseMap(data)
+  private def makeConfig(data: java.util.Map[String, ? <: Any]) = ConfigFactory.parseMap(data)
 }

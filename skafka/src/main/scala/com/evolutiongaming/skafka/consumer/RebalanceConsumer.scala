@@ -138,10 +138,10 @@ trait RebalanceConsumer {
 }
 
 object RebalanceConsumer {
-  def apply(c: ConsumerJ[_, _]): RebalanceConsumer = {
+  def apply(c: ConsumerJ[?, ?]): RebalanceConsumer = {
 
     def committed1(
-      f: ConsumerJ[_, _] => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
+      f: ConsumerJ[?, ?] => MapJ[TopicPartitionJ, OffsetAndMetadataJ]
     ): Try[Map[TopicPartition, OffsetAndMetadata]] = {
       for {
         a <- Try { f(c) }
@@ -150,7 +150,7 @@ object RebalanceConsumer {
     }
 
     def offsets1(
-      f: ConsumerJ[_, _] => MapJ[TopicPartitionJ, LongJ]
+      f: ConsumerJ[?, ?] => MapJ[TopicPartitionJ, LongJ]
     ): Try[Map[TopicPartition, Offset]] = {
       for {
         a <- Try(f(c))

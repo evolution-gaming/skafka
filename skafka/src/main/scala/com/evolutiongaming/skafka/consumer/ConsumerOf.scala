@@ -46,7 +46,7 @@ object ConsumerOf {
     def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    )(implicit F: MonadCancel[F, _], G: MonadCancel[G, _]): ConsumerOf[G] = new ConsumerOf[G] {
+    )(implicit F: MonadCancel[F, ?], G: MonadCancel[G, ?]): ConsumerOf[G] = new ConsumerOf[G] {
 
       def apply[K, V](config: ConsumerConfig)(implicit fromBytesK: FromBytes[G, K], fromBytesV: FromBytes[G, V]) = {
         for {

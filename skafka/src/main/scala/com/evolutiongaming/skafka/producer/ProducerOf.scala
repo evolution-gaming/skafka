@@ -40,7 +40,7 @@ object ProducerOf {
     def mapK[G[_]](
       fg: F ~> G,
       gf: G ~> F
-    )(implicit G: MonadCancel[G, _], F: MonadCancel[F, _]): ProducerOf[G] = { (config: ProducerConfig) =>
+    )(implicit G: MonadCancel[G, ?], F: MonadCancel[F, ?]): ProducerOf[G] = { (config: ProducerConfig) =>
       {
         for {
           a <- self(config).mapK(fg)

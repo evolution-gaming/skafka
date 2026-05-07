@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka
 
 import cats.effect.*
-import cats.data.{NonEmptySet as Nes}
+import cats.data.NonEmptySet as Nes
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import cats.{Applicative, Functor, Monad}

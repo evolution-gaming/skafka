@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import cats.data.{NonEmptyList as Nel}
+import cats.data.NonEmptyList as Nel
 import com.evolutiongaming.skafka.JaasConfig.Plain
 import com.evolutiongaming.skafka.{CommonConfig, KeystoreType, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.ConfigFactory

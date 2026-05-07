@@ -4,7 +4,7 @@ import java.time.Duration
 import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.{lang, util}
-import java.lang.{Long as LongJ}
+import java.lang.Long as LongJ
 import com.evolutiongaming.skafka.consumer.RebalanceConsumerSpec.*
 import org.apache.kafka.clients.consumer.{
   CloseOptions,

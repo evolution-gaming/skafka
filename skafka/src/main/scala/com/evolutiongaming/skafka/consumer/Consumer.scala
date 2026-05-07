@@ -19,7 +19,7 @@ import org.apache.kafka.clients.consumer.{
 }
 import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition as TopicPartitionJ, Uuid}
 
-import java.lang.{Long as LongJ}
+import java.lang.Long as LongJ
 import java.util.regex.Pattern
 import java.util.{Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 import scala.concurrent.duration.*

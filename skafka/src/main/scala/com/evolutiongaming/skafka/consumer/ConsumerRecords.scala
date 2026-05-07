@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import cats.{Functor, Show}
-import cats.data.{NonEmptyList as Nel}
+import cats.data.NonEmptyList as Nel
 import cats.implicits.*
 import com.evolutiongaming.skafka.*
 

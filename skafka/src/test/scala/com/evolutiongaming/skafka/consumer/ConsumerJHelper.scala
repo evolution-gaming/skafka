@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long as LongJ}
+import java.lang.Long as LongJ
 import java.time.Duration
 import java.util.concurrent.atomic.AtomicReference
 import java.util.regex.Pattern

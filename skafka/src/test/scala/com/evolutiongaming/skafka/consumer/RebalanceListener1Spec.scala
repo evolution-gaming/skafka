@@ -3,14 +3,14 @@ package com.evolutiongaming.skafka.consumer
 import java.util.concurrent.atomic.AtomicReference
 
 import cats.Applicative
-import cats.data.{NonEmptySet as Nes}
+import cats.data.NonEmptySet as Nes
 import cats.effect.IO
 import cats.implicits.*
 import com.evolutiongaming.skafka.consumer.DataPoints.*
 import com.evolutiongaming.skafka.consumer.RebalanceListener1Spec.*
 import com.evolutiongaming.skafka.{Offset, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite.*
-import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
+import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 

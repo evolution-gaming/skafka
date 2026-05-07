@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long as LongJ}
+import java.lang.Long as LongJ
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, Duration as DurationJ}
 import java.util.{Optional, List as ListJ, Map as MapJ, Set as SetJ}

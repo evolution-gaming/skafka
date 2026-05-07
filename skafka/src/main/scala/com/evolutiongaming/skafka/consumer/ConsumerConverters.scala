@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long as LongJ}
+import java.lang.Long as LongJ
 import java.time.Instant
 import java.util.{Collection as CollectionJ, Map as MapJ}
 
@@ -20,8 +20,8 @@ import org.apache.kafka.clients.consumer.{
   OffsetAndTimestamp as OffsetAndTimestampJ
 }
 import org.apache.kafka.common.header.internals.RecordHeaders
-import org.apache.kafka.common.record.{TimestampType as TimestampTypeJ}
-import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
+import org.apache.kafka.common.record.TimestampType as TimestampTypeJ
+import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 
 import scala.jdk.CollectionConverters.*
 import scala.util.Try

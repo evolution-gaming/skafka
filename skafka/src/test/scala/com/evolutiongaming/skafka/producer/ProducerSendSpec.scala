@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.producer
 
 import java.util.concurrent.{CompletableFuture, Future as FutureJ}
-import java.util.{Map as MapJ}
+import java.util.Map as MapJ
 import cats.effect.{Async, Concurrent, Deferred, IO, Sync}
 import cats.implicits.*
 import cats.effect.implicits.*

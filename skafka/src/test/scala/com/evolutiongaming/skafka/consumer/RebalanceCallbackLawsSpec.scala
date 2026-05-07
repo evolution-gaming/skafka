@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.{util as ju}
+import java.util as ju
 
 import cats.effect.IO
 import cats.instances.either.*

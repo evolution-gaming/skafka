@@ -1,6 +1,6 @@
 package com.evolutiongaming.skafka
 
-import cats.data.{NonEmptyList as Nel}
+import cats.data.NonEmptyList as Nel
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.duration.*

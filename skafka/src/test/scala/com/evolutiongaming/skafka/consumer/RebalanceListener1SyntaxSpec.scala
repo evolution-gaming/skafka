@@ -8,7 +8,7 @@ import com.evolutiongaming.skafka.consumer.DataPoints.*
 import com.evolutiongaming.skafka.consumer.RebalanceCallback.syntax.*
 import com.evolutiongaming.skafka.consumer.RebalanceListener1SyntaxSpec.*
 import com.evolutiongaming.skafka.{Topic, TopicPartition}
-import org.apache.kafka.common.{TopicPartition as TopicPartitionJ}
+import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import com.evolutiongaming.skafka.IOSuite.*

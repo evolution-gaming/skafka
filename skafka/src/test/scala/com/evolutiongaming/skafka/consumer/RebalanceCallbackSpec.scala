@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
-import java.lang.{Long as LongJ}
-import java.time.{Duration as DurationJ}
+import java.lang.Long as LongJ
+import java.time.Duration as DurationJ
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
 import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 

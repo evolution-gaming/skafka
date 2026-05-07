@@ -54,7 +54,7 @@ class KafkaMetricsCollector[F[_]: Monad: ToTry](
               case Some(name) =>
                 metricsGroup
                   .toVector
-                  .traverse(buildSample(_))
+                  .traverse(buildSample)
                   .map(_.flatten)
                   .map {
                     case samples if samples.nonEmpty =>

@@ -50,7 +50,7 @@ final case class ProducerConfig(
       (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
       (C.ENABLE_IDEMPOTENCE_CONFIG, idempotence.toString),
       (C.PARTITIONER_IGNORE_KEYS_CONFIG, partitionerIgnoreKeys.toString),
-      (C.PARTITIONER_ADPATIVE_PARTITIONING_ENABLE_CONFIG, partitionerAdaptivePartitioningEnable.toString),
+      (C.PARTITIONER_ADAPTIVE_PARTITIONING_ENABLE_CONFIG, partitionerAdaptivePartitioningEnable.toString),
       (C.PARTITIONER_AVAILABILITY_TIMEOUT_MS_CONFIG, partitionerAvailabilityTimeout.toMillis.toString),
       (C.METADATA_MAX_IDLE_CONFIG, metadataMaxIdle.toMillis.toString),
     )

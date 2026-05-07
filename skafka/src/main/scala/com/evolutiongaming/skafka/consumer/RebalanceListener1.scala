@@ -96,11 +96,11 @@ object RebalanceListener1 {
 
   def const[F[_]](unit: RebalanceCallback[F, Unit]): RebalanceListener1[F] = new RebalanceListener1[F] {
 
-    def onPartitionsAssigned(partitions: Nes[TopicPartition]) = unit
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = unit
 
-    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = unit
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = unit
 
-    def onPartitionsLost(partitions: Nes[TopicPartition]) = unit
+    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = unit
   }
 
   implicit class RebalanceListener1Ops[F[_]](val self: RebalanceListener1[F]) extends AnyVal {

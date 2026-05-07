@@ -23,9 +23,9 @@ object Converters {
   implicit class HeaderOps(val self: Header) extends AnyVal {
 
     def asJava: HeaderJ = new HeaderJ {
-      def value = self.value
+      def value: Array[Byte] = self.value
 
-      def key = self.key
+      def key: Metadata = self.key
     }
   }
 
@@ -148,18 +148,18 @@ object Converters {
 
       def serialize(topic: Topic, a: A): Array[Byte] = self(a, topic).toTry.get
 
-      override def close() = {}
+      override def close(): Unit = {}
     }
   }
 
   implicit class SkafkaFromBytesOps[F[_], A](val self: FromBytes[F, A]) extends AnyVal {
 
     def asJava(implicit toTry: ToTry[F]): Deserializer[A] = new Deserializer[A] {
-      override def configure(configs: MapJ[String, ?], isKey: Boolean) = {}
+      override def configure(configs: MapJ[String, ?], isKey: Boolean): Unit = {}
 
       def deserialize(topic: Topic, bytes: Array[Byte]): A = self(bytes, topic).toTry.get
 
-      override def close() = {}
+      override def close(): Unit = {}
     }
   }
 

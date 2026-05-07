@@ -159,16 +159,16 @@ object RebalanceConsumer {
     }
 
     new RebalanceConsumer {
-      def assignment() =
+      def assignment(): Try[Set[TopicPartition]] =
         for {
           a <- Try { c.assignment() }
           a <- topicPartitionsSetF[Try](a)
         } yield a
 
-      def beginningOffsets(partitions: Nes[TopicPartition]) =
+      def beginningOffsets(partitions: Nes[TopicPartition]): Try[Map[TopicPartition, Offset]] =
         offsets1(_.beginningOffsets(partitions.asJava))
 
-      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) =
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): Try[Map[TopicPartition, Offset]] =
         offsets1(_.beginningOffsets(partitions.asJava, timeout.asJava))
 
       def commit() =
@@ -186,30 +186,30 @@ object RebalanceConsumer {
       def committed(partitions: Nes[TopicPartition]): Try[Map[TopicPartition, OffsetAndMetadata]] =
         committed1(_.committed(partitions.asJava))
 
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) =
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): Try[Map[TopicPartition, OffsetAndMetadata]] =
         committed1(_.committed(partitions.asJava, timeout.asJava))
 
-      def endOffsets(partitions: Nes[TopicPartition]) =
+      def endOffsets(partitions: Nes[TopicPartition]): Try[Map[TopicPartition, Offset]] =
         offsets1(_.endOffsets(partitions.asJava))
 
-      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) =
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): Try[Map[TopicPartition, Offset]] =
         offsets1(_.endOffsets(partitions.asJava, timeout.asJava))
 
       def groupMetadata() = Try { c.groupMetadata().asScala }
 
-      def topics() =
+      def topics(): Try[Map[Topic, List[PartitionInfo]]] =
         for {
           a <- Try { c.listTopics() }
           a <- partitionsInfoMapF[Try](a)
         } yield a
 
-      def topics(timeout: FiniteDuration) =
+      def topics(timeout: FiniteDuration): Try[Map[Topic, List[PartitionInfo]]] =
         for {
           a <- Try { c.listTopics(timeout.asJava) }
           a <- partitionsInfoMapF[Try](a)
         } yield a
 
-      def offsetsForTimes(timestampsToSearch: Nem[TopicPartition, Instant]) =
+      def offsetsForTimes(timestampsToSearch: Nem[TopicPartition, Instant]): Try[Map[TopicPartition, Option[OffsetAndTimestamp]]] =
         for {
           a <- Try { c.offsetsForTimes(timestampsToSearchJ(timestampsToSearch)) }
           a <- offsetsAndTimestampsMapF[Try](a)
@@ -218,37 +218,37 @@ object RebalanceConsumer {
       def offsetsForTimes(
         timestampsToSearch: Nem[TopicPartition, Instant],
         timeout: FiniteDuration
-      ) =
+      ): Try[Map[TopicPartition, Option[OffsetAndTimestamp]]] =
         for {
           a <- Try { c.offsetsForTimes(timestampsToSearchJ(timestampsToSearch), timeout.asJava) }
           a <- offsetsAndTimestampsMapF[Try](a)
         } yield a
 
-      def partitionsFor(topic: Topic) =
+      def partitionsFor(topic: Topic): Try[List[PartitionInfo]] =
         for {
           a <- Try { Option(c.partitionsFor(topic)) }
           a <- a.traverse(partitionsInfoListF[Try])
         } yield a.getOrElse(List.empty)
 
-      def partitionsFor(topic: Topic, timeout: FiniteDuration) =
+      def partitionsFor(topic: Topic, timeout: FiniteDuration): Try[List[PartitionInfo]] =
         for {
           a <- Try { Option(c.partitionsFor(topic, timeout.asJava)) }
           a <- a.traverse(partitionsInfoListF[Try])
         } yield a.getOrElse(List.empty)
 
-      def paused() =
+      def paused(): Try[Set[TopicPartition]] =
         for {
           a <- Try { c.paused() }
           a <- topicPartitionsSetF[Try](a)
         } yield a
 
-      def position(partition: TopicPartition) =
+      def position(partition: TopicPartition): Try[Offset] =
         for {
           a <- Try { c.position(partition.asJava) }
           a <- Offset.of[Try](a)
         } yield a
 
-      def position(partition: TopicPartition, timeout: FiniteDuration) =
+      def position(partition: TopicPartition, timeout: FiniteDuration): Try[Offset] =
         for {
           a <- Try { c.position(partition.asJava, timeout.asJava) }
           a <- Offset.of[Try](a)

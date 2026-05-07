@@ -74,13 +74,13 @@ class RebalanceCallbackLawsSpec extends FunSuiteDiscipline with AnyFunSuiteLike 
 }
 
 object RebalanceCallbackLawsSpec {
-  val consumerMock = new ExplodingConsumer {
+  val consumerMock: ExplodingConsumer = new ExplodingConsumer {
     override def commitSync(): Unit = ()
 
     override def listTopics(): ju.Map[String, ju.List[PartitionInfo]] = ExplodingConsumer.notImplemented
   }
 
-  def toFWithMock[F[_]: MonadThrowable, A](rc: RebalanceCallback[F, A]) = rc.toF(RebalanceConsumer(consumerMock))
+  def toFWithMock[F[_]: MonadThrowable, A](rc: RebalanceCallback[F, A]): F[A] = rc.toF(RebalanceConsumer(consumerMock))
 
-  def runWithMock[F[_]: ToTry, A](rc: RebalanceCallback[F, A]) = rc.run(RebalanceConsumer(consumerMock))
+  def runWithMock[F[_]: ToTry, A](rc: RebalanceCallback[F, A]): Try[A] = rc.run(RebalanceConsumer(consumerMock))
 }

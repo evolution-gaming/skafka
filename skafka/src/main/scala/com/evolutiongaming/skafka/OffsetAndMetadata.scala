@@ -6,7 +6,7 @@ import cats.kernel.Order
 
 final case class OffsetAndMetadata(offset: Offset = Offset.min, metadata: Metadata = Metadata.empty) {
 
-  override def toString = {
+  override def toString: Metadata = {
     if (metadata.isEmpty) s"$productPrefix($offset)"
     else s"$productPrefix($offset,$metadata)"
   }

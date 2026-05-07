@@ -23,7 +23,7 @@ object FromBytes {
 
     def map[A, B](fa: FromBytes[F, A])(f: A => B): FromBytes[F, B] = new FromBytes[F, B] {
 
-      def apply(bytes: Bytes, topic: Topic) = fa(bytes, topic).map(f)
+      def apply(bytes: Bytes, topic: Topic): F[B] = fa(bytes, topic).map(f)
     }
   }
 

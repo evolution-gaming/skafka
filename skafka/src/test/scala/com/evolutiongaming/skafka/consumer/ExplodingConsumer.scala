@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.Long as LongJ
 import java.time.Duration as DurationJ
-import java.util.concurrent.TimeUnit
 import java.util.regex.Pattern
 import java.util.{OptionalLong, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 import com.evolutiongaming.skafka.consumer.ExplodingConsumer.*

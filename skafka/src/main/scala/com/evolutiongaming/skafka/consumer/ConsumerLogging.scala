@@ -5,7 +5,7 @@ import cats.Monad
 import cats.data.{NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.implicits.*
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
-import com.evolutiongaming.skafka.{Offset, OffsetAndMetadata, Topic, TopicPartition}
+import com.evolutiongaming.skafka.{ClientMetric, Offset, OffsetAndMetadata, PartitionInfo, Topic, TopicPartition}
 import org.apache.kafka.common.Uuid
 
 import scala.concurrent.duration.FiniteDuration
@@ -21,7 +21,7 @@ object ConsumerLogging {
 
     new WithLogging with Consumer[F, K, V] {
 
-      def assign(partitions: Nes[TopicPartition]) = {
+      def assign(partitions: Nes[TopicPartition]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.assign(partitions)
@@ -30,7 +30,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def assignment = {
+      def assignment: F[Set[TopicPartition]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.assignment
@@ -39,7 +39,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]) = {
+      def subscribe(topics: Nes[Topic], listener: RebalanceListener1[F]): F[Unit] = {
         // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
         val listenerLogging = listener // .withLogging(log)
 
@@ -51,7 +51,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscribe(topics: Nes[Topic]) = {
+      def subscribe(topics: Nes[Topic]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.subscribe(topics)
@@ -60,7 +60,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]) = {
+      def subscribe(pattern: Pattern, listener: RebalanceListener1[F]): F[Unit] = {
         // TODO RebalanceListener1 implement logging - https://github.com/evolution-gaming/skafka/issues/127
         val listenerLogging = listener // .withLogging(log)
 
@@ -72,7 +72,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscribe(pattern: Pattern) = {
+      def subscribe(pattern: Pattern): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.subscribe(pattern)
@@ -81,7 +81,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def subscription = {
+      def subscription: F[Set[Topic]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.subscription
@@ -90,7 +90,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def unsubscribe = {
+      def unsubscribe: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.unsubscribe
@@ -99,7 +99,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def poll(timeout: FiniteDuration) = {
+      def poll(timeout: FiniteDuration): F[ConsumerRecords[K, V]] = {
 
         def show(records: ConsumerRecords[K, V]) = {
           ConsumerRecords.summaryShow.show(records)
@@ -113,7 +113,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commit = {
+      def commit: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit
@@ -122,7 +122,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commit(timeout: FiniteDuration) = {
+      def commit(timeout: FiniteDuration): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit(timeout)
@@ -131,7 +131,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit(offsets)
@@ -140,7 +140,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration) = {
+      def commit(offsets: Nem[TopicPartition, OffsetAndMetadata], timeout: FiniteDuration): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commit(offsets, timeout)
@@ -149,7 +149,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commitLater = {
+      def commitLater: F[Map[TopicPartition, OffsetAndMetadata]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commitLater
@@ -158,7 +158,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]) = {
+      def commitLater(offsets: Nem[TopicPartition, OffsetAndMetadata]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.commitLater(offsets)
@@ -167,7 +167,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def seek(partition: TopicPartition, offset: Offset) = {
+      def seek(partition: TopicPartition, offset: Offset): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.seek(partition, offset)
@@ -176,7 +176,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata) = {
+      def seek(partition: TopicPartition, offsetAndMetadata: OffsetAndMetadata): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.seek(partition, offsetAndMetadata)
@@ -185,7 +185,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def seekToBeginning(partitions: Nes[TopicPartition]) = {
+      def seekToBeginning(partitions: Nes[TopicPartition]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.seekToBeginning(partitions)
@@ -194,7 +194,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def seekToEnd(partitions: Nes[TopicPartition]) = {
+      def seekToEnd(partitions: Nes[TopicPartition]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.seekToEnd(partitions)
@@ -203,7 +203,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def position(partition: TopicPartition) = {
+      def position(partition: TopicPartition): F[Offset] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.position(partition)
@@ -212,7 +212,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def position(partition: TopicPartition, timeout: FiniteDuration) = {
+      def position(partition: TopicPartition, timeout: FiniteDuration): F[Offset] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.position(partition, timeout)
@@ -221,7 +221,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def committed(partitions: Nes[TopicPartition]) = {
+      def committed(partitions: Nes[TopicPartition]): F[Map[TopicPartition, OffsetAndMetadata]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.committed(partitions)
@@ -230,7 +230,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+      def committed(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, OffsetAndMetadata]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.committed(partitions, timeout)
@@ -250,7 +250,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def partitions(topic: Topic) = {
+      def partitions(topic: Topic): F[List[PartitionInfo]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.partitions(topic)
@@ -259,7 +259,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def partitions(topic: Topic, timeout: FiniteDuration) = {
+      def partitions(topic: Topic, timeout: FiniteDuration): F[List[PartitionInfo]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.partitions(topic, timeout)
@@ -270,7 +270,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def topics = {
+      def topics: F[Map[Topic, List[PartitionInfo]]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.topics
@@ -279,7 +279,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def topics(timeout: FiniteDuration) = {
+      def topics(timeout: FiniteDuration): F[Map[Topic, List[PartitionInfo]]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.topics(timeout)
@@ -288,7 +288,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def pause(partitions: Nes[TopicPartition]) = {
+      def pause(partitions: Nes[TopicPartition]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.pause(partitions)
@@ -297,7 +297,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def paused = {
+      def paused: F[Set[TopicPartition]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.paused
@@ -306,7 +306,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def resume(partitions: Nes[TopicPartition]) = {
+      def resume(partitions: Nes[TopicPartition]): F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.resume(partitions)
@@ -315,7 +315,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset]): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.offsetsForTimes(timestampsToSearch)
@@ -326,7 +326,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration) = {
+      def offsetsForTimes(timestampsToSearch: Map[TopicPartition, Offset], timeout: FiniteDuration): F[Map[TopicPartition, Option[OffsetAndTimestamp]]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.offsetsForTimes(timestampsToSearch, timeout)
@@ -336,7 +336,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def beginningOffsets(partitions: Nes[TopicPartition]) = {
+      def beginningOffsets(partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.beginningOffsets(partitions)
@@ -347,7 +347,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+      def beginningOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.beginningOffsets(partitions, timeout)
@@ -357,7 +357,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def endOffsets(partitions: Nes[TopicPartition]) = {
+      def endOffsets(partitions: Nes[TopicPartition]): F[Map[TopicPartition, Offset]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.endOffsets(partitions)
@@ -368,7 +368,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration) = {
+      def endOffsets(partitions: Nes[TopicPartition], timeout: FiniteDuration): F[Map[TopicPartition, Offset]] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.endOffsets(partitions, timeout)
@@ -388,7 +388,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def groupMetadata = {
+      def groupMetadata: F[ConsumerGroupMetadata] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.groupMetadata
@@ -397,7 +397,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def wakeup = {
+      def wakeup: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.wakeup
@@ -406,7 +406,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def enforceRebalance = {
+      def enforceRebalance: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           a <- consumer.enforceRebalance
@@ -415,7 +415,7 @@ object ConsumerLogging {
         } yield a
       }
 
-      def clientMetrics = consumer.clientMetrics
+      def clientMetrics: F[Seq[ClientMetric[F]]] = consumer.clientMetrics
     }
   }
 }

@@ -16,14 +16,14 @@ object Acks {
   def one: Acks = One
 
   case object All extends Acks {
-    def names = Nel.of("all", "-1")
+    def names: Nel[String] = Nel.of("all", "-1")
   }
 
   case object None extends Acks {
-    def names = Nel.of("0")
+    def names: Nel[String] = Nel.of("0")
   }
 
   case object One extends Acks {
-    def names = Nel.of("1")
+    def names: Nel[String] = Nel.of("1")
   }
 }

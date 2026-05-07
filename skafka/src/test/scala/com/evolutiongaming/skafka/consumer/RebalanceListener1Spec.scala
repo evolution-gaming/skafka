@@ -80,14 +80,14 @@ object RebalanceListener1Spec {
     // `fa.lift: RebalanceCallback[F, A]`
     import RebalanceCallback.syntax.*
 
-    def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
       for {
         // read the offsets from an external store using some custom code not described here
         offsets <- readOffsetsFromExternalStore[F](partitions).lift
         a       <- offsets.toList.foldMapM { case (partition, offset) => consumer.seek(partition, offset) }
       } yield a
 
-    def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
       for {
         positions <- partitions.foldM(Map.empty[TopicPartition, Offset]) {
           case (offsets, partition) =>

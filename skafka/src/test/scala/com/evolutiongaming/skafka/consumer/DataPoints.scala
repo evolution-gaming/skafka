@@ -22,7 +22,7 @@ object DataPoints {
 
   final case class JavaScala[J, S](j: J, s: S)
 
-  val partition1 = {
+  val partition1: JavaScala[TopicPartitionJ, TopicPartition] = {
     val topicName = "topic"
     val partition = Partition.unsafe(3)
     JavaScala(
@@ -31,7 +31,7 @@ object DataPoints {
     )
   }
 
-  val partition2 = {
+  val partition2: JavaScala[TopicPartitionJ, TopicPartition] = {
     val topicName = "topic2"
     val partition = Partition.unsafe(42)
     JavaScala(

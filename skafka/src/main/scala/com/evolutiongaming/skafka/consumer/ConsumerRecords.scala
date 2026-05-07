@@ -26,7 +26,7 @@ object ConsumerRecords {
   }
 
   implicit def functorConsumerRecords[K]: Functor[ConsumerRecords[K, *]] = new Functor[ConsumerRecords[K, *]] {
-    def map[A, B](fa: ConsumerRecords[K, A])(f: A => B) = {
+    def map[A, B](fa: ConsumerRecords[K, A])(f: A => B): ConsumerRecords[K, B] = {
       fa.copy(values = fa.values.map { case (key, value) => (key, value.map { _.map(f) }) })
     }
   }

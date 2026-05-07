@@ -22,7 +22,7 @@ import org.scalatest.matchers.should.Matchers
 import RebalanceCallback.syntax.*
 
 import scala.annotation.tailrec
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.*
 
 class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Matchers {
@@ -38,12 +38,12 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   private val timeout = 1.minute
 
-  override def beforeAll() = {
+  override def beforeAll(): Unit = {
     super.beforeAll()
     ()
   }
 
-  override def afterAll() = {
+  override def afterAll(): Unit = {
 
     val producers = for {
       (_, producers) <- combinations.toList
@@ -64,7 +64,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     super.afterAll()
   }
 
-  val headers = List(Header(key = "key", value = "value".getBytes(UTF_8)))
+  val headers: List[Header] = List(Header(key = "key", value = "value".getBytes(UTF_8)))
 
   def consumerOf(
     topic: Topic,
@@ -119,11 +119,11 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     def listenerOf(assigned: Deferred[IO, Unit]): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = RebalanceCallback.lift(assigned.complete(()).void)
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.lift(assigned.complete(()).void)
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) = RebalanceCallback.empty[IO]
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty[IO]
 
-        def onPartitionsLost(partitions: Nes[TopicPartition]) = RebalanceCallback.empty[IO]
+        def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty[IO]
       }
     }
 
@@ -183,7 +183,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       assigned: Deferred[IO, Unit]
     ): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = {
           for {
             _ <- IO.cede.lift
             _ <- (
@@ -297,14 +297,14 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     ): RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) = {
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = {
           for {
             _ <- rebalanceCounter.update(_ + 1).lift
             _ <- assigned.complete(()).lift
           } yield ()
         }
 
-        def onPartitionsRevoked(partitions: Nes[TopicPartition]) =
+        def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
           for {
             committed <- consumer.committed(partitions)
             offset     = committed.headOption.map(_._2.offset).getOrElse(Offset.min)
@@ -389,7 +389,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
     val listener: RebalanceListener1[IO] = {
       new RebalanceListener1WithConsumer[IO] {
 
-        def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+        def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] =
           partitions.foldMapM(this.consumer.seek(_, Offset.unsafe(1)))
 
         def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[IO, Unit] = RebalanceCallback.empty
@@ -606,7 +606,7 @@ object ProducerConsumerSpec {
       consume(100)
     }
 
-    def commit() = self.commit.unsafeToFuture()
+    def commit(): Future[Unit] = self.commit.unsafeToFuture()
   }
 
 }

@@ -29,9 +29,9 @@ object KafkaHealthCheck {
 
   def empty[F[_]: Applicative]: KafkaHealthCheck[F] = new KafkaHealthCheck[F] {
 
-    def error = none[Throwable].pure[F]
+    def error: F[Option[Throwable]] = none[Throwable].pure[F]
 
-    def done = ().pure[F]
+    def done: F[Unit] = ().pure[F]
   }
 
   def of[F[_]: Temporal: LogOf: ConsumerOf: ProducerOf: RandomIdOf: FromTry](
@@ -75,8 +75,8 @@ object KafkaHealthCheck {
         .start
     } yield {
       val result = new KafkaHealthCheck[F] {
-        def error = ref.get
-        def done  = fiber.join.flatMap {
+        def error: F[Option[Throwable]] = ref.get
+        def done: F[Unit] = fiber.join.flatMap {
           case Outcome.Succeeded(_) => Temporal[F].unit
           case Outcome.Errored(e)   => Temporal[F].raiseError(e)
           case Outcome.Canceled()   => Temporal[F].raiseError(new CancellationException("HealthCheck cancelled"))
@@ -170,7 +170,7 @@ object KafkaHealthCheck {
 
     def apply[F[_]: Monad: FromTry](topic: Topic, producer: SKafkaProducer[F]): Producer[F] = {
       new Producer[F] {
-        def send(record: Record) = {
+        def send(record: Record): F[Unit] = {
           val record1 = ProducerRecord[String, String](topic = topic, key = record.key, value = record.value)
           producer.send(record1).void
         }
@@ -201,11 +201,11 @@ object KafkaHealthCheck {
 
       new Consumer[F] {
 
-        def subscribe(topic: Topic) = {
+        def subscribe(topic: Topic): F[Unit] = {
           consumer.subscribe(Nes.of(topic))
         }
 
-        def poll(timeout: FiniteDuration) = {
+        def poll(timeout: FiniteDuration): F[Iterable[Record]] = {
           for {
             records <- consumer.poll(timeout)
           } yield

@@ -9,17 +9,13 @@ import com.evolutiongaming.catshelper.{FromTry, ToFuture, ToTry}
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, TopicPartition}
 import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata, OffsetAndMetadata as OffsetAndMetadataJ}
-import org.apache.kafka.clients.producer.{
-  Callback,
-  Producer as ProducerJ,
-  ProducerRecord as ProducerRecordJ,
-  RecordMetadata as RecordMetadataJ
-}
+import org.apache.kafka.clients.producer.{Callback, Producer as ProducerJ, ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition as TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, PartitionInfo, Uuid, TopicPartition as TopicPartitionJ}
 import org.scalatest.funsuite.AsyncFunSuite
 import org.scalatest.matchers.should.Matchers
 
+import java.util
 import scala.compat.java8.FutureConverters.*
 import scala.jdk.CollectionConverters.*
 
@@ -42,28 +38,28 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
     def producerOf(block: F[ProducerRecordJ[Bytes, Bytes] => F[RecordMetadataJ]]) = {
       val producer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
-        def initTransactions() = {}
+        def initTransactions(): Unit = {}
 
-        def beginTransaction() = {}
+        def beginTransaction(): Unit = {}
 
         def sendOffsetsToTransaction(
           offsets: MapJ[TopicPartitionJ, OffsetAndMetadataJ],
           groupMetadata: ConsumerGroupMetadata
-        ) = {}
+        ): Unit = {}
 
-        def commitTransaction() = {}
+        def commitTransaction(): Unit = {}
 
-        def flush() = {}
+        def flush(): Unit = {}
 
-        def partitionsFor(topic: String) = Nil.asJava
+        def partitionsFor(topic: String): util.List[PartitionInfo] = Nil.asJava
 
         def metrics(): MapJ[MetricName, Metric] = Map.empty.asJava
 
         def clientInstanceId(timeout: java.time.Duration): Uuid = Uuid.ONE_UUID
 
-        def close() = {}
+        def close(): Unit = {}
 
-        def close(timeout: java.time.Duration) = {}
+        def close(timeout: java.time.Duration): Unit = {}
 
         def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
 
@@ -91,7 +87,7 @@ class ProducerSendSpec extends AsyncFunSuite with Matchers {
           ToTry[F].apply(a).get
         }
 
-        def abortTransaction() = {}
+        def abortTransaction(): Unit = {}
       }
 
       Producer.fromProducerJ2(producer.pure[F])

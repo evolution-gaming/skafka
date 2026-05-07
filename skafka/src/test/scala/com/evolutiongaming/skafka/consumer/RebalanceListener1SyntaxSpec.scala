@@ -34,13 +34,13 @@ class RebalanceListener1SyntaxSpec extends AnyFreeSpec with Matchers {
 object RebalanceListener1SyntaxSpec {
   class TfRebalanceListener1[F[_]: Applicative] extends RebalanceListener1WithConsumer[F] {
 
-    def onPartitionsAssigned(partitions: Nes[TopicPartition]) =
+    def onPartitionsAssigned(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] =
       for {
         _ <- someF.lift
         _ <- someFO.lift
       } yield ()
 
-    def onPartitionsRevoked(partitions: Nes[TopicPartition]) = {
+    def onPartitionsRevoked(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = {
       groupByTopic(partitions) traverse_ {
         case (_, partitions) =>
           for {
@@ -56,7 +56,7 @@ object RebalanceListener1SyntaxSpec {
       }
     }
 
-    def onPartitionsLost(partitions: Nes[TopicPartition]) = consumer.empty
+    def onPartitionsLost(partitions: Nes[TopicPartition]): RebalanceCallback[F, Unit] = consumer.empty
 
     def groupByTopic(
       topicPartitions: Nes[TopicPartition]

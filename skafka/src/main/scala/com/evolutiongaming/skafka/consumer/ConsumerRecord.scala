@@ -31,7 +31,7 @@ object ConsumerRecord {
   }
 
   implicit def functorConsumerRecord[K]: Functor[ConsumerRecord[K, *]] = new Functor[ConsumerRecord[K, *]] {
-    def map[A, B](fa: ConsumerRecord[K, A])(f: A => B) = {
+    def map[A, B](fa: ConsumerRecord[K, A])(f: A => B): ConsumerRecord[K, B] = {
       fa.copy(value = fa.value.map { _.map(f) })
     }
   }

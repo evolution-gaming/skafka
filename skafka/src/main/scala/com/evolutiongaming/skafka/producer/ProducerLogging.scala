@@ -3,7 +3,7 @@ package com.evolutiongaming.skafka.producer
 import cats.implicits.*
 import cats.MonadThrow
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
-import com.evolutiongaming.skafka.{ToBytes, Topic}
+import com.evolutiongaming.skafka.{ClientMetric, PartitionInfo, ToBytes, Topic}
 import org.apache.kafka.common.Uuid
 import org.apache.kafka.common.errors.RecordTooLargeException
 
@@ -22,15 +22,15 @@ object ProducerLogging {
   def apply[F[_]: MonadThrow: MeasureDuration](producer: Producer[F], log: Log[F], charsToTrim: Int): Producer[F] = {
 
     new WithLogging with Producer[F] {
-      def initTransactions = producer.initTransactions
+      def initTransactions: F[Unit] = producer.initTransactions
 
-      def beginTransaction = producer.beginTransaction
+      def beginTransaction: F[Unit] = producer.beginTransaction
 
-      def commitTransaction = producer.commitTransaction
+      def commitTransaction: F[Unit] = producer.commitTransaction
 
-      def abortTransaction = producer.abortTransaction
+      def abortTransaction: F[Unit] = producer.abortTransaction
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         val a = for {
           d <- MeasureDuration[F].start
           a <- producer.send(record)
@@ -53,11 +53,11 @@ object ProducerLogging {
         }
       }
 
-      def partitions(topic: Topic) = producer.partitions(topic)
+      def partitions(topic: Topic): F[List[PartitionInfo]] = producer.partitions(topic)
 
-      def flush = producer.flush
+      def flush: F[Unit] = producer.flush
 
-      def clientMetrics = producer.clientMetrics
+      def clientMetrics: F[Seq[ClientMetric[F]]] = producer.clientMetrics
 
       private def logError[K, V](record: ProducerRecord[K, V], err: Throwable): F[Unit] =
         err match {

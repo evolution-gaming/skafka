@@ -62,26 +62,26 @@ object Producer {
 
     new Empty with Producer[F] {
 
-      def initTransactions = empty
+      def initTransactions: F[Unit] = empty
 
-      def beginTransaction = empty
+      def beginTransaction: F[Unit] = empty
 
-      def commitTransaction = empty
+      def commitTransaction: F[Unit] = empty
 
-      def abortTransaction = empty
+      def abortTransaction: F[Unit] = empty
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         val partition      = record.partition getOrElse Partition.min
         val topicPartition = TopicPartition(record.topic, partition)
         val metadata       = RecordMetadata(topicPartition, record.timestamp)
         metadata.pure[F].pure[F]
       }
 
-      def partitions(topic: Topic) = List.empty[PartitionInfo].pure[F]
+      def partitions(topic: Topic): F[List[PartitionInfo]] = List.empty[PartitionInfo].pure[F]
 
-      def flush = empty
+      def flush: F[Unit] = empty
 
-      def clientMetrics = Seq.empty[ClientMetric[F]].pure[F]
+      def clientMetrics: F[Seq[ClientMetric[F]]] = Seq.empty[ClientMetric[F]].pure[F]
 
       def clientInstanceId(timeout: FiniteDuration): F[Uuid] = Uuid.ZERO_UUID.pure[F]
     }
@@ -103,23 +103,23 @@ object Producer {
     def apply(producer: ProducerJ[Bytes, Bytes]) = {
       new Main with Producer[F] {
 
-        def initTransactions = {
+        def initTransactions: F[Unit] = {
           blocking { producer.initTransactions() }
         }
 
-        def beginTransaction = {
+        def beginTransaction: F[Unit] = {
           Sync[F].delay { producer.beginTransaction() }
         }
 
-        def commitTransaction = {
+        def commitTransaction: F[Unit] = {
           blocking { producer.commitTransaction() }
         }
 
-        def abortTransaction = {
+        def abortTransaction: F[Unit] = {
           blocking { producer.abortTransaction() }
         }
 
-        def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
+        def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
 
           def executionException[A]: PartialFunction[Throwable, F[A]] = {
             case failure: ExecutionException => failure.getCause.raiseError[F, A]
@@ -171,20 +171,20 @@ object Producer {
             } yield result
         }
 
-        def partitions(topic: Topic) = {
+        def partitions(topic: Topic): F[List[PartitionInfo]] = {
           for {
             result <- blocking { producer.partitionsFor(topic) }
             result <- result.asScala.toList.traverse { _.asScala[F] }
           } yield result
         }
 
-        def flush = {
+        def flush: F[Unit] = {
           blocking { producer.flush() }
         }
 
         private val metricsProvider = ClientMetricsProvider[F](producer)
 
-        def clientMetrics = metricsProvider.get
+        def clientMetrics: F[Seq[ClientMetric[F]]] = metricsProvider.get
 
         def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
           blocking { producer.clientInstanceId(timeout.asJava) }
@@ -209,7 +209,7 @@ object Producer {
 
     new WithMetrics with Producer[F] {
 
-      def initTransactions = {
+      def initTransactions: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.initTransactions.attempt
@@ -219,14 +219,14 @@ object Producer {
         } yield r
       }
 
-      def beginTransaction = {
+      def beginTransaction: F[Unit] = {
         for {
           r <- producer.beginTransaction
           _ <- metrics.beginTransaction
         } yield r
       }
 
-      def commitTransaction = {
+      def commitTransaction: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.commitTransaction.attempt
@@ -236,7 +236,7 @@ object Producer {
         } yield r
       }
 
-      def abortTransaction = {
+      def abortTransaction: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.abortTransaction.attempt
@@ -246,7 +246,7 @@ object Producer {
         } yield r
       }
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         val topic = record.topic
         for {
           d <- MeasureDuration[F].start
@@ -271,7 +271,7 @@ object Producer {
           } yield r
       }
 
-      def partitions(topic: Topic) = {
+      def partitions(topic: Topic): F[List[PartitionInfo]] = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.partitions(topic).attempt
@@ -281,7 +281,7 @@ object Producer {
         } yield r
       }
 
-      def flush = {
+      def flush: F[Unit] = {
         for {
           d <- MeasureDuration[F].start
           r <- producer.flush.attempt
@@ -291,7 +291,7 @@ object Producer {
         } yield r
       }
 
-      def clientMetrics = producer.clientMetrics
+      def clientMetrics: F[Seq[ClientMetric[F]]] = producer.clientMetrics
 
       def clientInstanceId(timeout: FiniteDuration): F[Uuid] = {
         for {
@@ -331,15 +331,15 @@ object Producer {
 
     def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F)(implicit F: Monad[F]): Producer[G] = new MapK with Producer[G] {
 
-      def initTransactions = fg(self.initTransactions)
+      def initTransactions: G[Unit] = fg(self.initTransactions)
 
-      def beginTransaction = fg(self.beginTransaction)
+      def beginTransaction: G[Unit] = fg(self.beginTransaction)
 
-      def commitTransaction = fg(self.commitTransaction)
+      def commitTransaction: G[Unit] = fg(self.commitTransaction)
 
-      def abortTransaction = fg(self.abortTransaction)
+      def abortTransaction: G[Unit] = fg(self.abortTransaction)
 
-      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]) = {
+      def send[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]): G[G[RecordMetadata]] = {
         for {
           a <- fg(self.send(record)(toBytesK.mapK(gf), toBytesV.mapK(gf)))
         } yield {
@@ -347,11 +347,11 @@ object Producer {
         }
       }
 
-      def partitions(topic: Topic) = fg(self.partitions(topic))
+      def partitions(topic: Topic): G[List[PartitionInfo]] = fg(self.partitions(topic))
 
-      def flush = fg(self.flush)
+      def flush: G[Unit] = fg(self.flush)
 
-      def clientMetrics = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
+      def clientMetrics: G[Seq[ClientMetric[G]]] = fg(self.clientMetrics.map(_.map(m => m.copy(value = fg(m.value)))))
 
       def clientInstanceId(timeout: FiniteDuration): G[Uuid] = fg(self.clientInstanceId(timeout))
     }
@@ -388,7 +388,7 @@ object Producer {
 
     def apply[F[_]](producer: Producer[F]): Send[F] = new Send[F] {
 
-      def apply[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]) = {
+      def apply[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
         producer.send(record)
       }
     }
@@ -397,7 +397,7 @@ object Producer {
 
       def mapK[G[_]: Functor](fg: F ~> G, gf: G ~> F): Send[G] = new Send[G] {
 
-        def apply[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]) = {
+        def apply[K, V](record: ProducerRecord[K, V])(implicit toBytesK: ToBytes[G, K], toBytesV: ToBytes[G, V]): G[G[RecordMetadata]] = {
           for {
             a <- fg(self(record)(toBytesK.mapK(gf), toBytesV.mapK(gf)))
           } yield {

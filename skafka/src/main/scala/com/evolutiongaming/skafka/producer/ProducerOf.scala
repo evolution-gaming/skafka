@@ -15,7 +15,7 @@ object ProducerOf {
     metrics: Option[ProducerMetrics[F]] = None
   ): ProducerOf[F] = new ProducerOf[F] {
 
-    def apply(config: ProducerConfig) = {
+    def apply(config: ProducerConfig): Resource[F, Producer[F]] = {
       for {
         producer <- Producer.of[F](config = config)
         producer <- metrics match {

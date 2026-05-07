@@ -412,7 +412,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
         val input                  = partitions.s.head
         val inputOffset            = Offset.unsafe(423)
         val inputOffsetAndMetadata = OffsetAndMetadata(inputOffset)
-        val output                 = ()
+        val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
           override def seek(p: TopicPartitionJ, offset: Long): Unit = {
@@ -434,7 +434,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       "seekToBeginning" in {
         val input  = partitions
-        val output = ()
+        val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
           override def seekToBeginning(p: CollectionJ[TopicPartitionJ]): Unit = {
@@ -448,7 +448,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
 
       "seekToEnd" in {
         val input  = partitions
-        val output = ()
+        val output: Unit = ()
 
         val consumer = new ExplodingConsumer {
           override def seekToEnd(p: CollectionJ[TopicPartitionJ]): Unit = {
@@ -722,7 +722,7 @@ class RebalanceCallbackSpec extends AnyFreeSpec with Matchers {
               .fold(api.empty) { (agg, e) => agg.flatMap(_ => e) }
 
             def futureToTry(timeout: FiniteDuration): ToTry[Future] = new ToTry[Future] {
-              def apply[A](fa: Future[A]) = {
+              def apply[A](fa: Future[A]): Try[A] = {
                 Try { Await.result(fa, timeout) }
               }
             }

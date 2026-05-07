@@ -2,7 +2,6 @@ package com.evolutiongaming.skafka.producer
 
 import java.util
 import java.util.concurrent.{CompletableFuture, Future as FutureJ}
-
 import cats.arrow.FunctionK
 import cats.effect.IO
 import cats.implicits.*
@@ -12,18 +11,11 @@ import com.evolutiongaming.skafka.IOMatchers.*
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite.*
-import org.apache.kafka.clients.consumer.{
-  ConsumerGroupMetadata as ConsumerGroupMetadataJ,
-  OffsetAndMetadata as OffsetAndMetadataJ
-}
-import org.apache.kafka.clients.producer.{
-  Callback,
-  Producer as ProducerJ,
-  ProducerRecord as ProducerRecordJ,
-  RecordMetadata as RecordMetadataJ
-}
+import org.apache.kafka.clients.consumer.{ConsumerGroupMetadata as ConsumerGroupMetadataJ, OffsetAndMetadata as OffsetAndMetadataJ}
+import org.apache.kafka.clients.producer.{Callback, Producer as ProducerJ, ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
+import org.apache.kafka.common
 import org.apache.kafka.common.metrics.KafkaMetric
-import org.apache.kafka.common.{Metric, MetricName, TopicPartition as TopicPartitionJ, Uuid}
+import org.apache.kafka.common.{Metric, MetricName, Uuid, TopicPartition as TopicPartitionJ}
 
 import scala.jdk.CollectionConverters.*
 import org.scalatest.matchers.should.Matchers
@@ -138,27 +130,27 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     var abortTransaction          = false
     var partitionsFor             = ""
     var sendOffsetsToTransaction  = ""
-    var sendOffsetsToTransaction1 = none[ConsumerGroupMetadataJ]
-    val completableFuture         = CompletableFuture.completedFuture(metadata.asJava)
+    var sendOffsetsToTransaction1: Option[ConsumerGroupMetadataJ] = none[ConsumerGroupMetadataJ]
+    val completableFuture: CompletableFuture[RecordMetadataJ] = CompletableFuture.completedFuture(metadata.asJava)
 
     val jProducer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
-      def initTransactions() = Scope.this.initTransactions = true
+      def initTransactions(): Unit = Scope.this.initTransactions = true
 
-      def beginTransaction() = Scope.this.beginTransaction = true
+      def beginTransaction(): Unit = Scope.this.beginTransaction = true
 
       def sendOffsetsToTransaction(
         offsets: util.Map[TopicPartitionJ, OffsetAndMetadataJ],
         groupMetadata: ConsumerGroupMetadataJ
-      ) = {
+      ): Unit = {
         Scope.this.sendOffsetsToTransaction1 = groupMetadata.some
       }
 
-      def flush() = flushCalled = true
+      def flush(): Unit = flushCalled = true
 
-      def commitTransaction() = Scope.this.commitTransaction = true
+      def commitTransaction(): Unit = Scope.this.commitTransaction = true
 
-      def partitionsFor(topic: String) = {
+      def partitionsFor(topic: String): util.List[common.PartitionInfo] = {
         Scope.this.partitionsFor = topic
         Nil.asJava
       }
@@ -167,9 +159,9 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
       def metrics(): util.Map[MetricName, Metric] = Map.empty.asJava
 
-      def close() = {}
+      def close(): Unit = {}
 
-      def close(timeout: java.time.Duration) = {}
+      def close(timeout: java.time.Duration): Unit = {}
 
       def registerMetricForSubscription(metric: KafkaMetric): Unit = {}
 
@@ -182,7 +174,7 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         completableFuture
       }
 
-      def abortTransaction() = Scope.this.abortTransaction = true
+      def abortTransaction(): Unit = Scope.this.abortTransaction = true
     }
 
     val producer: Producer[IO] = {

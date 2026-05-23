@@ -6,7 +6,7 @@ import cats.implicits.*
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable}
 import com.evolutiongaming.skafka.Converters.*
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
-import org.apache.kafka.clients.consumer.ConsumerRecord.NO_TIMESTAMP
+import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.{ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
 import org.apache.kafka.common.requests.ProduceResponse
 

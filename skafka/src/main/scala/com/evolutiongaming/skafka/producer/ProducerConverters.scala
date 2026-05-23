@@ -6,8 +6,8 @@ import cats.implicits.*
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, MonadThrowable}
 import com.evolutiongaming.skafka.Converters.*
 import com.evolutiongaming.skafka.{Offset, Partition, TopicPartition}
+import org.apache.kafka.clients.consumer.ConsumerRecord.NO_TIMESTAMP
 import org.apache.kafka.clients.producer.{ProducerRecord as ProducerRecordJ, RecordMetadata as RecordMetadataJ}
-import org.apache.kafka.common.record.internal.RecordBatch
 import org.apache.kafka.common.requests.ProduceResponse
 
 import scala.jdk.CollectionConverters.*
@@ -56,7 +56,7 @@ object ProducerConverters {
       } yield {
         RecordMetadata(
           topicPartition      = TopicPartition(self.topic, partition),
-          timestamp           = (self.timestamp noneIf RecordBatch.NO_TIMESTAMP).map(Instant.ofEpochMilli),
+          timestamp           = (self.timestamp noneIf ConsumerRecord.NO_TIMESTAMP).map(Instant.ofEpochMilli),
           offset              = offset,
           keySerializedSize   = self.serializedKeySize noneIf -1,
           valueSerializedSize = self.serializedValueSize noneIf -1
@@ -72,7 +72,7 @@ object ProducerConverters {
         self.topicPartition.asJava,
         0,
         self.offset.fold(ProduceResponse.INVALID_OFFSET.toInt) { _.value.toInt },
-        self.timestamp.fold(RecordBatch.NO_TIMESTAMP)(_.toEpochMilli),
+        self.timestamp.fold(ConsumerRecord.NO_TIMESTAMP)(_.toEpochMilli),
         self.keySerializedSize getOrElse -1,
         self.valueSerializedSize getOrElse -1
       )

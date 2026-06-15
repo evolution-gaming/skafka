@@ -1,6 +1,7 @@
 package com.evolutiongaming.skafka
 package producer
 
+import cats.data.NonEmptyMap as Nem
 import cats.effect.{Async, Deferred, Resource, Sync}
 import cats.effect.implicits.*
 import cats.implicits.*
@@ -8,6 +9,8 @@ import cats.{Applicative, Functor, Monad, MonadError, MonadThrow, ~>}
 import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{Log, MeasureDuration, ToTry}
 import com.evolutiongaming.skafka.Converters.*
+import com.evolutiongaming.skafka.consumer.ConsumerGroupMetadata
+import com.evolutiongaming.skafka.consumer.ConsumerConverters.*
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
 import org.apache.kafka.clients.producer.{
   Callback,
@@ -32,6 +35,15 @@ trait Producer[F[_]] {
   def commitTransaction: F[Unit]
 
   def abortTransaction: F[Unit]
+
+  /** Sends consumed offsets to the consumer group coordinator as part of the current transaction, fencing zombie
+    * writers by the consumer group generation (KIP-447). The `consumerGroupMetadata` must come from the input
+    * consumer's `groupMetadata()`; offsets become committed only if the transaction commits.
+    */
+  def sendOffsetsToTransaction(
+    offsets: Nem[TopicPartition, OffsetAndMetadata],
+    consumerGroupMetadata: ConsumerGroupMetadata
+  ): F[Unit]
 
   /** @return
     *   Outer F[_] is about sending event (including batching if required), inner F[_] is about waiting and getting the
@@ -69,6 +81,11 @@ object Producer {
       def commitTransaction: F[Unit] = empty
 
       def abortTransaction: F[Unit] = empty
+
+      def sendOffsetsToTransaction(
+        offsets: Nem[TopicPartition, OffsetAndMetadata],
+        consumerGroupMetadata: ConsumerGroupMetadata
+      ): F[Unit] = empty
 
       def send[K, V](
         record: ProducerRecord[K, V]
@@ -119,6 +136,13 @@ object Producer {
 
         def abortTransaction: F[Unit] = {
           blocking { producer.abortTransaction() }
+        }
+
+        def sendOffsetsToTransaction(
+          offsets: Nem[TopicPartition, OffsetAndMetadata],
+          consumerGroupMetadata: ConsumerGroupMetadata
+        ): F[Unit] = {
+          blocking { producer.sendOffsetsToTransaction(asOffsetsAndMetadataJ(offsets), consumerGroupMetadata.asJava) }
         }
 
         def send[K, V](
@@ -250,6 +274,11 @@ object Producer {
         } yield r
       }
 
+      def sendOffsetsToTransaction(
+        offsets: Nem[TopicPartition, OffsetAndMetadata],
+        consumerGroupMetadata: ConsumerGroupMetadata
+      ): F[Unit] = producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata)
+
       def send[K, V](
         record: ProducerRecord[K, V]
       )(implicit toBytesK: ToBytes[F, K], toBytesV: ToBytes[F, V]): F[F[RecordMetadata]] = {
@@ -344,6 +373,11 @@ object Producer {
       def commitTransaction: G[Unit] = fg(self.commitTransaction)
 
       def abortTransaction: G[Unit] = fg(self.abortTransaction)
+
+      def sendOffsetsToTransaction(
+        offsets: Nem[TopicPartition, OffsetAndMetadata],
+        consumerGroupMetadata: ConsumerGroupMetadata
+      ): G[Unit] = fg(self.sendOffsetsToTransaction(offsets, consumerGroupMetadata))
 
       def send[K, V](
         record: ProducerRecord[K, V]

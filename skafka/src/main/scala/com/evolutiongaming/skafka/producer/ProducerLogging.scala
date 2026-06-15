@@ -1,9 +1,11 @@
 package com.evolutiongaming.skafka.producer
 
+import cats.data.NonEmptyMap as Nem
 import cats.implicits.*
 import cats.MonadThrow
 import com.evolutiongaming.catshelper.{Log, MeasureDuration}
-import com.evolutiongaming.skafka.{ClientMetric, PartitionInfo, ToBytes, Topic}
+import com.evolutiongaming.skafka.{ClientMetric, OffsetAndMetadata, PartitionInfo, ToBytes, Topic, TopicPartition}
+import com.evolutiongaming.skafka.consumer.ConsumerGroupMetadata
 import org.apache.kafka.common.Uuid
 import org.apache.kafka.common.errors.RecordTooLargeException
 
@@ -29,6 +31,11 @@ object ProducerLogging {
       def commitTransaction: F[Unit] = producer.commitTransaction
 
       def abortTransaction: F[Unit] = producer.abortTransaction
+
+      def sendOffsetsToTransaction(
+        offsets: Nem[TopicPartition, OffsetAndMetadata],
+        consumerGroupMetadata: ConsumerGroupMetadata
+      ): F[Unit] = producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata)
 
       def send[K, V](
         record: ProducerRecord[K, V]

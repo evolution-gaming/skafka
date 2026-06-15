@@ -277,7 +277,15 @@ object Producer {
       def sendOffsetsToTransaction(
         offsets: Nem[TopicPartition, OffsetAndMetadata],
         consumerGroupMetadata: ConsumerGroupMetadata
-      ): F[Unit] = producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata)
+      ): F[Unit] = {
+        for {
+          d <- MeasureDuration[F].start
+          r <- producer.sendOffsetsToTransaction(offsets, consumerGroupMetadata).attempt
+          d <- d
+          _ <- metrics.sendOffsetsToTransaction(d)
+          r <- r.liftTo[F]
+        } yield r
+      }
 
       def send[K, V](
         record: ProducerRecord[K, V]

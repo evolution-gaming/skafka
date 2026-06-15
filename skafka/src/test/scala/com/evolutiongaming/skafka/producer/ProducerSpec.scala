@@ -3,13 +3,15 @@ package com.evolutiongaming.skafka.producer
 import java.util
 import java.util.concurrent.{CompletableFuture, Future as FutureJ}
 import cats.arrow.FunctionK
+import cats.data.NonEmptyMap as Nem
 import cats.effect.IO
 import cats.implicits.*
 import com.evolutiongaming.catshelper.MeasureDuration
 import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.skafka.IOMatchers.*
+import com.evolutiongaming.skafka.consumer.ConsumerGroupMetadata
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
-import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite.*
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata as ConsumerGroupMetadataJ,
@@ -58,6 +60,14 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     "proxy abortTransaction" in new Scope {
       verify(producer.abortTransaction) { _ =>
         abortTransaction shouldEqual true
+      }
+    }
+
+    "proxy sendOffsetsToTransaction" in new Scope {
+      val offsets       = Nem.of(topicPartition -> OffsetAndMetadata())
+      val groupMetadata = ConsumerGroupMetadata("group", 1, "member", None)
+      verify(producer.sendOffsetsToTransaction(offsets, groupMetadata)) { _ =>
+        sendOffsetsToTransaction1.map(_.groupId) shouldEqual Some("group")
       }
     }
 
@@ -114,6 +124,11 @@ class ProducerSpec extends AnyWordSpec with Matchers {
 
     "abortTransaction" in new Scope {
       verify(empty.abortTransaction) { _ => }
+    }
+
+    "sendOffsetsToTransaction" in new Scope {
+      val offsets = Nem.of(topicPartition -> OffsetAndMetadata())
+      verify(empty.sendOffsetsToTransaction(offsets, ConsumerGroupMetadata("group", 1, "member", None))) { _ => }
     }
 
     "send" in {

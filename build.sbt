@@ -55,6 +55,9 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
 //  ProblemFilters.exclude[ReversedMissingMethodProblem](
 //    "com.evolutiongaming.skafka.consumer.Consumer.clientInstanceId"
 //  ),
+  ProblemFilters.exclude[ReversedMissingMethodProblem](
+    "com.evolutiongaming.skafka.producer.Producer.sendOffsetsToTransaction"
+  ),
 )
 ThisBuild / versionPolicyIgnored ++= Seq(
   // add libraries, that are known to be binary compatible, here, like:

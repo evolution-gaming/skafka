@@ -3,13 +3,16 @@ package com.evolutiongaming.skafka.producer
 import java.util
 import java.util.concurrent.{CompletableFuture, Future as FutureJ}
 import cats.arrow.FunctionK
+import cats.data.NonEmptyMap as Nem
 import cats.effect.IO
 import cats.implicits.*
 import com.evolutiongaming.catshelper.MeasureDuration
 import com.evolutiongaming.catshelper.CatsHelper.*
+import com.evolutiongaming.skafka.Converters.*
 import com.evolutiongaming.skafka.IOMatchers.*
+import com.evolutiongaming.skafka.consumer.ConsumerGroupMetadata
 import com.evolutiongaming.skafka.producer.ProducerConverters.*
-import com.evolutiongaming.skafka.{Bytes, Partition, PartitionInfo, TopicPartition}
+import com.evolutiongaming.skafka.{Bytes, OffsetAndMetadata, Partition, PartitionInfo, TopicPartition}
 import com.evolutiongaming.skafka.IOSuite.*
 import org.apache.kafka.clients.consumer.{
   ConsumerGroupMetadata as ConsumerGroupMetadataJ,
@@ -58,6 +61,15 @@ class ProducerSpec extends AnyWordSpec with Matchers {
     "proxy abortTransaction" in new Scope {
       verify(producer.abortTransaction) { _ =>
         abortTransaction shouldEqual true
+      }
+    }
+
+    "proxy sendOffsetsToTransaction" in new Scope {
+      val offsets       = Nem.of(topicPartition -> OffsetAndMetadata())
+      val groupMetadata = ConsumerGroupMetadata("group", 1, "member", None)
+      verify(producer.sendOffsetsToTransaction(offsets, groupMetadata)) { _ =>
+        sentOffsets.map(_.asScala.toMap) shouldEqual Some(Map(topicPartition.asJava -> OffsetAndMetadata().asJava))
+        sentGroupMetadata.map(_.groupId) shouldEqual Some("group")
       }
     }
 
@@ -116,6 +128,11 @@ class ProducerSpec extends AnyWordSpec with Matchers {
       verify(empty.abortTransaction) { _ => }
     }
 
+    "sendOffsetsToTransaction" in new Scope {
+      val offsets = Nem.of(topicPartition -> OffsetAndMetadata())
+      verify(empty.sendOffsetsToTransaction(offsets, ConsumerGroupMetadata("group", 1, "member", None))) { _ => }
+    }
+
     "send" in {
       val record = ProducerRecord(topic = topic, value = "val", key = "key")
       empty.send(record).flatten should produce(metadata)
@@ -131,15 +148,15 @@ class ProducerSpec extends AnyWordSpec with Matchers {
   }
 
   private trait Scope {
-    var flushCalled                                               = false
-    var commitTransaction                                         = false
-    var beginTransaction                                          = false
-    var initTransactions                                          = false
-    var abortTransaction                                          = false
-    var partitionsFor                                             = ""
-    var sendOffsetsToTransaction                                  = ""
-    var sendOffsetsToTransaction1: Option[ConsumerGroupMetadataJ] = none[ConsumerGroupMetadataJ]
-    val completableFuture: CompletableFuture[RecordMetadataJ]     = CompletableFuture.completedFuture(metadata.asJava)
+    var flushCalled                                                        = false
+    var commitTransaction                                                  = false
+    var beginTransaction                                                   = false
+    var initTransactions                                                   = false
+    var abortTransaction                                                   = false
+    var partitionsFor                                                      = ""
+    var sentOffsets: Option[util.Map[TopicPartitionJ, OffsetAndMetadataJ]] = none
+    var sentGroupMetadata: Option[ConsumerGroupMetadataJ]                  = none
+    val completableFuture: CompletableFuture[RecordMetadataJ] = CompletableFuture.completedFuture(metadata.asJava)
 
     val jProducer: ProducerJ[Bytes, Bytes] = new ProducerJ[Bytes, Bytes] {
 
@@ -151,7 +168,8 @@ class ProducerSpec extends AnyWordSpec with Matchers {
         offsets: util.Map[TopicPartitionJ, OffsetAndMetadataJ],
         groupMetadata: ConsumerGroupMetadataJ
       ): Unit = {
-        Scope.this.sendOffsetsToTransaction1 = groupMetadata.some
+        Scope.this.sentOffsets       = offsets.some
+        Scope.this.sentGroupMetadata = groupMetadata.some
       }
 
       def flush(): Unit = flushCalled = true

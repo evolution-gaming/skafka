@@ -5,12 +5,14 @@ import cats.syntax.all.*
 import com.evolutiongaming.smetrics.*
 
 final class InMemoryCollectorRegistry[F[_]] private (stateRef: Ref[F, InMemoryCollectorRegistry.State])
-extends CollectorRegistry[F] {
+    extends CollectorRegistry[F] {
   import InMemoryCollectorRegistry.*
 
   def state: F[State] = stateRef.get
 
-  def gauge[A, B[_]](name: String, help: String, labels: A)(implicit magnet: LabelsMagnet[A, B]): Resource[F, B[Gauge[F]]] =
+  def gauge[A, B[_]](name: String, help: String, labels: A)(
+    implicit magnet: LabelsMagnet[A, B]
+  ): Resource[F, B[Gauge[F]]] =
     Resource.pure(magnet.withValues { labelValues =>
       val key = MetricKey(name, labelValues)
       new Gauge[F] {
@@ -24,17 +26,13 @@ extends CollectorRegistry[F] {
     name: String,
     help: String,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnetInitialized[A, B],
-  ): Resource[F, B[Gauge[F]]] = gauge(name, help, labels)
+  )(implicit magnet: LabelsMagnetInitialized[A, B]): Resource[F, B[Gauge[F]]] = gauge(name, help, labels)
 
   def counter[A, B[_]](
     name: String,
     help: String,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnet[A, B],
-  ): Resource[F, B[Counter[F]]] =
+  )(implicit magnet: LabelsMagnet[A, B]): Resource[F, B[Counter[F]]] =
     Resource.pure(magnet.withValues { labelValues =>
       val key = MetricKey(name, labelValues)
       (value: Double) => stateRef.update(_.incCounter(key, value))
@@ -44,18 +42,14 @@ extends CollectorRegistry[F] {
     name: String,
     help: String,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnetInitialized[A, B],
-  ): Resource[F, B[Counter[F]]] = counter(name, help, labels)
+  )(implicit magnet: LabelsMagnetInitialized[A, B]): Resource[F, B[Counter[F]]] = counter(name, help, labels)
 
   def summary[A, B[_]](
     name: String,
     help: String,
     quantiles: Quantiles,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnet[A, B],
-  ): Resource[F, B[Summary[F]]] =
+  )(implicit magnet: LabelsMagnet[A, B]): Resource[F, B[Summary[F]]] =
     Resource.pure(magnet.withValues { labelValues =>
       val key = MetricKey(name, labelValues)
       (value: Double) => stateRef.update(_.addObservation(key, value))
@@ -66,18 +60,15 @@ extends CollectorRegistry[F] {
     help: String,
     quantiles: Quantiles,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnetInitialized[A, B],
-  ): Resource[F, B[Summary[F]]] = summary(name, help, quantiles, labels)
+  )(implicit magnet: LabelsMagnetInitialized[A, B]): Resource[F, B[Summary[F]]] =
+    summary(name, help, quantiles, labels)
 
   def histogram[A, B[_]](
     name: String,
     help: String,
     buckets: Buckets,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnet[A, B],
-  ): Resource[F, B[Histogram[F]]] =
+  )(implicit magnet: LabelsMagnet[A, B]): Resource[F, B[Histogram[F]]] =
     Resource.pure(magnet.withValues { labelValues =>
       val key = MetricKey(name, labelValues)
       (value: Double) => stateRef.update(_.addObservation(key, value))
@@ -88,11 +79,12 @@ extends CollectorRegistry[F] {
     help: String,
     buckets: Buckets,
     labels: A,
-  )(implicit
-    magnet: LabelsMagnetInitialized[A, B],
-  ): Resource[F, B[Histogram[F]]] = histogram(name, help, buckets, labels)
+  )(implicit magnet: LabelsMagnetInitialized[A, B]): Resource[F, B[Histogram[F]]] =
+    histogram(name, help, buckets, labels)
 
-  def info[A, B[_]](name: String, help: String, labels: A)(implicit magnet: LabelsMagnet[A, B]): Resource[F, B[Info[F]]] =
+  def info[A, B[_]](name: String, help: String, labels: A)(
+    implicit magnet: LabelsMagnet[A, B]
+  ): Resource[F, B[Info[F]]] =
     Resource.pure(magnet.withValues { labelValues =>
       val key = MetricKey(name, labelValues)
       new Info[F] {
@@ -106,10 +98,10 @@ object InMemoryCollectorRegistry {
   final case class MetricKey(name: String, labels: List[String])
 
   final case class State(
-    gauges: Map[MetricKey, Double] = Map.empty,
-    counters: Map[MetricKey, Double] = Map.empty,
+    gauges: Map[MetricKey, Double]             = Map.empty,
+    counters: Map[MetricKey, Double]           = Map.empty,
     observations: Map[MetricKey, List[Double]] = Map.empty,
-    infos: Set[MetricKey] = Set.empty,
+    infos: Set[MetricKey]                      = Set.empty,
   ) {
 
     def incGauge(key: MetricKey, value: Double): State =

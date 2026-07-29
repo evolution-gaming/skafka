@@ -12,7 +12,7 @@ class KafkaMetricsSpec extends AsyncFunSuite with Matchers {
   test("make records consumer and producer metrics for a client") {
     val result = for {
       registry <- InMemoryCollectorRegistry.of[IO]
-      state <- KafkaMetrics
+      state    <- KafkaMetrics
         .make[IO](registry)
         .use { kafkaMetrics =>
           val consumerMetrics = kafkaMetrics.consumer("client")

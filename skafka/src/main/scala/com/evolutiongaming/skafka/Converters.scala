@@ -2,10 +2,9 @@ package com.evolutiongaming.skafka
 
 import java.lang.Long as LongJ
 import java.time.Duration as DurationJ
-import java.util.{Optional, Collection as CollectionJ, Map as MapJ, Set as SetJ, List as ListJ}
-
+import java.util.{Optional, Collection as CollectionJ, List as ListJ, Map as MapJ, Set as SetJ}
 import cats.Monad
-import cats.data.{NonEmptyList as Nel, NonEmptySet as Nes, NonEmptyMap as Nem}
+import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.syntax.all.*
 import com.evolutiongaming.catshelper.CatsHelper.*
 import com.evolutiongaming.catshelper.{ApplicativeThrowable, FromTry, MonadThrowable, ToTry}
@@ -17,6 +16,7 @@ import org.apache.kafka.common.{PartitionInfo as PartitionInfoJ, TopicPartition 
 import scala.compat.java8.DurationConverters
 import scala.concurrent.duration.FiniteDuration
 import scala.jdk.CollectionConverters.*
+import scala.util.{Failure, Success, Try}
 
 object Converters {
 
@@ -233,9 +233,15 @@ object Converters {
     mapJ.asScalaMap(_.pure[F], partitionsInfoListF[F])
   }
 
-  def topicPartitionsSetF[F[_]: ApplicativeThrowable](setJ: SetJ[TopicPartitionJ]): F[Set[TopicPartition]] = {
-    for {
-      r <- setJ.asScala.toList.traverse { _.asScala[F] }
-    } yield r.toSet
-  }
+  def topicPartitionsSetF[F[_]: ApplicativeThrowable](setJ: SetJ[TopicPartitionJ]): F[Set[TopicPartition]] =
+    ApplicativeThrowable[F].catchNonFatal {
+      val builder = Set.newBuilder[TopicPartition]
+      setJ.forEach { tpj =>
+        tpj.asScala[Try] match {
+          case Failure(exception) => throw exception
+          case Success(value)     => builder.addOne(value)
+        }
+      }
+      builder.result()
+    }
 }

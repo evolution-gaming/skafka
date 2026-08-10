@@ -14,9 +14,11 @@ sealed abstract case class Partition(value: Int) {
 
 object Partition {
 
-  val min: Partition = new Partition(0) {}
+  private class Impl(value: Int) extends Partition(value)
 
-  val max: Partition = new Partition(Int.MaxValue) {}
+  val min: Partition = new Impl(0)
+
+  val max: Partition = new Impl(Int.MaxValue)
 
   implicit val showPartition: Show[Partition] = Show.fromToString
 
@@ -36,7 +38,7 @@ object Partition {
     } else if (value == max.value) {
       max.pure[F]
     } else {
-      new Partition(value) {}.pure[F]
+      (new Impl(value): Partition).pure[F]
     }
   }
 

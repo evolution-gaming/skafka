@@ -7,40 +7,4 @@ on:
 
 jobs:
   test:
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        scala:
-          - 2.13.18
-          - 3.3.8
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: coursier/cache-action@v8
-
-      - name: setup Java 17
-        uses: actions/setup-java@v5
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'sbt'
-
-      - name: setup SBT
-        uses: sbt/setup-sbt@v1
-
-      - name: check code ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} clean check
-
-      - name: build ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} clean coverage test
-
-      - name: test coverage
-        if: success()
-        env:
-          COVERALLS_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          COVERALLS_FLAG_NAME: Scala ${{ matrix.scala }}
-        run: sbt ++${{ matrix.scala }} coverageReport coverageAggregate coveralls
-
+    uses: evolution-gaming/scala-github-actions/.github/workflows/ci.yml@dde27b9bd793d41d5aacf8fb74403c9de5da1146 # v6.3.0

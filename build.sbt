@@ -14,13 +14,13 @@ def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]): List[T] 
 
 lazy val commonSettings = Seq(
   organization := "com.evolutiongaming",
-  homepage := Some(url("https://github.com/evolution-gaming/skafka")),
+  homepage := Some(uri("https://github.com/evolution-gaming/skafka")),
   startYear := Some(2018),
   organizationName := "Evolution",
-  organizationHomepage := Some(url("https://evolution.com")),
+  organizationHomepage := Some(uri("https://evolution.com")),
   scalaVersion := crossScalaVersions.value.head,
   crossScalaVersions := Seq("2.13.18", "3.3.8"),
-  licenses := Seq(("MIT", url("https://opensource.org/licenses/MIT"))),
+  licenses := Seq(("MIT", uri("https://opensource.org/licenses/MIT"))),
   Compile / doc / scalacOptions += "-no-link-warnings",
   scalacOptions ++= crossSettings(
     scalaVersion.value,
@@ -44,7 +44,7 @@ lazy val commonSettings = Seq(
   libraryDependencies ++= crossSettings(
     scalaVersion.value,
     if3 = Nil,
-    if2 = List(compilerPlugin(`kind-projector` cross CrossVersion.full))
+    if2 = List(compilerPlugin(`kind-projector`.cross(CrossVersion.full)))
   ),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
@@ -65,14 +65,14 @@ ThisBuild / versionPolicyIgnored ++= Seq(
 )
 
 val alias: Seq[sbt.Def.Setting[?]] =
-  addCommandAlias("fmt", "all scalafmtAll scalafmtSbt") ++
-    addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckAll scalafmtSbtCheck") ++
-    addCommandAlias("build", "+all compile test")
+  addCommandAlias("fmt", "all scalafmtRepo") ++
+    addCommandAlias("check", "all versionPolicyCheck Compile/doc scalafmtCheckRepo") ++
+    addCommandAlias("build", "+all compile testFull")
 
 lazy val root = project
   .in(file("."))
   .disablePlugins(MimaPlugin)
-  .settings(name := "skafka")
+  .settings(name := "skafka-root")
   .settings(commonSettings)
   .settings(publish / skip := true)
   .settings(alias)

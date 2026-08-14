@@ -13,12 +13,12 @@ import scala.concurrent.duration.*
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
-  // Expected result of the *.conf parsing tests: fields the fixtures set are given non-default
-  // values so a silently unparsed field can't hide behind its default (exceptions: clientRack and
-  // most of common are unset, and retry-backoff — common's one fixture-set field — has the default
-  // value). It is never fed to .bindings, so the values needn't form a config kafka-clients would
-  // accept — e.g. Consumer protocol alongside classic-only assignment/session/heartbeat values.
+  // Expected result of the *.conf parsing tests: every field the fixtures set is given a
+  // non-default value, so a silently unparsed field can't hide behind its default. It is never fed
+  // to .bindings, so the values needn't form a config kafka-clients would accept — e.g. Consumer
+  // protocol alongside classic-only assignment/session/heartbeat values.
   val custom = ConsumerConfig(
+    common                      = CommonConfig(retryBackoff = 123.millis),
     groupId                     = Some("groupId"),
     maxPollRecords              = 1,
     maxPollInterval             = 2.millis,
@@ -39,6 +39,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     isolationLevel              = IsolationLevel.ReadCommitted,
     groupProtocol               = GroupProtocol.Consumer,
     groupRemoteAssignor         = Some("uniform"),
+    clientRack                  = Some("clientRack"),
     saslSupport                 = SaslSupportConfig(
       kerberosServiceName             = Some("service_name"),
       kerberosKinitCmd                = "/bin/kinit",

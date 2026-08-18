@@ -4,6 +4,9 @@ import cats.data.NonEmptyList as Nel
 import com.evolutiongaming.skafka.JaasConfig.Plain
 import com.evolutiongaming.skafka.{CommonConfig, KeystoreType, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.ConfigFactory
+import org.apache.kafka.clients.consumer.ConsumerConfig as KafkaConsumerConfig
+import org.apache.kafka.common.config.ConfigException
+import org.apache.kafka.common.serialization.ByteArrayDeserializer
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -11,7 +14,12 @@ import scala.concurrent.duration.*
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
+  // Expected result of the *.conf parsing tests: every field the fixtures set is given a
+  // non-default value, so a silently unparsed field can't hide behind its default. It is never fed
+  // to .bindings, so the values needn't form a config kafka-clients would accept — e.g. Consumer
+  // protocol alongside classic-only assignment/session/heartbeat values.
   val custom = ConsumerConfig(
+    common                      = CommonConfig(retryBackoff = 123.millis),
     groupId                     = Some("groupId"),
     maxPollRecords              = 1,
     maxPollInterval             = 2.millis,
@@ -30,6 +38,9 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     interceptorClasses          = List("interceptorClasses"),
     excludeInternalTopics       = false,
     isolationLevel              = IsolationLevel.ReadCommitted,
+    groupProtocol               = GroupProtocol.Consumer,
+    groupRemoteAssignor         = Some("uniform"),
+    clientRack                  = Some("clientRack"),
     saslSupport                 = SaslSupportConfig(
       kerberosServiceName             = Some("service_name"),
       kerberosKinitCmd                = "/bin/kinit",
@@ -105,6 +116,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "reconnect.backoff.max.ms" -> "1000",
       "auto.offset.reset"        -> "latest",
       "partition.assignment.strategy" -> "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
+      "group.protocol"                           -> "classic",
       "heartbeat.interval.ms"                    -> "3000",
       "check.crcs"                               -> "true",
       "auto.commit.interval.ms"                  -> "5000",
@@ -161,5 +173,81 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
       "socket.connection.setup.timeout.max.ms"   -> "30000",
       "socket.connection.setup.timeout.ms"       -> "10000",
     )
+  }
+
+  // Classic-protocol bindings (assignment/session/heartbeat present, no assignor) are covered by the "bindings" test above.
+  test("bindings with consumer group protocol") {
+    val bindings = ConsumerConfig(groupProtocol = GroupProtocol.Consumer).bindings
+    bindings.get("group.protocol") shouldEqual Some("consumer")
+    bindings.get("partition.assignment.strategy") shouldEqual None
+    bindings.get("session.timeout.ms") shouldEqual None
+    bindings.get("heartbeat.interval.ms") shouldEqual None
+    bindings.get("group.remote.assignor") shouldEqual None
+  }
+
+  test("bindings with consumer group protocol and remote assignor") {
+    val bindings =
+      ConsumerConfig(groupProtocol = GroupProtocol.Consumer, groupRemoteAssignor = Some("uniform")).bindings
+    bindings.get("group.remote.assignor") shouldEqual Some("uniform")
+  }
+
+  // Constructing the real kafka-clients ConsumerConfig exercises its construction-time validation of
+  // protocol/config combinations, which assertions on skafka's own binding map cannot catch.
+  // key/value.deserializer are set only because kafka-clients requires them; skafka never configures
+  // deserializers via properties — CreateConsumerJ passes instances to the KafkaConsumer constructor.
+  private def kafkaProperties(configs: ConsumerConfig): java.util.Properties = {
+    val properties   = configs.properties
+    val deserializer = classOf[ByteArrayDeserializer].getName
+    properties.put(KafkaConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer)
+    properties.put(KafkaConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
+    properties
+  }
+
+  private def kafkaClientConfig(configs: ConsumerConfig): KafkaConsumerConfig = {
+    new KafkaConsumerConfig(kafkaProperties(configs))
+  }
+
+  // kafka-clients rejects group.remote.assignor under classic, so passing validation proves skafka suppressed it.
+  test("kafka-clients ConsumerConfig accepts classic bindings: groupRemoteAssignor suppressed") {
+    noException should be thrownBy kafkaClientConfig(
+      ConsumerConfig(
+        groupId             = Some("group"),
+        groupProtocol       = GroupProtocol.Classic,
+        groupRemoteAssignor = Some("uniform"),
+      )
+    )
+  }
+
+  // The assignor value is not validated at construction time, so this also covers the consumer protocol without one.
+  test("kafka-clients ConsumerConfig accepts consumer bindings with groupRemoteAssignor set") {
+    noException should be thrownBy kafkaClientConfig(
+      ConsumerConfig(
+        groupId             = Some("group"),
+        groupProtocol       = GroupProtocol.Consumer,
+        groupRemoteAssignor = Some("uniform"),
+      )
+    )
+  }
+
+  // Pins the kafka-clients rejection that the tests above rely on to prove suppression.
+  test("kafka-clients ConsumerConfig rejects protocol-mismatched configs") {
+    val assignor   = "org.apache.kafka.clients.consumer.RangeAssignor"
+    val suppressed = List(
+      (GroupProtocol.Consumer, KafkaConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, assignor),
+      (GroupProtocol.Consumer, KafkaConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000"),
+      (GroupProtocol.Consumer, KafkaConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, "3000"),
+      (GroupProtocol.Classic, KafkaConsumerConfig.GROUP_REMOTE_ASSIGNOR_CONFIG, "uniform"),
+    )
+
+    suppressed.foreach {
+      case (groupProtocol, key, value) =>
+        val properties = kafkaProperties(ConsumerConfig(groupId = Some("group"), groupProtocol = groupProtocol))
+        properties.put(key, value)
+        withClue(s"$groupProtocol with $key: ") {
+          // The message check keeps the test from passing on an unrelated rejection.
+          the[ConfigException] thrownBy new KafkaConsumerConfig(properties) should have message
+            s"$key cannot be set when group.protocol=${groupProtocol.name.toUpperCase}"
+        }
+    }
   }
 }

@@ -3,7 +3,12 @@ import com.typesafe.tools.mima.core._
 
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / evictionErrorLevel := Level.Warn
-ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
+// ConsumerConfig gained groupProtocol/groupRemoteAssignor fields (KIP-848), which breaks
+// binary compatibility of its apply/copy/unapply/constructor: the next release must be a major.
+// On Scala 2.13 this also crosses the 22-field cap on synthesized unapply (22 -> 24), so
+// tuple-style pattern matching against ConsumerConfig no longer compiles there at all.
+// TODO reset to Compatibility.BinaryCompatible after that release
+ThisBuild / versionPolicyIntention := Compatibility.None
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]): List[T] =
   CrossVersion.partialVersion(scalaVersion) match {
@@ -55,9 +60,6 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
 //  ProblemFilters.exclude[ReversedMissingMethodProblem](
 //    "com.evolutiongaming.skafka.consumer.Consumer.clientInstanceId"
 //  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "com.evolutiongaming.skafka.producer.Producer.sendOffsetsToTransaction"
-  ),
 )
 ThisBuild / versionPolicyIgnored ++= Seq(
   // add libraries, that are known to be binary compatible, here, like:

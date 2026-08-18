@@ -21,19 +21,21 @@ final case class ConsumerConfig(
   autoCommitInterval: Option[FiniteDuration] = None,
   partitionAssignmentStrategy: String        =
     "org.apache.kafka.clients.consumer.RangeAssignor,org.apache.kafka.clients.consumer.CooperativeStickyAssignor",
-  autoOffsetReset: AutoOffsetReset  = AutoOffsetReset.Latest,
-  defaultApiTimeout: FiniteDuration = 1.minute,
-  fetchMinBytes: Int                = 1,
-  fetchMaxBytes: Int                = 52428800,
-  fetchMaxWait: FiniteDuration      = 500.millis,
-  maxPartitionFetchBytes: Int       = 1048576,
-  checkCrcs: Boolean                = true,
-  interceptorClasses: List[String]  = Nil,
-  excludeInternalTopics: Boolean    = true,
-  isolationLevel: IsolationLevel    = IsolationLevel.ReadUncommitted,
-  saslSupport: SaslSupportConfig    = SaslSupportConfig.Default,
-  sslSupport: SslSupportConfig      = SslSupportConfig.Default,
-  clientRack: Option[String]        = None,
+  autoOffsetReset: AutoOffsetReset    = AutoOffsetReset.Latest,
+  defaultApiTimeout: FiniteDuration   = 1.minute,
+  fetchMinBytes: Int                  = 1,
+  fetchMaxBytes: Int                  = 52428800,
+  fetchMaxWait: FiniteDuration        = 500.millis,
+  maxPartitionFetchBytes: Int         = 1048576,
+  checkCrcs: Boolean                  = true,
+  interceptorClasses: List[String]    = Nil,
+  excludeInternalTopics: Boolean      = true,
+  isolationLevel: IsolationLevel      = IsolationLevel.ReadUncommitted,
+  saslSupport: SaslSupportConfig      = SaslSupportConfig.Default,
+  sslSupport: SslSupportConfig        = SslSupportConfig.Default,
+  clientRack: Option[String]          = None,
+  groupProtocol: GroupProtocol        = GroupProtocol.Classic,
+  groupRemoteAssignor: Option[String] = None, // only emitted under GroupProtocol.Consumer
 ) {
 
   def bindings: Map[String, String] = {
@@ -42,24 +44,40 @@ final case class ConsumerConfig(
     val autoCommitIntervalMap = autoCommitInterval.fold(Map.empty[String, String]) { autoCommitInterval =>
       Map((C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString))
     }
-    val bindings = groupIdMap ++ autoCommitIntervalMap ++ Map[String, String](
-      (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
-      (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
-      (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
-      (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
-      (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
-      (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy),
-      (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
-      (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
-      (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
-      (C.FETCH_MAX_BYTES_CONFIG, fetchMaxBytes.toString),
-      (C.FETCH_MAX_WAIT_MS_CONFIG, fetchMaxWait.toMillis.toString),
-      (C.MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes.toString),
-      (C.CHECK_CRCS_CONFIG, checkCrcs.toString),
-      (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
-      (C.EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics.toString),
-      (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
-    )
+    // kafka-clients rejects protocol-mismatched configs at construction time (KIP-848):
+    // `group.protocol=consumer` rejects `partition.assignment.strategy`, `session.timeout.ms` and
+    // `heartbeat.interval.ms` (assignment and session timing are server-managed under the new
+    // protocol); `group.protocol=classic` rejects `group.remote.assignor`.
+    val protocolSpecificMap = groupProtocol match {
+      case GroupProtocol.Classic =>
+        Map(
+          (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy),
+          (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
+          (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
+        )
+      case GroupProtocol.Consumer =>
+        groupRemoteAssignor.fold(Map.empty[String, String]) { assignor =>
+          Map((C.GROUP_REMOTE_ASSIGNOR_CONFIG, assignor))
+        }
+    }
+    val bindings =
+      groupIdMap ++ autoCommitIntervalMap ++ protocolSpecificMap ++
+        Map[String, String](
+          (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
+          (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
+          (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
+          (C.GROUP_PROTOCOL_CONFIG, groupProtocol.name),
+          (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
+          (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
+          (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
+          (C.FETCH_MAX_BYTES_CONFIG, fetchMaxBytes.toString),
+          (C.FETCH_MAX_WAIT_MS_CONFIG, fetchMaxWait.toMillis.toString),
+          (C.MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes.toString),
+          (C.CHECK_CRCS_CONFIG, checkCrcs.toString),
+          (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
+          (C.EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics.toString),
+          (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
+        )
 
     bindings ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
   }
@@ -88,6 +106,14 @@ object ConsumerConfig {
     val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
     value getOrElse {
       throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel from $str")
+    }
+  }
+
+  private implicit val GroupProtocolFromConf: FromConf[GroupProtocol] = FromConf[GroupProtocol] { (conf, path) =>
+    val str   = conf.getString(path)
+    val value = GroupProtocol.Values.find { _.name equalsIgnoreCase str }
+    value getOrElse {
+      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse GroupProtocol from $str")
     }
   }
 
@@ -137,10 +163,13 @@ object ConsumerConfig {
         get[List[String]]("interceptor-classes", "interceptor.classes") getOrElse default.interceptorClasses,
       excludeInternalTopics =
         get[Boolean]("exclude-internal-topics", "exclude.internal.topics") getOrElse default.excludeInternalTopics,
-      isolationLevel = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel,
-      saslSupport    = SaslSupportConfig(config, default.saslSupport),
-      sslSupport     = SslSupportConfig(config),
-      clientRack     = get[String]("client-rack", "client.rack") orElse default.clientRack,
+      isolationLevel      = get[IsolationLevel]("isolation-level", "isolation.level") getOrElse default.isolationLevel,
+      saslSupport         = SaslSupportConfig(config, default.saslSupport),
+      sslSupport          = SslSupportConfig(config),
+      clientRack          = get[String]("client-rack", "client.rack") orElse default.clientRack,
+      groupProtocol       = get[GroupProtocol]("group-protocol", "group.protocol") getOrElse default.groupProtocol,
+      groupRemoteAssignor =
+        get[String]("group-remote-assignor", "group.remote.assignor") orElse default.groupRemoteAssignor,
     )
   }
 

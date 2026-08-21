@@ -4,12 +4,6 @@ import com.typesafe.tools.mima.core._
 ThisBuild / versionScheme := Some("early-semver")
 ThisBuild / evictionErrorLevel := Level.Warn
 ThisBuild / versionPolicyIntention := Compatibility.BinaryCompatible
-ThisBuild / versionPolicyIgnored ++= Seq(
-  // add libraries here that are known to be binary compatible, like:
-  "com.evolutiongaming" %% "smetrics",
-  "com.evolutiongaming" %% "smetrics-prometheus",
-  "com.evolutiongaming" %% "smetrics-prometheus-v1",
-)
 
 def crossSettings[T](scalaVersion: String, if3: List[T], if2: List[T]): List[T] =
   CrossVersion.partialVersion(scalaVersion) match {
@@ -54,10 +48,6 @@ lazy val commonSettings = Seq(
   ),
   scalacOptsFailOnWarn := Some(false),
   publishTo := Some(Resolver.evolutionReleases),
-  versionPolicyIgnored ++= Seq(
-    // add libraries here that are known to be binary compatible, like:
-    "com.evolutiongaming" %% "smetrics",
-  ),
 )
 
 ThisBuild / mimaBinaryIssueFilters ++= Seq(
@@ -65,9 +55,6 @@ ThisBuild / mimaBinaryIssueFilters ++= Seq(
 //  ProblemFilters.exclude[ReversedMissingMethodProblem](
 //    "com.evolutiongaming.skafka.consumer.Consumer.clientInstanceId"
 //  ),
-  ProblemFilters.exclude[ReversedMissingMethodProblem](
-    "com.evolutiongaming.skafka.producer.Producer.sendOffsetsToTransaction"
-  ),
 )
 ThisBuild / versionPolicyIgnored ++= Seq(
   // add libraries, that are known to be binary compatible, here, like:

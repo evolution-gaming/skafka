@@ -54,6 +54,15 @@ object ConfigHelpers {
     }
   }
 
+  /** Builds a [[FromConf]] that resolves a value from `values` by case-insensitive `name` match, or throws. */
+  private[skafka] def enumFromConf[T](values: Set[T], label: String)(name: T => String): FromConf[T] =
+    FromConf { (conf, path) =>
+      val str = conf.getString(path)
+      values.find { value => name(value) equalsIgnoreCase str } getOrElse {
+        throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse $label from $str")
+      }
+    }
+
   implicit val KeystoreTypeFromConfig: FromConf[KeystoreType] = (conf, path) => {
     val value = conf.getString(path)
     KeystoreType

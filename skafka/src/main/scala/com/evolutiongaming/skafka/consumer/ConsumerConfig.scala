@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.config.ConfigHelper.{FromConf, *}
-import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
+import com.evolutiongaming.skafka.{CommonConfig, ConfigHelpers, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig as C
@@ -93,29 +93,14 @@ object ConsumerConfig {
 
   val Default: ConsumerConfig = ConsumerConfig()
 
-  private implicit val AutoOffsetResetFromConf: FromConf[AutoOffsetReset] = FromConf[AutoOffsetReset] { (conf, path) =>
-    val str   = conf.getString(path)
-    val value = AutoOffsetReset.Values.find { _.toString equalsIgnoreCase str }
-    value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse AutoOffsetReset from $str")
-    }
-  }
+  private implicit val AutoOffsetResetFromConf: FromConf[AutoOffsetReset] =
+    ConfigHelpers.enumFromConf(AutoOffsetReset.Values, "AutoOffsetReset")(_.toString)
 
-  private implicit val IsolationLevelFromConf: FromConf[IsolationLevel] = FromConf[IsolationLevel] { (conf, path) =>
-    val str   = conf.getString(path)
-    val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
-    value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel from $str")
-    }
-  }
+  private implicit val IsolationLevelFromConf: FromConf[IsolationLevel] =
+    ConfigHelpers.enumFromConf(IsolationLevel.Values, "IsolationLevel")(_.name)
 
-  private implicit val GroupProtocolFromConf: FromConf[GroupProtocol] = FromConf[GroupProtocol] { (conf, path) =>
-    val str   = conf.getString(path)
-    val value = GroupProtocol.Values.find { _.name equalsIgnoreCase str }
-    value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse GroupProtocol from $str")
-    }
-  }
+  private implicit val GroupProtocolFromConf: FromConf[GroupProtocol] =
+    ConfigHelpers.enumFromConf(GroupProtocol.Values, "GroupProtocol")(_.name)
 
   def apply(config: Config): ConsumerConfig = {
     apply(config, Default)

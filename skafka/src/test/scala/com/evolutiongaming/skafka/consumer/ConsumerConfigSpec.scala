@@ -1,5 +1,6 @@
 package com.evolutiongaming.skafka.consumer
 
+import java.util.Locale
 import cats.data.NonEmptyList as Nel
 import com.evolutiongaming.skafka.JaasConfig.Plain
 import com.evolutiongaming.skafka.{CommonConfig, KeystoreType, SaslSupportConfig, SslSupportConfig}
@@ -246,7 +247,7 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
         withClue(s"$groupProtocol with $key: ") {
           // The message check keeps the test from passing on an unrelated rejection.
           the[ConfigException] thrownBy new KafkaConsumerConfig(properties) should have message
-            s"$key cannot be set when group.protocol=${groupProtocol.name.toUpperCase}"
+            s"$key cannot be set when group.protocol=${groupProtocol.name.toUpperCase(Locale.ROOT)}"
         }
     }
   }

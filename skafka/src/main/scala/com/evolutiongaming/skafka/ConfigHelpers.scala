@@ -63,13 +63,6 @@ object ConfigHelpers {
       }
     }
 
-  implicit val KeystoreTypeFromConfig: FromConf[KeystoreType] = (conf, path) => {
-    val value = conf.getString(path)
-    KeystoreType
-      .Values
-      .find(_.name.equalsIgnoreCase(value))
-      .getOrElse(
-        throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse KeystoreType from '$value'")
-      )
-  }
+  implicit val KeystoreTypeFromConfig: FromConf[KeystoreType] =
+    enumFromConf(KeystoreType.Values, "KeystoreType")(_.name)
 }

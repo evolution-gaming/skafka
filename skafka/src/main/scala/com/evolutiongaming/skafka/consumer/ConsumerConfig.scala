@@ -9,6 +9,10 @@ import org.apache.kafka.clients.consumer.ConsumerConfig as C
 import scala.concurrent.duration.{FiniteDuration, *}
 
 /** Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
+  *
+  * `sessionTimeout`, `heartbeatInterval` and `partitionAssignmentStrategy` only apply under [[GroupProtocol.Classic]]
+  * and `groupRemoteAssignor` only under [[GroupProtocol.Consumer]]; under the other protocol they are ignored, see
+  * `bindings`.
   */
 final case class ConsumerConfig(
   common: CommonConfig                       = CommonConfig.Default,
@@ -35,7 +39,7 @@ final case class ConsumerConfig(
   sslSupport: SslSupportConfig        = SslSupportConfig.Default,
   clientRack: Option[String]          = None,
   groupProtocol: GroupProtocol        = GroupProtocol.Classic,
-  groupRemoteAssignor: Option[String] = None, // only emitted under GroupProtocol.Consumer
+  groupRemoteAssignor: Option[String] = None,
 ) {
 
   def bindings: Map[String, String] = {

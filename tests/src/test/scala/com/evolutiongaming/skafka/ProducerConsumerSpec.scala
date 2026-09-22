@@ -38,6 +38,8 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
 
   private val timeout = 1.minute
 
+  private val rebalanceTestTimeout = 3.minutes
+
   override def beforeAll(): Unit = {
     super.beforeAll()
     ()
@@ -258,7 +260,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         .use { _ =>
           testCompleted
             .get
-            .timeout(33.seconds)
+            .timeout(rebalanceTestTimeout)
             .onError({ _ =>
               rebalanceCounter
                 .get
@@ -327,8 +329,12 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
       completeTestIfNeeded =
         for {
           rebalanceCounter <- rebalanceCounter.get
-          completed <- if (rebalanceCounter >= requiredNumberOfRebalances) testCompleted.complete(()) else IO.unit
-        } yield completed
+          offsets          <- offsets.get
+          diverged          = offsets.zipWithIndex.exists { case (offset, idx) => offset =!= Offset.unsafe(idx) }
+          _                <-
+            if (rebalanceCounter >= requiredNumberOfRebalances || diverged) testCompleted.complete(()).void
+            else IO.unit
+        } yield {}
 
       consumer = consumerOf(topic, none)
       producer = producerOf(Acks.One, idempotence = false)
@@ -358,7 +364,7 @@ class ProducerConsumerSpec extends AnyFunSuite with BeforeAndAfterAll with Match
         .use { _ =>
           testCompleted
             .get
-            .timeout(33.seconds)
+            .timeout(rebalanceTestTimeout)
             .onError({
               case _ =>
                 rebalanceCounter

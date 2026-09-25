@@ -93,6 +93,7 @@ lazy val skafka = project
       CatsEffect.effectStd,
       `config-tools`,
       Kafka.clients,
+      lz4,
       `future-helper`,
       `cats-helper`,
       Smetrics.smetrics,
@@ -113,6 +114,10 @@ lazy val `play-json` = project
   .settings(
     libraryDependencies ++= Seq(
       `play-json-jsoniter`,
+      Jackson.core,
+      Jackson.databind,
+      Jackson.jdk8,
+      Jackson.jsr310,
       scalatest % Test,
     )
   )

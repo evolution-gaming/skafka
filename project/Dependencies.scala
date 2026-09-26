@@ -21,7 +21,7 @@ object Dependencies {
   val lz4 = "at.yawk.lz4" % "lz4-java" % "1.11.4"
 
   object Jackson {
-    private val version = "2.18.11"
+    private val version = "2.22.3"
     val core            = "com.fasterxml.jackson.core"     % "jackson-core"            % version
     val databind        = "com.fasterxml.jackson.core"     % "jackson-databind"        % version
     val jdk8            = "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8"   % version

@@ -46,10 +46,7 @@ final case class ConsumerConfig(
     val autoCommitIntervalMap = autoCommitInterval.fold(Map.empty[String, String]) { autoCommitInterval =>
       Map((C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString))
     }
-    // kafka-clients rejects protocol-mismatched configs at construction time (KIP-848):
-    // `group.protocol=consumer` rejects `partition.assignment.strategy`, `session.timeout.ms` and
-    // `heartbeat.interval.ms` (assignment and session timing are server-managed under the new
-    // protocol); `group.protocol=classic` rejects `group.remote.assignor`.
+    // kafka-clients rejects the other protocol's settings at construction time (KIP-848)
     val protocolSpecificMap = groupProtocol match {
       case GroupProtocol.Classic =>
         Map(
@@ -62,26 +59,24 @@ final case class ConsumerConfig(
           Map((C.GROUP_REMOTE_ASSIGNOR_CONFIG, assignor))
         }
     }
-    val bindings =
-      groupIdMap ++ autoCommitIntervalMap ++ protocolSpecificMap ++
-        Map[String, String](
-          (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
-          (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
-          (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
-          (C.GROUP_PROTOCOL_CONFIG, groupProtocol.name),
-          (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
-          (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
-          (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
-          (C.FETCH_MAX_BYTES_CONFIG, fetchMaxBytes.toString),
-          (C.FETCH_MAX_WAIT_MS_CONFIG, fetchMaxWait.toMillis.toString),
-          (C.MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes.toString),
-          (C.CHECK_CRCS_CONFIG, checkCrcs.toString),
-          (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
-          (C.EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics.toString),
-          (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
-        )
+    val bindings = groupIdMap ++ autoCommitIntervalMap ++ Map[String, String](
+      (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
+      (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
+      (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
+      (C.GROUP_PROTOCOL_CONFIG, groupProtocol.name),
+      (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
+      (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
+      (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
+      (C.FETCH_MAX_BYTES_CONFIG, fetchMaxBytes.toString),
+      (C.FETCH_MAX_WAIT_MS_CONFIG, fetchMaxWait.toMillis.toString),
+      (C.MAX_PARTITION_FETCH_BYTES_CONFIG, maxPartitionFetchBytes.toString),
+      (C.CHECK_CRCS_CONFIG, checkCrcs.toString),
+      (C.INTERCEPTOR_CLASSES_CONFIG, interceptorClasses mkString ","),
+      (C.EXCLUDE_INTERNAL_TOPICS_CONFIG, excludeInternalTopics.toString),
+      (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
+    )
 
-    bindings ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
+    bindings ++ protocolSpecificMap ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
   }
 
   def properties: java.util.Properties = {

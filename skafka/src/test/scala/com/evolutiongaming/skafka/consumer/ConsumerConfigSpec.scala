@@ -175,7 +175,6 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     )
   }
 
-  // Classic-protocol bindings (assignment/session/heartbeat present, no assignor) are covered by the "bindings" test above.
   test("bindings with consumer group protocol") {
     val bindings = ConsumerConfig(groupProtocol = GroupProtocol.Consumer()).bindings
     bindings.get("group.protocol") shouldEqual Some("consumer")

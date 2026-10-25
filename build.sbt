@@ -86,10 +86,7 @@ lazy val skafka = project
   .settings(commonSettings)
   .settings(
     name := "skafka",
-    // ConsumerConfig gained the groupProtocol field (KIP-848), which breaks binary compatibility of
-    // its apply/copy/constructor: the next release must be a major.
-    // On Scala 2.13 the field count also crosses the 22-field cap (22 -> 23), which removes the
-    // synthesized unapply, so explicit ConsumerConfig.unapply calls no longer compile there.
+    // ConsumerConfig.groupProtocol (KIP-848) breaks binary compatibility: the next release must be a major.
     // TODO reset to Compatibility.BinaryCompatible (the ThisBuild default) after that release
     versionPolicyIntention := Compatibility.None,
     scalacOptions -= "-Ywarn-unused:params",

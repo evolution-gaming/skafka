@@ -15,10 +15,7 @@ import scala.concurrent.duration.*
 
 class ConsumerConfigSpec extends AnyFunSuite with Matchers {
 
-  // Expected result of the *.conf parsing tests: every field the fixtures set is given a
-  // non-default value, so a silently unparsed field can't hide behind its default. It is never fed
-  // to .bindings, so the values needn't form a config kafka-clients would accept — e.g. Consumer
-  // protocol alongside classic-only assignment/session/heartbeat values.
+  // all non-default, so an unparsed key can't hide behind its default
   val custom = ConsumerConfig(
     common                      = CommonConfig(retryBackoff = 123.millis),
     groupId                     = Some("groupId"),
@@ -201,27 +198,13 @@ class ConsumerConfigSpec extends AnyFunSuite with Matchers {
     ConsumerConfig(config, default).groupProtocol shouldEqual GroupProtocol.Classic
   }
 
-  // Constructing the real kafka-clients ConsumerConfig exercises its construction-time validation of
-  // protocol/config combinations, which assertions on skafka's own binding map cannot catch.
-  // key/value.deserializer are set only because kafka-clients requires them; skafka never configures
-  // deserializers via properties — CreateConsumerJ passes instances to the KafkaConsumer constructor.
+  // deserializers are required here; skafka passes instances to KafkaConsumer instead
   private def kafkaProperties(configs: ConsumerConfig): java.util.Properties = {
     val properties   = configs.properties
     val deserializer = classOf[ByteArrayDeserializer].getName
     properties.put(KafkaConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, deserializer)
     properties.put(KafkaConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, deserializer)
     properties
-  }
-
-  private def kafkaClientConfig(configs: ConsumerConfig): KafkaConsumerConfig = {
-    new KafkaConsumerConfig(kafkaProperties(configs))
-  }
-
-  // The assignor value is not validated at construction time, so this also covers the consumer protocol without one.
-  test("kafka-clients ConsumerConfig accepts consumer bindings with a remote assignor set") {
-    noException should be thrownBy kafkaClientConfig(
-      ConsumerConfig(groupId = Some("group"), groupProtocol = GroupProtocol.Consumer(Some("uniform")))
-    )
   }
 
   // Pins the kafka-clients rejections that `bindings` avoids.

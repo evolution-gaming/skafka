@@ -20,12 +20,12 @@ object GroupProtocol {
   }
 
   // matches by name only, so `Consumer()` stands in for any assignor
-  private implicit val NameFromConf: FromConf[GroupProtocol] =
+  private implicit val GroupProtocolFromConf: FromConf[GroupProtocol] =
     ConfigHelpers.enumFromConf(Set[GroupProtocol](Classic, Consumer()), "GroupProtocol")(_.name)
 
   /** Reads `group-protocol` and, under `consumer`, `group-remote-assignor`; what is not set comes from `default` */
   def apply(config: Config, default: => GroupProtocol): GroupProtocol = {
-    config.getOpt[GroupProtocol]("group-protocol", "group.protocol") getOrElse default match {
+    config.getOpt[GroupProtocol]("group-protocol", "group.protocol").getOrElse(default) match {
       case Classic     => Classic
       case Consumer(_) =>
         val defaultAssignor = default match {

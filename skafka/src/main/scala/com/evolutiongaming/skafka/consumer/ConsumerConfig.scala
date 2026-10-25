@@ -96,9 +96,6 @@ object ConsumerConfig {
   private implicit val IsolationLevelFromConf: FromConf[IsolationLevel] =
     ConfigHelpers.enumFromConf(IsolationLevel.Values, "IsolationLevel")(_.name)
 
-  private implicit val GroupProtocolFromConf: FromConf[GroupProtocol] =
-    ConfigHelpers.enumFromConf(GroupProtocol.Values, "GroupProtocol")(_.name)
-
   def apply(config: Config): ConsumerConfig = {
     apply(config, Default)
   }
@@ -149,17 +146,7 @@ object ConsumerConfig {
       saslSupport    = SaslSupportConfig(config, default.saslSupport),
       sslSupport     = SslSupportConfig(config),
       clientRack     = get[String]("client-rack", "client.rack") orElse default.clientRack,
-      groupProtocol  = {
-        val defaultAssignor = default.groupProtocol match {
-          case GroupProtocol.Consumer(assignor) => assignor
-          case GroupProtocol.Classic            => None
-        }
-        get[GroupProtocol]("group-protocol", "group.protocol").getOrElse(default.groupProtocol) match {
-          case GroupProtocol.Consumer(_) =>
-            GroupProtocol.Consumer(get[String]("group-remote-assignor", "group.remote.assignor") orElse defaultAssignor)
-          case GroupProtocol.Classic => GroupProtocol.Classic
-        }
-      },
+      groupProtocol  = GroupProtocol(config, default.groupProtocol),
     )
   }
 

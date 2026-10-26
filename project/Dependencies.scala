@@ -18,10 +18,10 @@ object Dependencies {
     val clients         = "org.apache.kafka" % "kafka-clients" % version
   }
 
-  val lz4 = "at.yawk.lz4" % "lz4-java" % "1.12.0"
+  val lz4 = "at.yawk.lz4" % "lz4-java" % "1.12.1"
 
   object Jackson {
-    private val version = "2.22.3"
+    private val version = "2.22.4"
     val core            = "com.fasterxml.jackson.core"     % "jackson-core"            % version
     val databind        = "com.fasterxml.jackson.core"     % "jackson-databind"        % version
     val jdk8            = "com.fasterxml.jackson.datatype" % "jackson-datatype-jdk8"   % version

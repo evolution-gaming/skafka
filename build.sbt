@@ -86,6 +86,9 @@ lazy val skafka = project
   .settings(commonSettings)
   .settings(
     name := "skafka",
+    // ConsumerConfig.groupProtocol (KIP-848) breaks binary compatibility: the next release must be a major.
+    // TODO reset to Compatibility.BinaryCompatible (the ThisBuild default) after that release
+    versionPolicyIntention := Compatibility.None,
     scalacOptions -= "-Ywarn-unused:params",
     libraryDependencies ++= Seq(
       Cats.core,

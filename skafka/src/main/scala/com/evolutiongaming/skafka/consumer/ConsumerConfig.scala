@@ -1,7 +1,7 @@
 package com.evolutiongaming.skafka.consumer
 
 import com.evolutiongaming.config.ConfigHelper.{FromConf, *}
-import com.evolutiongaming.skafka.{CommonConfig, SaslSupportConfig, SslSupportConfig}
+import com.evolutiongaming.skafka.{CommonConfig, ConfigHelpers, SaslSupportConfig, SslSupportConfig}
 import com.typesafe.config.{Config, ConfigException}
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig as C
@@ -9,6 +9,9 @@ import org.apache.kafka.clients.consumer.ConsumerConfig as C
 import scala.concurrent.duration.{FiniteDuration, *}
 
 /** Check [[https://kafka.apache.org/documentation/#newconsumerconfigs]]
+  *
+  * `sessionTimeout`, `heartbeatInterval` and `partitionAssignmentStrategy` only apply under [[GroupProtocol.Classic]];
+  * under [[GroupProtocol.Consumer]] they are ignored, see `bindings`.
   */
 final case class ConsumerConfig(
   common: CommonConfig                       = CommonConfig.Default,
@@ -34,6 +37,7 @@ final case class ConsumerConfig(
   saslSupport: SaslSupportConfig    = SaslSupportConfig.Default,
   sslSupport: SslSupportConfig      = SslSupportConfig.Default,
   clientRack: Option[String]        = None,
+  groupProtocol: GroupProtocol      = GroupProtocol.Classic,
 ) {
 
   def bindings: Map[String, String] = {
@@ -42,13 +46,24 @@ final case class ConsumerConfig(
     val autoCommitIntervalMap = autoCommitInterval.fold(Map.empty[String, String]) { autoCommitInterval =>
       Map((C.AUTO_COMMIT_INTERVAL_MS_CONFIG, autoCommitInterval.toMillis.toString))
     }
+    // kafka-clients rejects the other protocol's settings at construction time (KIP-848)
+    val protocolSpecificMap = groupProtocol match {
+      case GroupProtocol.Classic =>
+        Map(
+          (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy),
+          (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
+          (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
+        )
+      case GroupProtocol.Consumer(remoteAssignor) =>
+        remoteAssignor.fold(Map.empty[String, String]) { assignor =>
+          Map((C.GROUP_REMOTE_ASSIGNOR_CONFIG, assignor))
+        }
+    }
     val bindings = groupIdMap ++ autoCommitIntervalMap ++ Map[String, String](
       (C.MAX_POLL_RECORDS_CONFIG, maxPollRecords.toString),
       (C.MAX_POLL_INTERVAL_MS_CONFIG, maxPollInterval.toMillis.toString),
-      (C.SESSION_TIMEOUT_MS_CONFIG, sessionTimeout.toMillis.toString),
-      (C.HEARTBEAT_INTERVAL_MS_CONFIG, heartbeatInterval.toMillis.toString),
       (C.ENABLE_AUTO_COMMIT_CONFIG, autoCommit.toString),
-      (C.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, partitionAssignmentStrategy),
+      (C.GROUP_PROTOCOL_CONFIG, groupProtocol.name),
       (C.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset.toString.toLowerCase),
       (C.DEFAULT_API_TIMEOUT_MS_CONFIG, defaultApiTimeout.toMillis.toString),
       (C.FETCH_MIN_BYTES_CONFIG, fetchMinBytes.toString),
@@ -61,7 +76,7 @@ final case class ConsumerConfig(
       (C.ISOLATION_LEVEL_CONFIG, isolationLevel.name)
     )
 
-    bindings ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
+    bindings ++ protocolSpecificMap ++ common.bindings ++ rackMap ++ saslSupport.bindings ++ sslSupport.bindings
   }
 
   def properties: java.util.Properties = {
@@ -75,21 +90,11 @@ object ConsumerConfig {
 
   val Default: ConsumerConfig = ConsumerConfig()
 
-  private implicit val AutoOffsetResetFromConf: FromConf[AutoOffsetReset] = FromConf[AutoOffsetReset] { (conf, path) =>
-    val str   = conf.getString(path)
-    val value = AutoOffsetReset.Values.find { _.toString equalsIgnoreCase str }
-    value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse AutoOffsetReset from $str")
-    }
-  }
+  private implicit val AutoOffsetResetFromConf: FromConf[AutoOffsetReset] =
+    ConfigHelpers.enumFromConf(AutoOffsetReset.Values, "AutoOffsetReset")(_.toString)
 
-  private implicit val IsolationLevelFromConf: FromConf[IsolationLevel] = FromConf[IsolationLevel] { (conf, path) =>
-    val str   = conf.getString(path)
-    val value = IsolationLevel.Values.find { _.name equalsIgnoreCase str }
-    value getOrElse {
-      throw new ConfigException.BadValue(conf.origin(), path, s"Cannot parse IsolationLevel from $str")
-    }
-  }
+  private implicit val IsolationLevelFromConf: FromConf[IsolationLevel] =
+    ConfigHelpers.enumFromConf(IsolationLevel.Values, "IsolationLevel")(_.name)
 
   def apply(config: Config): ConsumerConfig = {
     apply(config, Default)
@@ -141,6 +146,7 @@ object ConsumerConfig {
       saslSupport    = SaslSupportConfig(config, default.saslSupport),
       sslSupport     = SslSupportConfig(config),
       clientRack     = get[String]("client-rack", "client.rack") orElse default.clientRack,
+      groupProtocol  = GroupProtocol(config, default.groupProtocol),
     )
   }
 

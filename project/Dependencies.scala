@@ -18,7 +18,7 @@ object Dependencies {
     val clients         = "org.apache.kafka" % "kafka-clients" % version
   }
 
-  val lz4 = "at.yawk.lz4" % "lz4-java" % "1.12.1"
+  val lz4 = "at.yawk.lz4" % "lz4-java" % "1.13.0"
 
   object Jackson {
     private val version = "2.22.4"

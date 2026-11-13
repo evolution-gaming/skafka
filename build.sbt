@@ -94,6 +94,7 @@ lazy val skafka = project
       `config-tools`,
       Kafka.clients,
       lz4,
+      zstd,
       `future-helper`,
       `cats-helper`,
       Smetrics.smetrics,

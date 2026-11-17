@@ -18,7 +18,7 @@ object Dependencies {
     val clients         = "org.apache.kafka" % "kafka-clients" % version
   }
 
-  val lz4    = "at.yawk.lz4"       % "lz4-java"    % "1.14.0"
+  val lz4    = "at.yawk.lz4"       % "lz4-java"    % "1.14.1"
   val snappy = "org.xerial.snappy" % "snappy-java" % "1.1.10.12"
   val zstd   = "com.github.luben"  % "zstd-jni"    % "1.5.7-28"
 

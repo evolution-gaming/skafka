@@ -94,13 +94,8 @@ object ConsumerConverters {
   implicit class ConsumerRecordJOps[K, V](val self: ConsumerRecordJ[K, V]) extends AnyVal {
 
     def asScala[F[_]: MonadThrowable]: F[ConsumerRecord[K, V]] = {
-      deferred[F, ConsumerRecord[K, V]] { consumerRecordOf(self) }
+      MonadThrowable[F].catchNonFatal { consumerRecordOf(self) }
     }
-  }
-
-  // `MonadThrowable` has no `delay`: the `flatMap` keeps `value` from running before `F` runs
-  private def deferred[F[_]: MonadThrowable, A](value: => A): F[A] = {
-    MonadThrowable[F].unit.flatMap { _ => MonadThrowable[F].catchNonFatal(value) }
   }
 
   /** Throws [[SkafkaError]] if the partition or the offset is out of range.
@@ -226,7 +221,8 @@ object ConsumerConverters {
   implicit class ConsumerRecordsJOps[K, V](val self: ConsumerRecordsJ[K, V]) extends AnyVal {
 
     def asScala[F[_]: MonadThrowable]: F[ConsumerRecords[K, V]] = {
-      deferred[F, ConsumerRecords[K, V]] { consumerRecordsOf(self) }
+      // `MonadThrowable` has no `delay`: the `flatMap` keeps the conversion from running before `F` runs
+      MonadThrowable[F].unit.flatMap { _ => MonadThrowable[F].catchNonFatal(consumerRecordsOf(self)) }
     }
   }
 

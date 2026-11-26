@@ -34,9 +34,9 @@ One operation converts one poll result of `recordsPerPoll` records.
 
 | Benchmark | recordsPerPoll | Score | Allocation |
 | --- | ---: | ---: | ---: |
-| `asScala` | 1 | 2 199 563 ± 74 547 | 2 576 |
-| `asScala` | 25 | 113 247 ± 11 322 | 42 408 |
-| `asScala` | 500 | 5 616 ± 1 605 | 754 778 |
+| `asScala` | 1 | 4 416 924 ± 75 476 | 1 640 |
+| `asScala` | 25 | 337 895 ± 7 259 | 17 408 |
+| `asScala` | 500 | 25 905 ± 4 739 | 288 544 |
 
 Replace this table when the baseline moves. The before and after of a single change belong in the description of the
 pull request that makes it.

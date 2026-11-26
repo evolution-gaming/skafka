@@ -4,6 +4,7 @@ import java.lang.Long as LongJ
 import java.time.Instant
 import java.util.{Collection as CollectionJ, Map as MapJ}
 
+import cats.Order
 import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
 import cats.implicits.*
 import com.evolutiongaming.catshelper.DataHelper.*
@@ -23,6 +24,7 @@ import org.apache.kafka.common.header.internals.RecordHeaders
 import org.apache.kafka.common.record.TimestampType as TimestampTypeJ
 import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -92,40 +94,101 @@ object ConsumerConverters {
   implicit class ConsumerRecordJOps[K, V](val self: ConsumerRecordJ[K, V]) extends AnyVal {
 
     def asScala[F[_]: MonadThrowable]: F[ConsumerRecord[K, V]] = {
+      deferred[F, ConsumerRecord[K, V]] { consumerRecordOf(self) }
+    }
+  }
 
-      val headers = self.headers().asScala.map(_.asScala).toList
+  // `MonadThrowable` has no `delay`: the `flatMap` keeps `value` from running before `F` runs
+  private def deferred[F[_]: MonadThrowable, A](value: => A): F[A] = {
+    MonadThrowable[F].unit.flatMap { _ => MonadThrowable[F].catchNonFatal(value) }
+  }
 
-      val timestampAndType = {
-        def some(timestampType: TimestampType): Some[TimestampAndType] = {
-          Some(TimestampAndType(Instant.ofEpochMilli(self.timestamp()), timestampType))
-        }
+  /** Throws [[SkafkaError]] if the partition or the offset is out of range.
+    */
+  private def consumerRecordOf[K, V](recordJ: ConsumerRecordJ[K, V]): ConsumerRecord[K, V] = {
 
-        self.timestampType() match {
-          case TimestampTypeJ.NO_TIMESTAMP_TYPE => None
-          case TimestampTypeJ.CREATE_TIME       => some(TimestampType.create)
-          case TimestampTypeJ.LOG_APPEND_TIME   => some(TimestampType.append)
-        }
+    val timestampAndType = {
+      def some(timestampType: TimestampType): Some[TimestampAndType] = {
+        Some(TimestampAndType(Instant.ofEpochMilli(recordJ.timestamp()), timestampType))
       }
 
-      def withSize[A](value: A, size: Int): Option[WithSize[A]] = {
-        for {
-          value <- Option(value)
-        } yield WithSize(value, size)
+      recordJ.timestampType() match {
+        case TimestampTypeJ.NO_TIMESTAMP_TYPE => None
+        case TimestampTypeJ.CREATE_TIME       => some(TimestampType.create)
+        case TimestampTypeJ.LOG_APPEND_TIME   => some(TimestampType.append)
       }
+    }
 
-      for {
-        partition <- Partition.of[F](self.partition())
-        offset    <- Offset.of[F](self.offset())
-      } yield {
-        ConsumerRecord(
-          topicPartition   = TopicPartition(self.topic(), partition),
-          offset           = offset,
-          timestampAndType = timestampAndType,
-          key              = withSize(self.key(), self.serializedKeySize),
-          value            = withSize(self.value(), self.serializedValueSize()),
-          headers          = headers
-        )
+    def withSize[A](value: A, size: Int): Option[WithSize[A]] = {
+      Option(value).map { value => WithSize(value, size) }
+    }
+
+    ConsumerRecord(
+      topicPartition   = TopicPartition(recordJ.topic(), Partition.of[Try](recordJ.partition()).get),
+      offset           = Offset.of[Try](recordJ.offset()).get,
+      timestampAndType = timestampAndType,
+      key              = withSize(recordJ.key(), recordJ.serializedKeySize),
+      value            = withSize(recordJ.value(), recordJ.serializedValueSize()),
+      headers          = recordJ.headers().asScala.map(_.asScala).toList
+    )
+  }
+
+  /** Converts the records without an `F` step for each record.
+    *
+    * `KafkaConsumer` returns the records already grouped by partition, in offset order, so its lists are used as they
+    * are. `ConsumerRecords` can also be built by hand with any lists, so the records are grouped by their own partition
+    * as soon as one of them is listed under another partition.
+    */
+  private def consumerRecordsOf[K, V](recordsJ: ConsumerRecordsJ[K, V]): ConsumerRecords[K, V] = {
+    if (recordsJ.isEmpty) {
+      ConsumerRecords.empty
+    } else {
+      val listed = listedRecordsOf(recordsJ)
+      if (listed.forall { case (partitionJ, records) => isListedUnderOwnPartition(partitionJ, records) }) {
+        consumerRecordsByListedPartition(listed)
+      } else {
+        consumerRecordsByOwnPartition(listed)
       }
+    }
+  }
+
+  /** Each record is converted once, and the result keeps the partition order and record order of `recordsJ`, as
+    * `recordsJ.iterator()` has them.
+    */
+  private def listedRecordsOf[K, V](
+    recordsJ: ConsumerRecordsJ[K, V]
+  ): List[(TopicPartitionJ, List[ConsumerRecord[K, V]])] = {
+    recordsJ.partitions().asScala.toList.map { partitionJ =>
+      (partitionJ, recordsJ.records(partitionJ).asScala.toList.map { consumerRecordOf(_) })
+    }
+  }
+
+  private def isListedUnderOwnPartition[K, V](
+    partitionJ: TopicPartitionJ,
+    records: List[ConsumerRecord[K, V]]
+  ): Boolean = {
+    records.forall { record =>
+      record.topicPartition.partition.value == partitionJ.partition() && record.topicPartition.topic == partitionJ
+        .topic()
+    }
+  }
+
+  private def consumerRecordsByListedPartition[K, V](
+    listed: List[(TopicPartitionJ, List[ConsumerRecord[K, V]])]
+  ): ConsumerRecords[K, V] = {
+    val builder = SortedMap.newBuilder[TopicPartition, Nel[ConsumerRecord[K, V]]](Order[TopicPartition].toOrdering)
+    listed.foreach {
+      case (_, records) =>
+        Nel.fromList(records).foreach { records => builder.addOne((records.head.topicPartition, records)) }
+    }
+    ConsumerRecords(builder.result())
+  }
+
+  private def consumerRecordsByOwnPartition[K, V](
+    listed: List[(TopicPartitionJ, List[ConsumerRecord[K, V]])]
+  ): ConsumerRecords[K, V] = {
+    Nel.fromList(listed.flatMap { case (_, records) => records }).fold(ConsumerRecords.empty[K, V]) { records =>
+      ConsumerRecords(records.groupBy { _.topicPartition })
     }
   }
 
@@ -163,17 +226,7 @@ object ConsumerConverters {
   implicit class ConsumerRecordsJOps[K, V](val self: ConsumerRecordsJ[K, V]) extends AnyVal {
 
     def asScala[F[_]: MonadThrowable]: F[ConsumerRecords[K, V]] = {
-      self
-        .iterator()
-        .asScala
-        .toList
-        .traverse { _.asScala[F] }
-        .map { records =>
-          Nel
-            .fromList(records)
-            .map { records => ConsumerRecords(records.groupBy { _.topicPartition }) }
-            .getOrElse(ConsumerRecords.empty)
-        }
+      deferred[F, ConsumerRecords[K, V]] { consumerRecordsOf(self) }
     }
   }
 

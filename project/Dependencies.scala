@@ -20,7 +20,7 @@ object Dependencies {
 
   val lz4    = "at.yawk.lz4"       % "lz4-java"    % "1.14.1"
   val snappy = "org.xerial.snappy" % "snappy-java" % "1.1.10.12"
-  val zstd   = "com.github.luben"  % "zstd-jni"    % "1.5.7-29"
+  val zstd   = "com.github.luben"  % "zstd-jni"    % "1.6.0-1"
 
   object Jackson {
     private val version = "2.23.0"

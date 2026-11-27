@@ -5,8 +5,6 @@ import cats.implicits.*
 import cats.kernel.Order
 import com.evolutiongaming.catshelper.ApplicativeThrowable
 
-import scala.util.Try
-
 sealed abstract case class Partition(value: Int) {
 
   override def toString: String = value.toString
@@ -29,18 +27,24 @@ object Partition {
   implicit val eqPartition: Eq[Partition] = Eq.fromUniversalEquals
 
   def of[F[_]: ApplicativeThrowable](value: Int): F[Partition] = {
-    if (value < min.value) {
-      SkafkaError(s"invalid Partition of $value, it must be greater or equal to $min").raiseError[F, Partition]
-    } else if (value > max.value) {
-      SkafkaError(s"invalid Partition of $value, it must be less or equal to $max").raiseError[F, Partition]
-    } else if (value == min.value) {
-      min.pure[F]
-    } else if (value == max.value) {
-      max.pure[F]
-    } else {
-      (new Impl(value): Partition).pure[F]
-    }
+    ApplicativeThrowable[F].catchNonFatal { unsafeOf(value) }
   }
 
-  def unsafe[A](value: A)(implicit numeric: Numeric[A]): Partition = of[Try](numeric.toInt(value)).get
+  def unsafe[A](value: A)(implicit numeric: Numeric[A]): Partition = unsafeOf(numeric.toInt(value))
+
+  /** Throws [[SkafkaError]] if `value` is out of range.
+    */
+  private[skafka] def unsafeOf(value: Int): Partition = {
+    if (value < min.value) {
+      throw SkafkaError(s"invalid Partition of $value, it must be greater or equal to $min")
+    } else if (value > max.value) {
+      throw SkafkaError(s"invalid Partition of $value, it must be less or equal to $max")
+    } else if (value == min.value) {
+      min
+    } else if (value == max.value) {
+      max
+    } else {
+      new Impl(value)
+    }
+  }
 }

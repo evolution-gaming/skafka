@@ -119,8 +119,8 @@ object ConsumerConverters {
     }
 
     ConsumerRecord(
-      topicPartition   = TopicPartition(recordJ.topic(), Partition.of[Try](recordJ.partition()).get),
-      offset           = Offset.of[Try](recordJ.offset()).get,
+      topicPartition   = TopicPartition(recordJ.topic(), Partition.unsafeOf(recordJ.partition())),
+      offset           = Offset.unsafeOf(recordJ.offset()),
       timestampAndType = timestampAndType,
       key              = withSize(recordJ.key(), recordJ.serializedKeySize),
       value            = withSize(recordJ.value(), recordJ.serializedValueSize()),

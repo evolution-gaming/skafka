@@ -34,14 +34,14 @@ One operation converts one poll result of `recordsPerPoll` records.
 
 | Benchmark | recordsPerPoll | Score | Allocation |
 | --- | ---: | ---: | ---: |
-| `ioRuntime` | 1 | 3 496 658 ± 471 836 | 1 083 |
-| `ioRuntime` | 25 | 348 586 ± 2 550 | 16 859 |
-| `ioRuntime` | 500 | 30 402 ± 1 097 | 262 764 |
-| `ioRuntime` | 3000 | 6 033 ± 125 | 1 464 197 |
-| `tryEffect` | 1 | 5 280 448 ± 53 561 | 1 080 |
-| `tryEffect` | 25 | 392 945 ± 2 929 | 16 296 |
-| `tryEffect` | 500 | 30 363 ± 776 | 262 760 |
-| `tryEffect` | 3000 | 6 002 ± 38 | 1 463 658 |
+| `ioRuntime` | 1 | 4 430 552 ± 515 642 | 795 |
+| `ioRuntime` | 25 | 404 780 ± 13 655 | 14 043 |
+| `ioRuntime` | 500 | 35 803 ± 1 262 | 233 731 |
+| `ioRuntime` | 3000 | 6 518 ± 80 | 1 390 780 |
+| `tryEffect` | 1 | 10 097 098 ± 128 276 | 704 |
+| `tryEffect` | 25 | 423 630 ± 4 176 | 14 248 |
+| `tryEffect` | 500 | 37 450 ± 712 | 233 552 |
+| `tryEffect` | 3000 | 6 430 ± 67 | 1 390 432 |
 
 Replace this table when the baseline moves. The before and after of a single change belong in the description of the
 pull request that makes it.

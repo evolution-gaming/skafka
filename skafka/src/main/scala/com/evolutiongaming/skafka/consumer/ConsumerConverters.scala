@@ -2,7 +2,7 @@ package com.evolutiongaming.skafka.consumer
 
 import java.lang.Long as LongJ
 import java.time.Instant
-import java.util.{Collection as CollectionJ, Map as MapJ}
+import java.util.{Collection as CollectionJ, List as ListJ, Map as MapJ}
 
 import cats.Order
 import cats.data.{NonEmptyList as Nel, NonEmptyMap as Nem, NonEmptySet as Nes}
@@ -25,6 +25,7 @@ import org.apache.kafka.common.record.TimestampType as TimestampTypeJ
 import org.apache.kafka.common.TopicPartition as TopicPartitionJ
 
 import scala.collection.immutable.SortedMap
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.*
 import scala.util.Try
 
@@ -153,9 +154,17 @@ object ConsumerConverters {
   private def listedRecordsOf[K, V](
     recordsJ: ConsumerRecordsJ[K, V]
   ): List[(TopicPartitionJ, List[ConsumerRecord[K, V]])] = {
-    recordsJ.partitions().asScala.toList.map { partitionJ =>
-      (partitionJ, recordsJ.records(partitionJ).asScala.toList.map { consumerRecordOf(_) })
+    val listed = ListBuffer.empty[(TopicPartitionJ, List[ConsumerRecord[K, V]])]
+    recordsJ.partitions().forEach { partitionJ =>
+      listed += ((partitionJ, convertedRecordsOf(recordsJ.records(partitionJ))))
     }
+    listed.toList
+  }
+
+  private def convertedRecordsOf[K, V](recordsJ: ListJ[ConsumerRecordJ[K, V]]): List[ConsumerRecord[K, V]] = {
+    val records = ListBuffer.empty[ConsumerRecord[K, V]]
+    recordsJ.forEach { recordJ => records += consumerRecordOf(recordJ) }
+    records.toList
   }
 
   private def isListedUnderOwnPartition[K, V](
@@ -168,13 +177,15 @@ object ConsumerConverters {
     }
   }
 
+  private val topicPartitionOrdering: Ordering[TopicPartition] = Order[TopicPartition].toOrdering
+
   private def consumerRecordsByListedPartition[K, V](
     listed: List[(TopicPartitionJ, List[ConsumerRecord[K, V]])]
   ): ConsumerRecords[K, V] = {
-    val builder = SortedMap.newBuilder[TopicPartition, Nel[ConsumerRecord[K, V]]](Order[TopicPartition].toOrdering)
+    val builder = SortedMap.newBuilder[TopicPartition, Nel[ConsumerRecord[K, V]]](topicPartitionOrdering)
     listed.foreach {
-      case (_, records) =>
-        Nel.fromList(records).foreach { records => builder.addOne((records.head.topicPartition, records)) }
+      case (_, head :: tail) => builder += ((head.topicPartition, Nel(head, tail)))
+      case (_, Nil)          => ()
     }
     ConsumerRecords(builder.result())
   }

@@ -5,8 +5,6 @@ import cats.implicits.*
 import cats.kernel.Order
 import com.evolutiongaming.catshelper.ApplicativeThrowable
 
-import scala.util.Try
-
 sealed abstract case class Offset(value: Long) {
 
   override def toString: String = value.toString
@@ -25,18 +23,24 @@ object Offset {
   implicit val orderOffset: Order[Offset] = Order.fromOrdering
 
   def of[F[_]: ApplicativeThrowable](value: Long): F[Offset] = {
-    if (value < min.value) {
-      SkafkaError(s"invalid Offset of $value, it must be greater or equal to $min").raiseError[F, Offset]
-    } else if (value > max.value) {
-      SkafkaError(s"invalid Offset of $value, it must be less or equal to $max").raiseError[F, Offset]
-    } else if (value == min.value) {
-      min.pure[F]
-    } else if (value == max.value) {
-      max.pure[F]
-    } else {
-      new Offset(value) {}.pure[F]
-    }
+    ApplicativeThrowable[F].catchNonFatal { unsafeOf(value) }
   }
 
-  def unsafe[A](value: A)(implicit numeric: Numeric[A]): Offset = of[Try](numeric.toLong(value)).get
+  def unsafe[A](value: A)(implicit numeric: Numeric[A]): Offset = unsafeOf(numeric.toLong(value))
+
+  /** Throws [[SkafkaError]] if `value` is out of range.
+    */
+  private[skafka] def unsafeOf(value: Long): Offset = {
+    if (value < min.value) {
+      throw SkafkaError(s"invalid Offset of $value, it must be greater or equal to $min")
+    } else if (value > max.value) {
+      throw SkafkaError(s"invalid Offset of $value, it must be less or equal to $max")
+    } else if (value == min.value) {
+      min
+    } else if (value == max.value) {
+      max
+    } else {
+      new Offset(value) {}
+    }
+  }
 }

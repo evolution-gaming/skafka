@@ -149,6 +149,20 @@ lazy val `metrics-prometheus-v1` = project
   .settings(name := "skafka-metrics-prometheus-v1")
   .settings(organization := "com.evolution")
 
+// Not aggregated, so `sbt test` and CI never run it. See benchmark/README.md.
+lazy val benchmark = project
+  .in(file("benchmark"))
+  .enablePlugins(JmhPlugin)
+  .disablePlugins(MimaPlugin)
+  .settings(commonSettings)
+  .settings(
+    name := "skafka-benchmark",
+    publish / skip := true,
+    publishArtifact := false,
+    crossScalaVersions := Seq("2.13.18"),
+  )
+  .dependsOn(skafka)
+
 lazy val tests = project
   .in(file("tests"))
   .settings(name := "skafka-tests")
